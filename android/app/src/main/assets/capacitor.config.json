@@ -1,0 +1,13 @@
+{
+	"appId": "org.noor.alquran",
+	"appName": "نور القرآن",
+	"webDir": "public",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": true
+	},
+	"android": {
+		"allowMixedContent": true,
+		"backgroundColor": "#123B2A"
+	}
+}
