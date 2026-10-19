@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'org.noor.alquran',
   appName: 'نور القرآن',
-  webDir: 'out',
+  webDir: 'public',
   server: {
     androidScheme: 'https',
     cleartext: true,
