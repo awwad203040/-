@@ -354,6 +354,153 @@ export default function HomePage() {
                 ))}
               </select>
             </div>
+
+            {/* Repetition & Segment Looping Controls (تكرار التلاوة وتحديد المقاطع) */}
+            <div className="mt-3 pt-2.5 border-t border-white/15">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-[#C8A85B] flex items-center gap-1.5">
+                  <span className="text-base">🔁</span>
+                  <span>تكرار التلاوة للحفظ:</span>
+                </span>
+                {audio.repeatCount > 1 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C8A85B] text-[#123B2A] font-extrabold shadow-sm animate-pulse">
+                    {audio.repeatCount === 999
+                      ? 'تكرار مستمر ∞'
+                      : `متبقي: ${audio.remainingRepeats} من ${audio.repeatCount} مرات`}
+                  </span>
+                )}
+              </div>
+
+              {/* Repetition Quick Preset Badges */}
+              <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+                {[
+                  { count: 1, label: 'مرة واحدة' },
+                  { count: 3, label: '3 مرات (للحفظ)' },
+                  { count: 5, label: '5 مرات' },
+                  { count: 7, label: '7 مرات' },
+                  { count: 10, label: '10 مرات' },
+                  { count: 999, label: 'مستمر ∞' },
+                ].map((item) => {
+                  const isSelected = audio.repeatCount === item.count;
+                  return (
+                    <button
+                      key={item.count}
+                      type="button"
+                      onClick={() => audio.setRepeatCount(item.count)}
+                      className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-2 ring-[#C8A85B]/40'
+                          : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Segment Looping (A-B Loop) & Quick Seek */}
+              <div className="bg-[#123B2A]/90 rounded-xl p-2.5 border border-[#C8A85B]/30 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-[11px] text-white/90">
+                  <span className="font-bold flex items-center gap-1 text-[#C8A85B]">
+                    <span>✂️</span>
+                    <span>تكرار مقطع مخصص (A-B):</span>
+                  </span>
+                  <div className="flex items-center gap-2 font-mono text-[10px] text-emerald-300">
+                    <span>
+                      [A]:{' '}
+                      {audio.segmentA !== null
+                        ? `${Math.floor(audio.segmentA / 60)}:${Math.floor(audio.segmentA % 60)
+                            .toString()
+                            .padStart(2, '0')}`
+                        : '--:--'}
+                    </span>
+                    <span>➜</span>
+                    <span>
+                      [B]:{' '}
+                      {audio.segmentB !== null
+                        ? `${Math.floor(audio.segmentB / 60)}:${Math.floor(audio.segmentB % 60)
+                            .toString()
+                            .padStart(2, '0')}`
+                        : '--:--'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => audio.setSegmentA()}
+                    className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 text-center transition cursor-pointer"
+                    title="تحديد موضع بداية المقطع"
+                  >
+                    📍 [A] بداية
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => audio.setSegmentB()}
+                    className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 text-center transition cursor-pointer"
+                    title="تحديد موضع نهاية المقطع"
+                  >
+                    🎯 [B] نهاية
+                  </button>
+                  <button
+                    type="button"
+                    onClick={audio.toggleSegmentLoop}
+                    disabled={audio.segmentA === null || audio.segmentB === null}
+                    className={`py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold text-center transition cursor-pointer border ${
+                      audio.isSegmentLooping
+                        ? 'bg-emerald-500 text-white border-emerald-400 font-extrabold shadow-sm animate-pulse'
+                        : audio.segmentA !== null && audio.segmentB !== null
+                        ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B]'
+                        : 'bg-white/5 text-white/40 border-white/10 cursor-not-allowed'
+                    }`}
+                    title="تفعيل أو إيقاف تكرار المقطع المحدد"
+                  >
+                    {audio.isSegmentLooping ? '🔁 شغال' : '🔁 تكرار'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={audio.clearSegment}
+                    disabled={audio.segmentA === null && audio.segmentB === null}
+                    className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 text-center transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="إلغاء تحديد المقطع"
+                  >
+                    ✕ مسح
+                  </button>
+                </div>
+
+                {/* Quick 15s Preset & Skip buttons */}
+                <div className="flex items-center justify-between pt-1 border-t border-white/10 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => audio.quickLoopLast(15)}
+                    className="px-2 py-1 rounded bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] font-bold transition cursor-pointer border border-[#C8A85B]/30"
+                    title="تكرار آخر 15 ثانية تلقائياً 3 مرات"
+                  >
+                    ↺ كرر آخر 15 ثانية (3x)
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => audio.skipTime(-5)}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 cursor-pointer"
+                      title="ترجيع 5 ثواني"
+                    >
+                      ⟲ -5ث
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => audio.skipTime(5)}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 cursor-pointer"
+                      title="تقديم 5 ثواني"
+                    >
+                      ⟳ +5ث
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -636,10 +783,21 @@ export default function HomePage() {
           reciterName={audio.reciterName}
           playbackRate={audio.playbackRate}
           isRepeat={audio.isRepeat}
+          repeatCount={audio.repeatCount}
+          remainingRepeats={audio.remainingRepeats}
+          segmentA={audio.segmentA}
+          segmentB={audio.segmentB}
+          isSegmentLooping={audio.isSegmentLooping}
           onTogglePlay={audio.togglePlayPause}
           onSeek={audio.seek}
           onSetSpeed={audio.setPlaybackRate}
           onToggleRepeat={audio.toggleRepeat}
+          onSetRepeatCount={audio.setRepeatCount}
+          onSetSegmentA={() => audio.setSegmentA()}
+          onSetSegmentB={() => audio.setSegmentB()}
+          onClearSegment={audio.clearSegment}
+          onToggleSegmentLoop={audio.toggleSegmentLoop}
+          onSkip={audio.skipTime}
           onClose={audio.stop}
           onOpenReciterSelect={() => setShowReciterModal(true)}
         />

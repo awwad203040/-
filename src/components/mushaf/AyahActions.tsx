@@ -7,6 +7,7 @@ interface AyahActionsProps {
   isBookmarked: boolean;
   onClose: () => void;
   onPlay: () => void;
+  onPlayRepeat?: (count: number) => void;
   onCorrection: () => void;
   onTafsir: () => void;
   onBookmark: () => void;
@@ -20,6 +21,7 @@ export default function AyahActions({
   isBookmarked,
   onClose,
   onPlay,
+  onPlayRepeat,
   onCorrection,
   onTafsir,
   onBookmark,
@@ -29,6 +31,11 @@ export default function AyahActions({
 }: AyahActionsProps) {
   const actions = [
     { label: 'تشغيل', icon: '▶', onClick: onPlay },
+    {
+      label: 'تكرار (3 مرات للحفظ)',
+      icon: '🔁',
+      onClick: () => (onPlayRepeat ? onPlayRepeat(3) : onPlay()),
+    },
     { label: 'تصحيح التلاوة', icon: '🎙️', onClick: onCorrection },
     { label: 'تفسير', icon: '📖', onClick: onTafsir },
     { label: isBookmarked ? 'إزالة العلامة' : 'حفظ علامة', icon: '🔖', onClick: onBookmark },

@@ -260,6 +260,16 @@ function MushafReaderInner() {
     setSelectedVerse(null);
   }, [audio, settings.selectedReciterId]);
 
+  const handlePlayRepeatVerse = useCallback((verse: Verse, count: number = 3) => {
+    const chNum = getChapterNumber(verse);
+    const surahName = SURAH_NAMES[chNum] || `سورة ${chNum}`;
+    const reciter = POPULAR_RECITERS.find((r) => r.id === (settings.selectedReciterId || 7));
+    const reciterName = reciter?.name || 'مشاري راشد العفاسي';
+    audio.setRepeatCount(count);
+    audio.loadAndPlay(chNum, settings.selectedReciterId || 7, surahName, reciterName, verse.verseKey);
+    setSelectedVerse(null);
+  }, [audio, settings.selectedReciterId]);
+
   const handleOpenTafsir = useCallback((verse: Verse) => {
     setTafsirVerse(verse);
     setShowTafsir(true);
@@ -641,10 +651,21 @@ function MushafReaderInner() {
           reciterName={audio.reciterName}
           playbackRate={audio.playbackRate}
           isRepeat={audio.isRepeat}
+          repeatCount={audio.repeatCount}
+          remainingRepeats={audio.remainingRepeats}
+          segmentA={audio.segmentA}
+          segmentB={audio.segmentB}
+          isSegmentLooping={audio.isSegmentLooping}
           onTogglePlay={audio.togglePlayPause}
           onSeek={audio.seek}
           onSetSpeed={audio.setPlaybackRate}
           onToggleRepeat={audio.toggleRepeat}
+          onSetRepeatCount={audio.setRepeatCount}
+          onSetSegmentA={() => audio.setSegmentA()}
+          onSetSegmentB={() => audio.setSegmentB()}
+          onClearSegment={audio.clearSegment}
+          onToggleSegmentLoop={audio.toggleSegmentLoop}
+          onSkip={audio.skipTime}
           onClose={audio.stop}
           onOpenReciterSelect={() => setShowReciterSelect(true)}
         />
@@ -657,6 +678,7 @@ function MushafReaderInner() {
           isBookmarked={checkIsBookmarked(getChapterNumber(selectedVerse), selectedVerse.verseNumber)}
           onClose={() => setSelectedVerse(null)}
           onPlay={() => handlePlayVerse(selectedVerse)}
+          onPlayRepeat={(count) => handlePlayRepeatVerse(selectedVerse, count)}
           onCorrection={() => handleOpenCorrection(selectedVerse)}
           onTafsir={() => handleOpenTafsir(selectedVerse)}
           onBookmark={() => handleVerseBookmark(selectedVerse)}
