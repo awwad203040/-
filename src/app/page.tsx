@@ -30,7 +30,8 @@ export default function HomePage() {
   const [showReciterModal, setShowReciterModal] = useState(false);
   const [showAthkarModal, setShowAthkarModal] = useState(false);
 
-  useEffect(() => {
+  // Refresh reading progress freshly from localStorage
+  const refreshProgress = useCallback(() => {
     const prog = getReadingProgress();
     setProgress(prog);
     setBookmarks(getBookmarks());
@@ -43,6 +44,36 @@ export default function HomePage() {
       setSelectedSurahForAudio(prog.surahNumber);
     }
   }, []);
+
+  useEffect(() => {
+    refreshProgress();
+    const handleFocus = () => refreshProgress();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshProgress();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('pageshow', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [refreshProgress]);
+
+  // Navigate directly to the last saved read page
+  const handleContinueReading = useCallback(() => {
+    const saved = getReadingProgress();
+    const targetPage =
+      saved && saved.pageNumber >= 1 && saved.pageNumber <= 604
+        ? saved.pageNumber
+        : progress && progress.pageNumber >= 1 && progress.pageNumber <= 604
+        ? progress.pageNumber
+        : 1;
+    router.push(`/mushaf?page=${targetPage}`);
+  }, [progress, router]);
 
   // Keep selectedSurahForAudio synchronized when audio plays a different surah (e.g. auto next)
   useEffect(() => {
@@ -202,10 +233,7 @@ export default function HomePage() {
           {/* Reading Progress Card (Clickable: Navigates to last read page) */}
           <button
             type="button"
-            onClick={() => {
-              const targetPage = progress && progress.pageNumber > 0 ? progress.pageNumber : 1;
-              router.push(`/mushaf?page=${targetPage}`);
-            }}
+            onClick={handleContinueReading}
             className="w-full text-right rounded-2xl p-5 mb-4 border border-white/15 bg-white/10 hover:bg-white/15 hover:border-[#C8A85B]/60 transition-all active:scale-[0.99] cursor-pointer shadow-md group block"
             aria-label={`الذهاب إلى صفحة التلاوة ${progress?.pageNumber ? `صفحة ${progress.pageNumber}` : 'صفحة 1'}`}
             title="اضغط للانتقال مباشرة إلى الصفحة التي وقفت عندها في التلاوة"
@@ -242,7 +270,7 @@ export default function HomePage() {
                 {pagesRead} صفحة مقروءة • 604 صفحة
               </span>
               <span className="text-[#C8A85B] font-bold text-[11px] flex items-center gap-1 group-hover:underline">
-                <span>اضغط للمتابعة من حيث وقفت</span>
+                <span>{progress && progress.pageNumber > 0 ? `اضغط للمتابعة من صفحة ${progress.pageNumber}` : 'اضغط للبدء في القراءة'}</span>
                 <span>←</span>
               </span>
             </div>
@@ -251,7 +279,8 @@ export default function HomePage() {
           {/* Continue Reading Button */}
           {progress && progress.pageNumber > 0 ? (
             <button
-              onClick={() => router.push(`/mushaf?page=${progress.pageNumber}`)}
+              type="button"
+              onClick={handleContinueReading}
               className="w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-transform active:scale-[0.98] shadow-lg mb-4 cursor-pointer"
               style={{
                 backgroundColor: '#C8A85B',
@@ -266,7 +295,8 @@ export default function HomePage() {
             </button>
           ) : (
             <button
-              onClick={() => router.push('/mushaf?page=1')}
+              type="button"
+              onClick={handleContinueReading}
               className="w-full py-4 rounded-2xl font-bold text-lg transition-transform active:scale-[0.98] shadow-lg mb-4 cursor-pointer"
               style={{
                 backgroundColor: '#C8A85B',

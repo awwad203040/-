@@ -12,6 +12,7 @@ import {
   addBookmark,
   removeBookmark,
   isBookmarked as checkIsBookmarked,
+  getReadingProgress,
   saveReadingProgress,
   addPageVisited,
   getPagesVisited,
@@ -46,11 +47,42 @@ function getChapterNumber(verse: Verse): number {
 function MushafReaderInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialPage = Math.max(1, Math.min(604, parseInt(searchParams.get('page') || '1', 10) || 1));
+  const pageParam = searchParams.get('page');
+
+  // Compute starting page accurately:
+  // 1. If explicit ?page=X param in URL -> use it
+  // 2. Otherwise retrieve the last saved reading page from localStorage
+  // 3. Fallback to 1 only if neither exists
+  const initialPage = (() => {
+    if (pageParam) {
+      const parsed = parseInt(pageParam, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 604) {
+        return parsed;
+      }
+    }
+    if (typeof window !== 'undefined') {
+      const saved = getReadingProgress();
+      if (saved && saved.pageNumber >= 1 && saved.pageNumber <= 604) {
+        return saved.pageNumber;
+      }
+    }
+    return 1;
+  })();
 
   const { currentPage, verses, isLoading, error, goToPage, nextPage, previousPage, refetch } = useMushafPage(initialPage);
   const audio = useAudioPlayer();
   const autoAthkar = useAutoAthkar();
+
+  // Synchronize page when URL query param ?page= changes
+  useEffect(() => {
+    const p = searchParams.get('page');
+    if (p) {
+      const parsed = parseInt(p, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 604 && parsed !== currentPage) {
+        goToPage(parsed);
+      }
+    }
+  }, [searchParams, currentPage, goToPage]);
 
   const [settings, setSettings] = useState<UserSettings>({
     fontSize: 28,
@@ -79,9 +111,9 @@ function MushafReaderInner() {
     setBookmarks(getBookmarks());
   }, []);
 
-  // Save reading progress
+  // Save reading progress only when verses for the current page are actually loaded
   useEffect(() => {
-    if (verses.length > 0) {
+    if (verses.length > 0 && !isLoading && currentPage >= 1 && currentPage <= 604) {
       const firstVerse = verses[0];
       const chapterNum = getChapterNumber(firstVerse);
       saveReadingProgress({
@@ -94,13 +126,17 @@ function MushafReaderInner() {
       updateKhatmahProgress(currentPage);
       recordWirdProgress(1);
     }
-  }, [currentPage, verses]);
+  }, [currentPage, verses, isLoading]);
 
-  // Update URL when page changes
+  // Update URL query parameter when page changes
   useEffect(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('page', currentPage.toString());
-    window.history.replaceState({}, '', url.toString());
+    if (typeof window !== 'undefined' && currentPage >= 1 && currentPage <= 604) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('page') !== currentPage.toString()) {
+        url.searchParams.set('page', currentPage.toString());
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
   }, [currentPage]);
 
   // Night mode
