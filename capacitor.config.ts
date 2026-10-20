@@ -5,8 +5,9 @@ const config: CapacitorConfig = {
   appName: 'نور القرآن',
   webDir: 'public',
   server: {
-    androidScheme: 'https',
+    url: 'https://awwad2030.vercel.app',
     cleartext: true,
+    androidScheme: 'https',
   },
   android: {
     allowMixedContent: true,

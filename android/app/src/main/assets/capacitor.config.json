@@ -3,6 +3,7 @@
 	"appName": "نور القرآن",
 	"webDir": "public",
 	"server": {
+		"url": "https://awwad2030.vercel.app",
 		"androidScheme": "https",
 		"cleartext": true
 	},
