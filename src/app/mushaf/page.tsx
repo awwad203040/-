@@ -666,6 +666,10 @@ function MushafReaderInner() {
           onClearSegment={audio.clearSegment}
           onToggleSegmentLoop={audio.toggleSegmentLoop}
           onSkip={audio.skipTime}
+          autoPlayNext={audio.autoPlayNext}
+          onNextSurah={audio.playNextSurah}
+          onPreviousSurah={audio.playPreviousSurah}
+          onToggleAutoPlayNext={audio.toggleAutoPlayNext}
           onClose={audio.stop}
           onOpenReciterSelect={() => setShowReciterSelect(true)}
         />

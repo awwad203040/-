@@ -44,6 +44,13 @@ export default function HomePage() {
     }
   }, []);
 
+  // Keep selectedSurahForAudio synchronized when audio plays a different surah (e.g. auto next)
+  useEffect(() => {
+    if (audio.currentSurah > 0 && audio.currentSurah !== selectedSurahForAudio) {
+      setSelectedSurahForAudio(audio.currentSurah);
+    }
+  }, [audio.currentSurah, selectedSurahForAudio]);
+
   const currentReciter = POPULAR_RECITERS.find((r) => r.id === selectedReciterId) || POPULAR_RECITERS[0];
 
   // Toggle audio playback
@@ -356,27 +363,91 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Quick Surah selection for audio */}
-            <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-xs">
+            {/* Quick Surah selection for audio with Prev/Next buttons */}
+            <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="opacity-80 text-[11px] flex items-center gap-1">
                 <span>📖</span>
                 <span>سورة التلاوة:</span>
               </span>
-              <select
-                value={selectedSurahForAudio}
-                onChange={(e) => {
-                  const sNum = parseInt(e.target.value, 10);
-                  handlePlaySurah(sNum);
-                }}
-                className="bg-[#123B2A]/80 text-[#C8A85B] font-bold text-xs px-2.5 py-1 rounded-lg border border-[#C8A85B]/40 focus:outline-none cursor-pointer"
-                style={{ fontFamily: "'Tajawal', sans-serif" }}
+
+              <div className="flex items-center gap-1.5 flex-1 max-w-[240px] justify-end">
+                {/* Previous Surah button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prev = Math.max(1, selectedSurahForAudio - 1);
+                    handlePlaySurah(prev);
+                  }}
+                  disabled={selectedSurahForAudio <= 1}
+                  className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-white/10"
+                  title="السورة السابقة"
+                  aria-label="السورة السابقة"
+                >
+                  ⏮
+                </button>
+
+                <select
+                  value={selectedSurahForAudio}
+                  onChange={(e) => {
+                    const sNum = parseInt(e.target.value, 10);
+                    handlePlaySurah(sNum);
+                  }}
+                  className="flex-1 bg-[#123B2A]/80 text-[#C8A85B] font-bold text-xs px-2 py-1.5 rounded-lg border border-[#C8A85B]/40 focus:outline-none cursor-pointer truncate"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
+                  {Object.values(SURAH_METADATA).map((s) => (
+                    <option key={s.number} value={s.number} className="bg-[#123B2A] text-white">
+                      {s.number}. سورة {s.name}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Next Surah button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = Math.min(114, selectedSurahForAudio + 1);
+                    handlePlaySurah(next);
+                  }}
+                  disabled={selectedSurahForAudio >= 114}
+                  className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-white/10"
+                  title="السورة التالية"
+                  aria-label="السورة التالية"
+                >
+                  ⏭
+                </button>
+              </div>
+            </div>
+
+            {/* Auto Transition to Next Surah (الانتقال التلقائي للسورة التالية) */}
+            <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-white/90 flex items-center gap-1">
+                  <span>⏭</span>
+                  <span>الانتقال التلقائي للسورة التالية:</span>
+                </span>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${
+                    audio.autoPlayNext
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
+                      : 'bg-white/10 text-white/50 border border-white/10'
+                  }`}
+                >
+                  {audio.autoPlayNext ? 'مفعّل تلقائياً ✓' : 'متوقف'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={audio.toggleAutoPlayNext}
+                className={`text-[10px] px-2.5 py-1 rounded-lg font-bold transition cursor-pointer border ${
+                  audio.autoPlayNext
+                    ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-xs'
+                    : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
+                }`}
+                title="تفعيل أو إيقاف الانتقال التلقائي للسورة التالية بعد نهاية السورة الحالية"
               >
-                {Object.values(SURAH_METADATA).map((s) => (
-                  <option key={s.number} value={s.number} className="bg-[#123B2A] text-white">
-                    {s.number}. سورة {s.name}
-                  </option>
-                ))}
-              </select>
+                {audio.autoPlayNext ? 'إيقاف التتابع' : 'تشغيل التتابع'}
+              </button>
             </div>
 
             {/* Repetition & Segment Looping Controls (تكرار التلاوة وتحديد المقاطع) */}
@@ -822,6 +893,10 @@ export default function HomePage() {
           onClearSegment={audio.clearSegment}
           onToggleSegmentLoop={audio.toggleSegmentLoop}
           onSkip={audio.skipTime}
+          autoPlayNext={audio.autoPlayNext}
+          onNextSurah={audio.playNextSurah}
+          onPreviousSurah={audio.playPreviousSurah}
+          onToggleAutoPlayNext={audio.toggleAutoPlayNext}
           onClose={audio.stop}
           onOpenReciterSelect={() => setShowReciterModal(true)}
         />

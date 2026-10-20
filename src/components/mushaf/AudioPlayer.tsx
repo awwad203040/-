@@ -16,6 +16,7 @@ interface AudioPlayerProps {
   segmentA?: number | null;
   segmentB?: number | null;
   isSegmentLooping?: boolean;
+  autoPlayNext?: boolean;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onSetSpeed: (speed: number) => void;
@@ -26,6 +27,9 @@ interface AudioPlayerProps {
   onClearSegment?: () => void;
   onToggleSegmentLoop?: () => void;
   onSkip?: (seconds: number) => void;
+  onNextSurah?: () => void;
+  onPreviousSurah?: () => void;
+  onToggleAutoPlayNext?: () => void;
   onClose: () => void;
   onOpenReciterSelect?: () => void;
 }
@@ -51,6 +55,7 @@ export default function AudioPlayer({
   segmentA = null,
   segmentB = null,
   isSegmentLooping = false,
+  autoPlayNext = true,
   onTogglePlay,
   onSeek,
   onSetSpeed,
@@ -61,6 +66,9 @@ export default function AudioPlayer({
   onClearSegment,
   onToggleSegmentLoop,
   onSkip,
+  onNextSurah,
+  onPreviousSurah,
+  onToggleAutoPlayNext,
   onClose,
   onOpenReciterSelect,
 }: AudioPlayerProps) {
@@ -251,16 +259,29 @@ export default function AudioPlayer({
             </button>
           )}
 
-          {/* Skip Forward 5s */}
+          {/* Previous Surah Button */}
+          {onPreviousSurah && (
+            <button
+              type="button"
+              onClick={onPreviousSurah}
+              className="p-1.5 md:p-2 rounded-full hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer text-xs font-bold"
+              title="السورة السابقة"
+              aria-label="السورة السابقة"
+            >
+              ⏮
+            </button>
+          )}
+
+          {/* Skip Backward 5s */}
           {onSkip && (
             <button
               type="button"
-              onClick={() => onSkip(5)}
+              onClick={() => onSkip(-5)}
               className="p-1.5 md:p-2 rounded-full hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer text-xs font-bold"
-              title="تقديم 5 ثوانٍ"
-              aria-label="تقديم 5 ثوانٍ"
+              title="ترجيع 5 ثوانٍ"
+              aria-label="ترجيع 5 ثوانٍ"
             >
-              ↻ 5ث
+              ⟲ 5ث
             </button>
           )}
 
@@ -286,6 +307,49 @@ export default function AudioPlayer({
               </svg>
             )}
           </button>
+
+          {/* Skip Forward 5s */}
+          {onSkip && (
+            <button
+              type="button"
+              onClick={() => onSkip(5)}
+              className="p-1.5 md:p-2 rounded-full hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer text-xs font-bold"
+              title="تقديم 5 ثوانٍ"
+              aria-label="تقديم 5 ثوانٍ"
+            >
+              ⟳ 5ث
+            </button>
+          )}
+
+          {/* Next Surah Button */}
+          {onNextSurah && (
+            <button
+              type="button"
+              onClick={onNextSurah}
+              className="p-1.5 md:p-2 rounded-full hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer text-xs font-bold"
+              title="السورة التالية"
+              aria-label="السورة التالية"
+            >
+              ⏭
+            </button>
+          )}
+
+          {/* Auto-Play Next Surah Toggle */}
+          {onToggleAutoPlayNext && (
+            <button
+              type="button"
+              onClick={onToggleAutoPlayNext}
+              className={`p-1.5 md:p-2 rounded-xl transition-all text-[11px] font-bold border cursor-pointer ${
+                autoPlayNext
+                  ? 'bg-emerald-500/25 text-emerald-300 border-emerald-400'
+                  : 'bg-white/5 text-white/40 border-transparent hover:text-white hover:bg-white/10'
+              }`}
+              title={autoPlayNext ? 'الانتقال التلقائي للسورة التالية: مفعّل' : 'الانتقال التلقائي للسورة التالية: متوقف'}
+              aria-label="الانتقال التلقائي للسورة التالية"
+            >
+              {autoPlayNext ? '⏭ تتابع' : '⏭ توقف'}
+            </button>
+          )}
 
           {/* Speed Button */}
           <button
