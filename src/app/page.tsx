@@ -1,28 +1,106 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReadingProgress, Bookmark } from '@/types/quran';
-import { getReadingProgress, getBookmarks, getPagesVisited } from '@/lib/storage';
-import { SURAH_METADATA, JUZ_METADATA } from '@/lib/quran-meta';
+import { getReadingProgress, getBookmarks, getPagesVisited, getSettings, saveSettings } from '@/lib/storage';
+import { SURAH_METADATA, JUZ_METADATA, POPULAR_RECITERS, getSurahName } from '@/lib/quran-meta';
 import KhatmahTracker from '@/components/mushaf/KhatmahTracker';
 import RecitationPracticeHub from '@/components/home/RecitationPracticeHub';
 import InstallAppModal from '@/components/home/InstallAppModal';
+import AudioPlayerComponent from '@/components/mushaf/AudioPlayer';
+import ReciterModal from '@/components/mushaf/ReciterModal';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 
 export default function HomePage() {
   const router = useRouter();
+  const audio = useAudioPlayer();
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [pagesRead, setPagesRead] = useState(0);
   const [activeTab, setActiveTab] = useState<'surahs' | 'juz' | 'khatmah' | 'correction' | 'bookmarks'>('surahs');
   const [searchQuery, setSearchQuery] = useState('');
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const [selectedReciterId, setSelectedReciterId] = useState<number>(7);
+  const [selectedSurahForAudio, setSelectedSurahForAudio] = useState<number>(1);
+  const [showReciterModal, setShowReciterModal] = useState(false);
 
   useEffect(() => {
-    setProgress(getReadingProgress());
+    const prog = getReadingProgress();
+    setProgress(prog);
     setBookmarks(getBookmarks());
     setPagesRead(getPagesVisited().length);
+    const settings = getSettings();
+    if (settings.selectedReciterId) {
+      setSelectedReciterId(settings.selectedReciterId);
+    }
+    if (prog?.surahNumber) {
+      setSelectedSurahForAudio(prog.surahNumber);
+    }
   }, []);
+
+  const currentReciter = POPULAR_RECITERS.find((r) => r.id === selectedReciterId) || POPULAR_RECITERS[0];
+
+  // Toggle audio playback
+  const handleTogglePlay = useCallback(() => {
+    if (audio.isPlaying) {
+      audio.pause();
+    } else if (audio.currentSurah === selectedSurahForAudio && audio.currentTime > 0) {
+      audio.play();
+    } else {
+      const sName = getSurahName(selectedSurahForAudio);
+      audio.loadAndPlay(
+        selectedSurahForAudio,
+        selectedReciterId,
+        sName,
+        currentReciter.name
+      );
+    }
+  }, [audio, selectedSurahForAudio, selectedReciterId, currentReciter.name]);
+
+  // Reciter change handler
+  const handleReciterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newId = parseInt(e.target.value, 10);
+    setSelectedReciterId(newId);
+    saveSettings({ selectedReciterId: newId });
+    const newReciter = POPULAR_RECITERS.find((r) => r.id === newId) || POPULAR_RECITERS[0];
+    if (audio.isPlaying) {
+      const targetSurah = audio.currentSurah || selectedSurahForAudio;
+      audio.loadAndPlay(
+        targetSurah,
+        newId,
+        getSurahName(targetSurah),
+        newReciter.name
+      );
+    }
+  }, [audio, selectedSurahForAudio]);
+
+  // Play specific surah
+  const handlePlaySurah = useCallback((surahNumber: number) => {
+    setSelectedSurahForAudio(surahNumber);
+    const sName = getSurahName(surahNumber);
+    if (audio.isPlaying && audio.currentSurah === surahNumber) {
+      audio.pause();
+    } else {
+      audio.loadAndPlay(
+        surahNumber,
+        selectedReciterId,
+        sName,
+        currentReciter.name
+      );
+    }
+  }, [audio, selectedReciterId, currentReciter.name]);
+
+  // Select reciter from modal
+  const handleSelectReciterFromModal = useCallback((id: number, name: string) => {
+    setSelectedReciterId(id);
+    saveSettings({ selectedReciterId: id });
+    setShowReciterModal(false);
+    if (audio.isPlaying) {
+      const targetSurah = audio.currentSurah || selectedSurahForAudio;
+      audio.loadAndPlay(targetSurah, id, getSurahName(targetSurah), name);
+    }
+  }, [audio, selectedSurahForAudio]);
 
   const percentage = Math.round((pagesRead / 604) * 1000) / 10;
 
@@ -38,7 +116,7 @@ export default function HomePage() {
   });
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FBF8EF' }}>
+    <div className={`min-h-screen ${audio.currentSurah > 0 ? 'pb-28' : 'pb-8'}`} style={{ backgroundColor: '#FBF8EF' }}>
       {/* Header */}
       <header
         className="px-6 pt-8 pb-6 shadow-md"
@@ -101,7 +179,7 @@ export default function HomePage() {
           {progress && progress.pageNumber > 0 ? (
             <button
               onClick={() => router.push(`/mushaf?page=${progress.pageNumber}`)}
-              className="w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-transform active:scale-[0.98] shadow-lg"
+              className="w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-transform active:scale-[0.98] shadow-lg mb-4 cursor-pointer"
               style={{
                 backgroundColor: '#C8A85B',
                 color: '#123B2A',
@@ -116,7 +194,7 @@ export default function HomePage() {
           ) : (
             <button
               onClick={() => router.push('/mushaf?page=1')}
-              className="w-full py-4 rounded-2xl font-bold text-lg transition-transform active:scale-[0.98] shadow-lg"
+              className="w-full py-4 rounded-2xl font-bold text-lg transition-transform active:scale-[0.98] shadow-lg mb-4 cursor-pointer"
               style={{
                 backgroundColor: '#C8A85B',
                 color: '#123B2A',
@@ -126,6 +204,115 @@ export default function HomePage() {
               افتح المصحف الشريف
             </button>
           )}
+
+          {/* Audio Listening & Sheikh Selection Card */}
+          <div
+            className="rounded-2xl p-4 border border-[#C8A85B]/40 bg-white/10 backdrop-blur-md shadow-md"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎧</span>
+                <span className="text-sm font-bold text-[#C8A85B]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  الاستماع المباشر للقرآن الكريم
+                </span>
+              </div>
+              {audio.isPlaying && (
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>جاري الاستماع الآن</span>
+                </div>
+              )}
+            </div>
+
+            {/* Listening Icon & Sheikh Selection Field */}
+            <div className="flex items-center gap-3">
+              {/* Play / Listening Icon Button */}
+              <button
+                type="button"
+                onClick={handleTogglePlay}
+                disabled={audio.isLoading}
+                className={`w-13 h-13 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-95 shadow-lg flex-shrink-0 cursor-pointer border ${
+                  audio.isPlaying
+                    ? 'bg-[#0B5B43] text-white border-emerald-400/50 ring-4 ring-emerald-500/25 animate-pulse'
+                    : 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] hover:bg-[#d4b66d]'
+                }`}
+                aria-label={audio.isPlaying ? 'إيقاف الاستماع' : 'استمع الآن للقرآن الكريم'}
+                title={audio.isPlaying ? 'إيقاف التلاوة' : `استمع الآن بصوت الشيخ ${currentReciter.name}`}
+              >
+                {audio.isLoading ? (
+                  <div className="w-5 h-5 border-2 border-[#123B2A] border-t-transparent rounded-full animate-spin" />
+                ) : audio.isPlaying ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4" height="16" />
+                    <rect x="14" y="4" width="4" height="16" />
+                  </svg>
+                ) : (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5,3 19,12 5,21" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Sheikh Names Field (حقل أسماء المشايخ) */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-medium text-white/80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                    اختر الشيخ / القارئ:
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowReciterModal(true)}
+                    className="text-[10px] text-[#C8A85B] hover:underline cursor-pointer"
+                  >
+                    عرض جميع القراء 🔍
+                  </button>
+                </div>
+                <div className="relative">
+                  <select
+                    value={selectedReciterId}
+                    onChange={handleReciterChange}
+                    className="w-full pl-3 pr-9 py-2.5 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white text-xs md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#C8A85B] cursor-pointer shadow-inner appearance-none"
+                    style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  >
+                    {POPULAR_RECITERS.map((r) => (
+                      <option key={r.id} value={r.id} className="bg-[#123B2A] text-white py-1">
+                        الشيخ: {r.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#C8A85B] pointer-events-none">
+                    👳‍♂️
+                  </span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#C8A85B] pointer-events-none">
+                    ▾
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Surah selection for audio */}
+            <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-xs">
+              <span className="opacity-80 text-[11px] flex items-center gap-1">
+                <span>📖</span>
+                <span>سورة التلاوة:</span>
+              </span>
+              <select
+                value={selectedSurahForAudio}
+                onChange={(e) => {
+                  const sNum = parseInt(e.target.value, 10);
+                  handlePlaySurah(sNum);
+                }}
+                className="bg-[#123B2A]/80 text-[#C8A85B] font-bold text-xs px-2.5 py-1 rounded-lg border border-[#C8A85B]/40 focus:outline-none cursor-pointer"
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+              >
+                {Object.values(SURAH_METADATA).map((s) => (
+                  <option key={s.number} value={s.number} className="bg-[#123B2A] text-white">
+                    {s.number}. سورة {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -210,41 +397,75 @@ export default function HomePage() {
             </div>
 
             <div className="divide-y divide-[#123B2A]/6">
-              {filteredSurahs.map((meta) => (
-                <button
-                  key={meta.number}
-                  onClick={() => router.push(`/mushaf?page=${meta.startPage}`)}
-                  className="w-full flex items-center gap-4 px-5 py-3.5 text-right hover:bg-[#123B2A]/5 transition-colors"
-                >
+              {filteredSurahs.map((meta) => {
+                const isThisSurahPlaying = audio.isPlaying && audio.currentSurah === meta.number;
+                return (
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                    style={{ backgroundColor: 'rgba(18,59,42,0.08)', color: '#123B2A' }}
+                    key={meta.number}
+                    onClick={() => router.push(`/mushaf?page=${meta.startPage}`)}
+                    className="w-full flex items-center justify-between px-5 py-3.5 text-right hover:bg-[#123B2A]/5 transition-colors cursor-pointer group"
                   >
-                    {meta.number}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p
-                        className="font-bold text-lg text-[#17231D]"
-                        style={{ fontFamily: "'Amiri', serif" }}
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
+                        style={{ backgroundColor: 'rgba(18,59,42,0.08)', color: '#123B2A' }}
                       >
-                        سورة {meta.name}
-                      </p>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#123B2A]/8 text-[#123B2A] font-medium">
-                        {meta.revelationPlace === 'makkah' ? 'مكية' : 'مدنية'}
-                      </span>
+                        {meta.number}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p
+                            className="font-bold text-lg text-[#17231D]"
+                            style={{ fontFamily: "'Amiri', serif" }}
+                          >
+                            سورة {meta.name}
+                          </p>
+                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#123B2A]/8 text-[#123B2A] font-medium">
+                            {meta.revelationPlace === 'makkah' ? 'مكية' : 'مدنية'}
+                          </span>
+                        </div>
+                        <p className="text-xs opacity-60" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                          {meta.versesCount} آية • صفحة {meta.startPage}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs opacity-60" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                      {meta.versesCount} آية • صفحة {meta.startPage}
-                    </p>
+
+                    {/* Quick listening button for this surah */}
+                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => handlePlaySurah(meta.number)}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer border ${
+                          isThisSurahPlaying
+                            ? 'bg-[#123B2A] text-[#C8A85B] border-[#123B2A] ring-2 ring-[#C8A85B]'
+                            : 'bg-white hover:bg-[#C8A85B]/20 text-[#123B2A] border-[#123B2A]/10'
+                        }`}
+                        title={isThisSurahPlaying ? 'إيقاف الاستماع' : `استمع لسورة ${meta.name} بصوت الشيخ ${currentReciter.name}`}
+                        aria-label={`استمع لسورة ${meta.name}`}
+                        style={{ fontFamily: "'Tajawal', sans-serif" }}
+                      >
+                        {isThisSurahPlaying ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-[#C8A85B] animate-ping" />
+                            <span>إيقاف</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm">🎧</span>
+                            <span className="hidden sm:inline">استمع</span>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="text-left hidden md:block" dir="ltr">
+                        <span className="text-xs opacity-40 font-medium" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                          {meta.englishName}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-left" dir="ltr">
-                    <span className="text-xs opacity-40 font-medium" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                      {meta.englishName}
-                    </span>
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -361,6 +582,36 @@ export default function HomePage() {
         isOpen={showInstallModal}
         onClose={() => setShowInstallModal(false)}
       />
+
+      {/* Global Audio Player Bar when audio is active */}
+      {audio.currentSurah > 0 && (
+        <AudioPlayerComponent
+          isPlaying={audio.isPlaying}
+          currentTime={audio.currentTime}
+          duration={audio.duration}
+          isLoading={audio.isLoading}
+          surahName={audio.surahName}
+          reciterName={audio.reciterName}
+          playbackRate={audio.playbackRate}
+          isRepeat={audio.isRepeat}
+          onTogglePlay={audio.togglePlayPause}
+          onSeek={audio.seek}
+          onSetSpeed={audio.setPlaybackRate}
+          onToggleRepeat={audio.toggleRepeat}
+          onClose={audio.stop}
+          onOpenReciterSelect={() => setShowReciterModal(true)}
+        />
+      )}
+
+      {/* Reciter Modal for Extended List of Reciters */}
+      {showReciterModal && (
+        <ReciterModal
+          isOpen={showReciterModal}
+          selectedReciterId={selectedReciterId}
+          onSelectReciter={handleSelectReciterFromModal}
+          onClose={() => setShowReciterModal(false)}
+        />
+      )}
     </div>
   );
 }
