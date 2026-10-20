@@ -192,18 +192,37 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Reading Progress Card */}
-          <div
-            className="rounded-2xl p-5 mb-4 border border-white/10"
-            style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+          {/* Reading Progress Card (Clickable: Navigates to last read page) */}
+          <button
+            type="button"
+            onClick={() => {
+              const targetPage = progress && progress.pageNumber > 0 ? progress.pageNumber : 1;
+              router.push(`/mushaf?page=${targetPage}`);
+            }}
+            className="w-full text-right rounded-2xl p-5 mb-4 border border-white/15 bg-white/10 hover:bg-white/15 hover:border-[#C8A85B]/60 transition-all active:scale-[0.99] cursor-pointer shadow-md group block"
+            aria-label={`الذهاب إلى صفحة التلاوة ${progress?.pageNumber ? `صفحة ${progress.pageNumber}` : 'صفحة 1'}`}
+            title="اضغط للانتقال مباشرة إلى الصفحة التي وقفت عندها في التلاوة"
           >
             <div className="flex justify-between items-center mb-3">
-              <span className="text-sm opacity-90 font-medium" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                تقدمك العام في التلاوة
-              </span>
-              <span className="text-sm font-bold text-[#C8A85B]" dir="ltr">
-                {percentage}%
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-base group-hover:scale-110 transition-transform">📖</span>
+                <span className="text-sm font-bold text-white group-hover:text-[#C8A85B] transition-colors" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  تقدمك العام في القراءة
+                </span>
+                {progress && progress.pageNumber > 0 && (
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#C8A85B]/25 text-[#F7EED8] border border-[#C8A85B]/50 font-bold">
+                    صفحة {progress.pageNumber}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-[#C8A85B]" dir="ltr">
+                  {percentage}%
+                </span>
+                <span className="text-xs text-[#C8A85B] opacity-80 group-hover:translate-x-[-3px] transition-transform">
+                  ◀
+                </span>
+              </div>
             </div>
             <div className="h-2.5 rounded-full overflow-hidden bg-white/15">
               <div
@@ -211,11 +230,16 @@ export default function HomePage() {
                 style={{ width: `${percentage}%` }}
               />
             </div>
-            <div className="flex justify-between mt-2.5 text-xs opacity-70">
-              <span>{pagesRead} صفحة مقروءة</span>
-              <span>604 صفحة</span>
+            <div className="flex justify-between items-center mt-2.5 text-xs">
+              <span className="opacity-80 text-white">
+                {pagesRead} صفحة مقروءة • 604 صفحة
+              </span>
+              <span className="text-[#C8A85B] font-bold text-[11px] flex items-center gap-1 group-hover:underline">
+                <span>اضغط للمتابعة من حيث وقفت</span>
+                <span>←</span>
+              </span>
             </div>
-          </div>
+          </button>
 
           {/* Continue Reading Button */}
           {progress && progress.pageNumber > 0 ? (
