@@ -10,6 +10,11 @@ interface RecitationCorrectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateToVerse?: (verseKey: string) => void;
+  onNextVerse?: () => void;
+  onPrevVerse?: () => void;
+  hasNextVerse?: boolean;
+  hasPrevVerse?: boolean;
+  isLoadingVerse?: boolean;
   selectedReciterId?: number;
   nightMode?: boolean;
 }
@@ -18,6 +23,11 @@ export default function RecitationCorrectionModal({
   verse,
   isOpen,
   onClose,
+  onNextVerse,
+  onPrevVerse,
+  hasNextVerse = false,
+  hasPrevVerse = false,
+  isLoadingVerse = false,
   selectedReciterId = 7,
   nightMode = false,
 }: RecitationCorrectionModalProps) {
@@ -141,6 +151,52 @@ export default function RecitationCorrectionModal({
     }
   }, [isPlayingSheikh, verseKey]);
 
+  // Handle moving to next verse
+  const handleNext = useCallback(() => {
+    if (!hasNextVerse || !onNextVerse) return;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlayingSheikh(false);
+    stopListening();
+    resetRecitation();
+    onNextVerse();
+  }, [hasNextVerse, onNextVerse, stopListening, resetRecitation]);
+
+  // Handle moving to previous verse
+  const handlePrev = useCallback(() => {
+    if (!hasPrevVerse || !onPrevVerse) return;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlayingSheikh(false);
+    stopListening();
+    resetRecitation();
+    onPrevVerse();
+  }, [hasPrevVerse, onPrevVerse, stopListening, resetRecitation]);
+
+  // Keyboard navigation: ArrowLeft (forward in RTL) and ArrowRight (backward in RTL)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === 'ArrowLeft' && hasNextVerse && onNextVerse) {
+        e.preventDefault();
+        handleNext();
+      } else if (e.key === 'ArrowRight' && hasPrevVerse && onPrevVerse) {
+        e.preventDefault();
+        handlePrev();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, hasNextVerse, hasPrevVerse, onNextVerse, onPrevVerse, handleNext, handlePrev]);
+
   if (!isOpen) return null;
 
   const bgColor = nightMode ? '#0D1F17' : '#FBF8EF';
@@ -208,6 +264,65 @@ export default function RecitationCorrectionModal({
             </svg>
           </button>
         </header>
+
+        {/* Sub-header Navigation Bar: Forward to Next Verse / Backward to Previous Verse */}
+        {(onNextVerse || onPrevVerse) && (
+          <div
+            className="px-4 py-2.5 flex items-center justify-between border-b shadow-2xs shrink-0"
+            style={{
+              backgroundColor: nightMode ? '#142A1F' : '#F7F3E6',
+              borderColor: 'rgba(200,168,91,0.25)',
+            }}
+          >
+            {/* Backward / Previous Ayah Button */}
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={!hasPrevVerse || isLoadingVerse}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-[#C8A85B]/50 bg-white/70 hover:bg-[#C8A85B]/20 disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs cursor-pointer active:scale-95"
+              style={{
+                color: textColor,
+                fontFamily: "'Tajawal', sans-serif",
+              }}
+              title="الانتقال إلى الآية السابقة (الرجوع للخلف)"
+            >
+              <span className="text-sm">➡️</span>
+              <span>الآية السابقة</span>
+            </button>
+
+            {/* Current Ayah Indicator */}
+            <div className="flex items-center gap-2">
+              {isLoadingVerse ? (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8A85B]/20 text-[#123B2A] text-xs font-bold">
+                  <div className="w-3 h-3 border-2 border-[#123B2A] border-t-transparent rounded-full animate-spin" />
+                  <span>جاري التحميل...</span>
+                </div>
+              ) : (
+                <span
+                  className="text-xs font-bold px-3 py-1 rounded-full bg-[#123B2A]/10 text-[#123B2A]"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
+                  سورة {surahName} • الآية {verseKey}
+                </span>
+              )}
+            </div>
+
+            {/* Forward / Next Ayah Button */}
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!hasNextVerse || isLoadingVerse}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-[#123B2A] text-[#C8A85B] hover:bg-[#0B5B43] disabled:opacity-30 disabled:cursor-not-allowed shadow-xs cursor-pointer active:scale-95 border border-[#123B2A]"
+              style={{
+                fontFamily: "'Tajawal', sans-serif",
+              }}
+              title="الانتقال إلى الآية التالية (للأمام)"
+            >
+              <span>الآية التالية</span>
+              <span className="text-sm">⬅️</span>
+            </button>
+          </div>
+        )}
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-5">
@@ -335,18 +450,29 @@ export default function RecitationCorrectionModal({
           {/* Celebration on Success */}
           {verification.isComplete && (
             <div
-              className="p-5 rounded-2xl border flex items-center gap-3 bg-emerald-50 border-emerald-300 text-emerald-900 text-center justify-center"
+              className="p-5 rounded-2xl border flex flex-col items-center gap-3 bg-emerald-50 border-emerald-300 text-emerald-900 text-center justify-center"
               style={{ animation: 'fadeIn 0.3s ease-out' }}
             >
-              <span className="text-3xl">🎉</span>
-              <div>
+              <div className="flex items-center gap-2">
+                <span className="text-3xl">🎉</span>
                 <p className="text-base font-bold" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   ما شاء الله! تلاوة متقنة وصحيحة
                 </p>
-                <p className="text-xs text-emerald-700 mt-0.5">
-                  تمت قراءة جميع كلمات الآية بدقة عالية ({verification.accuracyPercentage}%)
-                </p>
               </div>
+              <p className="text-xs text-emerald-700">
+                تمت قراءة جميع كلمات الآية بدقة عالية ({verification.accuracyPercentage}%)
+              </p>
+              {onNextVerse && hasNextVerse && (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="mt-1 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#123B2A] text-[#C8A85B] hover:bg-[#0B5B43] flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
+                  <span>الانتقال للآية التالية للتسميع</span>
+                  <span className="text-sm">⬅️</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -433,17 +559,33 @@ export default function RecitationCorrectionModal({
             🔄 إعادة التسميع
           </button>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs cursor-pointer"
-            style={{
-              backgroundColor: '#123B2A',
-              fontFamily: "'Tajawal', sans-serif",
-            }}
-          >
-            تم وإغلاق
-          </button>
+          <div className="flex items-center gap-2">
+            {onNextVerse && hasNextVerse && (
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={isLoadingVerse}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#123B2A] hover:bg-[#C8A85B]/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shadow-2xs active:scale-95"
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+                title="الانتقال للآية التالية"
+              >
+                <span>الآية التالية</span>
+                <span>⬅️</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-xs cursor-pointer active:scale-95"
+              style={{
+                backgroundColor: '#123B2A',
+                fontFamily: "'Tajawal', sans-serif",
+              }}
+            >
+              تم وإغلاق
+            </button>
+          </div>
         </footer>
       </div>
     </>

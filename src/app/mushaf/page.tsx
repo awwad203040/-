@@ -269,6 +269,26 @@ function MushafReaderInner() {
     setSelectedVerse(null);
   }, []);
 
+  // Navigation for Recitation Correction across verses on the page
+  const currentCorrectionIndex = verses.findIndex(
+    (v) => (v.id && v.id === correctionVerse?.id) || (v.verseKey && v.verseKey === correctionVerse?.verseKey)
+  );
+
+  const handleNextCorrectionVerse = useCallback(() => {
+    if (currentCorrectionIndex >= 0 && currentCorrectionIndex < verses.length - 1) {
+      setCorrectionVerse(verses[currentCorrectionIndex + 1]);
+    }
+  }, [currentCorrectionIndex, verses]);
+
+  const handlePrevCorrectionVerse = useCallback(() => {
+    if (currentCorrectionIndex > 0) {
+      setCorrectionVerse(verses[currentCorrectionIndex - 1]);
+    }
+  }, [currentCorrectionIndex, verses]);
+
+  const hasNextCorrectionVerse = currentCorrectionIndex >= 0 && currentCorrectionIndex < verses.length - 1;
+  const hasPrevCorrectionVerse = currentCorrectionIndex > 0;
+
   const handleAddNote = useCallback((verse: Verse) => {
     setNoteVerse(verse);
     setNoteInput('');
@@ -652,6 +672,10 @@ function MushafReaderInner() {
             setShowCorrection(false);
             setCorrectionVerse(null);
           }}
+          onNextVerse={handleNextCorrectionVerse}
+          onPrevVerse={handlePrevCorrectionVerse}
+          hasNextVerse={hasNextCorrectionVerse}
+          hasPrevVerse={hasPrevCorrectionVerse}
           selectedReciterId={settings.selectedReciterId || 7}
           nightMode={settings.nightMode}
         />

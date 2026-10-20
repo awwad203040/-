@@ -30,6 +30,30 @@ export default function RecitationPracticeHub() {
 
   const surahMeta = SURAH_METADATA[selectedSurah] || SURAH_METADATA[1];
 
+  // Navigation handlers for next and previous ayah
+  const handleNextAyah = () => {
+    if (selectedAyah < surahMeta.versesCount) {
+      setSelectedAyah((prev) => prev + 1);
+    } else if (selectedSurah < 114) {
+      setSelectedSurah((prev) => prev + 1);
+      setSelectedAyah(1);
+    }
+  };
+
+  const handlePrevAyah = () => {
+    if (selectedAyah > 1) {
+      setSelectedAyah((prev) => prev - 1);
+    } else if (selectedSurah > 1) {
+      const prevSurah = selectedSurah - 1;
+      const prevMeta = SURAH_METADATA[prevSurah];
+      setSelectedSurah(prevSurah);
+      setSelectedAyah(prevMeta.versesCount);
+    }
+  };
+
+  const hasNextAyah = !(selectedSurah === 114 && selectedAyah === surahMeta.versesCount);
+  const hasPrevAyah = !(selectedSurah === 1 && selectedAyah === 1);
+
   // Fetch the selected verse when surah or ayah changes
   useEffect(() => {
     let isCancelled = false;
@@ -225,6 +249,40 @@ export default function RecitationPracticeHub() {
           )}
         </div>
 
+        {/* Verse Navigation Buttons: Forward to Next Verse / Backward to Previous Verse */}
+        <div className="flex items-center justify-between gap-2.5 pt-1">
+          {/* Previous Ayah Button */}
+          <button
+            type="button"
+            onClick={handlePrevAyah}
+            disabled={!hasPrevAyah || isLoadingVerse}
+            className="flex-1 py-3 px-3 md:px-4 rounded-2xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 border border-[#C8A85B]/50 bg-[#FBF8EF] text-[#123B2A] hover:bg-[#C8A85B]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-2xs cursor-pointer"
+            style={{ fontFamily: "'Tajawal', sans-serif" }}
+            title="الانتقال إلى الآية السابقة (الرجوع للخلف)"
+          >
+            <span className="text-base">➡️</span>
+            <span>الآية السابقة</span>
+          </button>
+
+          {/* Ayah Counter Badge */}
+          <div className="px-3 py-2 rounded-xl bg-[#123B2A]/5 text-[#123B2A] text-xs font-bold border border-[#123B2A]/10 whitespace-nowrap">
+            {selectedAyah} / {surahMeta.versesCount}
+          </div>
+
+          {/* Next Ayah Button */}
+          <button
+            type="button"
+            onClick={handleNextAyah}
+            disabled={!hasNextAyah || isLoadingVerse}
+            className="flex-1 py-3 px-3 md:px-4 rounded-2xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 bg-[#123B2A] text-[#C8A85B] hover:bg-[#0B5B43] disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-xs cursor-pointer border border-[#123B2A]"
+            style={{ fontFamily: "'Tajawal', sans-serif" }}
+            title="الانتقال إلى الآية التالية (للأمام)"
+          >
+            <span>الآية التالية</span>
+            <span className="text-base">⬅️</span>
+          </button>
+        </div>
+
         {/* Primary CTA: Start Recitation Correction */}
         <button
           onClick={() => setShowCorrectionModal(true)}
@@ -275,6 +333,11 @@ export default function RecitationPracticeHub() {
           verse={currentVerse}
           isOpen={showCorrectionModal}
           onClose={() => setShowCorrectionModal(false)}
+          onNextVerse={handleNextAyah}
+          onPrevVerse={handlePrevAyah}
+          hasNextVerse={hasNextAyah}
+          hasPrevVerse={hasPrevAyah}
+          isLoadingVerse={isLoadingVerse}
           selectedReciterId={selectedReciterId}
         />
       )}
