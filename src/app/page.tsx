@@ -128,7 +128,7 @@ export default function HomePage() {
         style={{ backgroundColor: '#123B2A', color: 'white' }}
       >
         <div className="max-w-2xl mx-auto">
-          {/* Dedication Banner: صدقة جارية لوالدي */}
+          {/* Dedication Banner: صدقة جارية لوالديا */}
           <div
             className="mb-5 mx-auto max-w-fit flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-2xl border border-[#C8A85B]/60 shadow-md transition-all"
             style={{
@@ -141,7 +141,7 @@ export default function HomePage() {
               className="text-xs sm:text-sm font-bold text-[#F7EED8] text-center tracking-wide leading-relaxed"
               style={{ fontFamily: "'Tajawal', 'Amiri', serif" }}
             >
-              صدقة جارية لوالدي أرجو الدعاء لهما بالرحمة
+              صدقة جارية لوالديا أرجو الدعاء لهما بالرحمة
             </p>
             <span className="text-[#C8A85B] text-base select-none">🤲</span>
           </div>
