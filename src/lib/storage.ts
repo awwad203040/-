@@ -1,6 +1,8 @@
 'use client';
 
 import type { Bookmark, ReadingProgress, UserSettings, Khatmah, DailyWird } from '@/types/quran';
+import type { AutoAthkarSettings } from '@/types/athkar';
+import { DEFAULT_ATHKAR_SETTINGS } from '@/types/athkar';
 
 const STORAGE_KEYS = {
   BOOKMARKS: 'noor_bookmarks',
@@ -9,6 +11,7 @@ const STORAGE_KEYS = {
   PAGES_VISITED: 'noor_pages_visited',
   KHATMAH: 'noor_khatmah',
   DAILY_WIRD: 'noor_daily_wird',
+  AUTO_ATHKAR: 'noor_auto_athkar_settings',
 } as const;
 
 function getItem<T>(key: string, fallback: T): T {
@@ -154,4 +157,14 @@ export function recordWirdProgress(pagesCount = 1): void {
     pagesRead: wird.pagesRead + pagesCount,
   };
   setItem(STORAGE_KEYS.DAILY_WIRD, updated);
+}
+
+// Auto Voice Athkar Settings
+export function getAutoAthkarSettings(): AutoAthkarSettings {
+  return getItem<AutoAthkarSettings>(STORAGE_KEYS.AUTO_ATHKAR, DEFAULT_ATHKAR_SETTINGS);
+}
+
+export function saveAutoAthkarSettings(settings: Partial<AutoAthkarSettings>): void {
+  const current = getAutoAthkarSettings();
+  setItem(STORAGE_KEYS.AUTO_ATHKAR, { ...current, ...settings });
 }

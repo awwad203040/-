@@ -33,6 +33,8 @@ import SearchModal from '@/components/mushaf/SearchModal';
 import ReciterModal from '@/components/mushaf/ReciterModal';
 import RecitationCorrectionModal from '@/components/mushaf/RecitationCorrectionModal';
 import MushafSkeleton from '@/components/mushaf/MushafSkeleton';
+import { useAutoAthkar } from '@/hooks/useAutoAthkar';
+import AthkarToast from '@/components/common/AthkarToast';
 
 
 
@@ -48,6 +50,7 @@ function MushafReaderInner() {
 
   const { currentPage, verses, isLoading, error, goToPage, nextPage, previousPage, refetch } = useMushafPage(initialPage);
   const audio = useAudioPlayer();
+  const autoAthkar = useAutoAthkar();
 
   const [settings, setSettings] = useState<UserSettings>({
     fontSize: 28,
@@ -772,6 +775,16 @@ function MushafReaderInner() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Floating Auto Voice Athkar Toast Notification */}
+      {autoAthkar.currentToast && (
+        <AthkarToast
+          thikr={autoAthkar.currentToast}
+          onDismiss={autoAthkar.dismissToast}
+          onReplay={(t) => autoAthkar.triggerThikr(t)}
+          isSpeaking={autoAthkar.isSpeaking}
+        />
       )}
     </div>
   );

@@ -11,10 +11,14 @@ import InstallAppModal from '@/components/home/InstallAppModal';
 import AudioPlayerComponent from '@/components/mushaf/AudioPlayer';
 import ReciterModal from '@/components/mushaf/ReciterModal';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAutoAthkar } from '@/hooks/useAutoAthkar';
+import AutoAthkarModal from '@/components/home/AutoAthkarModal';
+import AthkarToast from '@/components/common/AthkarToast';
 
 export default function HomePage() {
   const router = useRouter();
   const audio = useAudioPlayer();
+  const autoAthkar = useAutoAthkar();
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [pagesRead, setPagesRead] = useState(0);
@@ -24,6 +28,7 @@ export default function HomePage() {
   const [selectedReciterId, setSelectedReciterId] = useState<number>(7);
   const [selectedSurahForAudio, setSelectedSurahForAudio] = useState<number>(1);
   const [showReciterModal, setShowReciterModal] = useState(false);
+  const [showAthkarModal, setShowAthkarModal] = useState(false);
 
   useEffect(() => {
     const prog = getReadingProgress();
@@ -136,18 +141,37 @@ export default function HomePage() {
             >
               رفيقك مع القرآن الكريم • المصحف الشريف
             </p>
-            <button
-              onClick={() => setShowInstallModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs"
-              style={{
-                backgroundColor: 'rgba(200, 168, 91, 0.18)',
-                color: '#C8A85B',
-                fontFamily: "'Tajawal', sans-serif",
-              }}
-            >
-              <span>📲</span>
-              <span>تثبيت التطبيق على الأندرويد (APK / فوري)</span>
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={() => setShowInstallModal(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs"
+                style={{
+                  backgroundColor: 'rgba(200, 168, 91, 0.18)',
+                  color: '#C8A85B',
+                  fontFamily: "'Tajawal', sans-serif",
+                }}
+              >
+                <span>📲</span>
+                <span>تثبيت التطبيق (APK)</span>
+              </button>
+
+              <button
+                onClick={() => setShowAthkarModal(true)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
+                  autoAthkar.settings.enabled
+                    ? 'border-emerald-400/60 bg-emerald-700/40 text-emerald-200 hover:bg-emerald-700/60'
+                    : 'border-white/20 bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+                title="إعداد الأذكار الصوتية التلقائية"
+              >
+                <span className={autoAthkar.settings.enabled ? 'animate-bounce' : ''}>🔔</span>
+                <span>
+                  الأذكار الصوتية: {autoAthkar.settings.enabled ? `كل ${autoAthkar.settings.intervalMinutes} د` : 'متوقفة'}
+                </span>
+                <span className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded-md">⚙️ ضبط</span>
+              </button>
+            </div>
           </div>
 
           {/* Reading Progress Card */}
@@ -610,6 +634,28 @@ export default function HomePage() {
           selectedReciterId={selectedReciterId}
           onSelectReciter={handleSelectReciterFromModal}
           onClose={() => setShowReciterModal(false)}
+        />
+      )}
+
+      {/* Floating Auto Voice Athkar Toast Notification */}
+      {autoAthkar.currentToast && (
+        <AthkarToast
+          thikr={autoAthkar.currentToast}
+          onDismiss={autoAthkar.dismissToast}
+          onReplay={(t) => autoAthkar.triggerThikr(t)}
+          isSpeaking={autoAthkar.isSpeaking}
+        />
+      )}
+
+      {/* Automatic Athkar Settings Modal */}
+      {showAthkarModal && (
+        <AutoAthkarModal
+          isOpen={showAthkarModal}
+          onClose={() => setShowAthkarModal(false)}
+          settings={autoAthkar.settings}
+          onUpdateSettings={autoAthkar.updateSettings}
+          onTestThikr={(t) => autoAthkar.triggerThikr(t)}
+          isSpeaking={autoAthkar.isSpeaking}
         />
       )}
     </div>
