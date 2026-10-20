@@ -7,6 +7,7 @@ export interface VoiceThikr {
   textTashkeel: string; // Vocalized Arabic for natural pronunciation
   textDisplay: string;  // Clean Arabic for display
   virtue: string;       // فضل الذكر
+  audioUrl?: string;    // Studio-quality Arabic audio recording URL
 }
 
 export interface AutoAthkarSettings {

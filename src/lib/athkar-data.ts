@@ -8,6 +8,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّد',
     textDisplay: 'اللهم صلِّ وسلم على نبينا محمد',
     virtue: 'قال ﷺ: «مَنْ صَلَّى عَلَيَّ صَلَاةً صَلَّى اللَّهُ عَلَيْهِ بِهَا عَشْرًا»',
+    audioUrl: '/audio/athkar/salawat-1.mp3',
   },
   {
     id: 'salawat-2',
@@ -16,6 +17,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'صَلَّى اللَّهُ عَلَيْهِ وَسَلَّم',
     textDisplay: 'صلى الله عليه وسلم',
     virtue: 'البخيل من ذُكِرتُ عنده فلم يُصلِّ عليّ ﷺ',
+    audioUrl: '/audio/athkar/salawat-2.mp3',
   },
   {
     id: 'istighfar-1',
@@ -24,6 +26,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ وَأَتُوبُ إِلَيْه',
     textDisplay: 'أستغفر الله العظيم وأتوب إليه',
     virtue: '«مَن لَزِمَ الاستغفارَ جعَل اللهُ له من كلِّ ضِيقٍ مخرَجًا ومن كلِّ همٍّ فرَجًا»',
+    audioUrl: '/audio/athkar/istighfar-1.mp3',
   },
   {
     id: 'istighfar-2',
@@ -32,6 +35,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْه',
     textDisplay: 'أستغفر الله وأتوب إليه',
     virtue: 'كان النبي ﷺ يستغفر الله في اليوم أكثر من سبعين مرة',
+    audioUrl: '/audio/athkar/istighfar-2.mp3',
   },
   {
     id: 'tasbeeh-1',
@@ -40,6 +44,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ، سُبْحَانَ اللَّهِ الْعَظِيم',
     textDisplay: 'سبحان الله وبحمده، سبحان الله العظيم',
     virtue: '«كَلِمَتَانِ خَفِيفَتَانِ عَلَى اللِّسَانِ، ثَقِيلَتَانِ فِي الْمِيزَانِ، حَبِيبَتَانِ إِلَى الرَّحْمَنِ»',
+    audioUrl: '/audio/athkar/tasbeeh-1.mp3',
   },
   {
     id: 'tasbeeh-2',
@@ -48,6 +53,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'سُبْحَانَ اللَّهِ وَبِحَمْدِه ، عَدَدَ خَلْقِهِ ، وَرِضَا نَفْسِهِ ، وَزِنَةَ عَرْشِهِ ، وَمِدَادَ كَلِمَاتِه',
     textDisplay: 'سبحان الله وبحمده عدد خلقه ورضا نفسه وزنة عرشه ومداد كلماته',
     virtue: 'تعدل عبادة ساعات طويلة من الذكر والتسبيح',
+    audioUrl: '/audio/athkar/tasbeeh-2.mp3',
   },
   {
     id: 'hawqala-1',
@@ -56,6 +62,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيم',
     textDisplay: 'لا حول ولا قوة إلا بالله العلي العظيم',
     virtue: '«كَنْزٌ مِنْ كُنُوزِ الْجَنَّةِ» ودواء من تسعة وتسعين داء أيسرها الهم',
+    audioUrl: '/audio/athkar/hawqala-1.mp3',
   },
   {
     id: 'tahlil-1',
@@ -64,6 +71,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِير',
     textDisplay: 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير',
     virtue: '«أَفْضَلُ مَا قُلْتُ أَنَا وَالنَّبِيُّونَ مِنْ قَبْلِي»',
+    audioUrl: '/audio/athkar/tahlil-1.mp3',
   },
   {
     id: 'tahmeed-1',
@@ -72,6 +80,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'سُبْحَانَ اللَّهِ ، وَالْحَمْدُ لِلَّهِ ، وَلَا إِلَهَ إِلَّا اللَّهُ ، وَاللَّهُ أَكْبَر',
     textDisplay: 'سبحان الله، والحمد لله، ولا إله إلا الله، والله أكبر',
     virtue: '«أَحَبُّ الْكَلَامِ إِلَى اللَّهِ أَرْبَعٌ: سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ»',
+    audioUrl: '/audio/athkar/tahmeed-1.mp3',
   },
   {
     id: 'tahmeed-2',
@@ -80,6 +89,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textTashkeel: 'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِين ، حَمْدًا كَثِيرًا طَيِّبًا مُبَارَكًا فِيه',
     textDisplay: 'الحمد لله رب العالمين، حمداً كثيراً طيباً مباركاً فيه',
     virtue: 'تملأ الميزان بالثواب والرضا',
+    audioUrl: '/audio/athkar/tahmeed-2.mp3',
   },
 ];
 

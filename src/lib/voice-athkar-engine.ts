@@ -1,12 +1,17 @@
 // Audio Engine for Voice Athkar Pronunciation & Spiritual Chime
-// Uses HTML5 Web Audio API for harmonic notification chime & Web Speech Synthesis for Arabic pronunciation
+// Combines pre-recorded studio-quality Arabic audio clips (zero stuttering, 100% natural)
+// with HTML5 Web Audio harmonic chime and enhanced SpeechSynthesis fallback
 
 let audioCtx: AudioContext | null = null;
+let currentAudio: HTMLAudioElement | null = null;
+let activeUtterance: SpeechSynthesisUtterance | null = null;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return null;
     if (!audioCtx || audioCtx.state === 'closed') {
       audioCtx = new AudioContextClass();
@@ -17,6 +22,31 @@ function getAudioContext(): AudioContext | null {
     return audioCtx;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Stop any ongoing Thikr audio playback or speech synthesis
+ */
+export function stopThikrPlayback(): void {
+  if (currentAudio) {
+    try {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio.src = '';
+    } catch {
+      // Ignore cleanup error
+    }
+    currentAudio = null;
+  }
+
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      // Ignore
+    }
+    activeUtterance = null;
   }
 }
 
@@ -69,7 +99,57 @@ export function playSpiritualChime(volume = 0.5): Promise<void> {
 }
 
 /**
- * Pronounces the vocalized Arabic Thikr using SpeechSynthesis
+ * Plays clear, natural pre-recorded Arabic audio with zero stuttering and natural pronunciation
+ */
+export function playThikrAudio(audioUrl: string, volume = 0.85): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve(false);
+      return;
+    }
+
+    try {
+      stopThikrPlayback();
+
+      const audio = new Audio();
+      currentAudio = audio;
+      audio.preload = 'auto';
+      audio.src = audioUrl;
+      audio.volume = Math.max(0.1, Math.min(1.0, volume));
+
+      let hasSettled = false;
+      const cleanup = (success: boolean) => {
+        if (hasSettled) return;
+        hasSettled = true;
+        if (currentAudio === audio) {
+          currentAudio = null;
+        }
+        resolve(success);
+      };
+
+      audio.onended = () => cleanup(true);
+      audio.onerror = () => cleanup(false);
+
+      // Safety timeout in case audio hangs or fails silently
+      const timeout = setTimeout(() => {
+        cleanup(true);
+      }, 12000);
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          clearTimeout(timeout);
+          cleanup(false);
+        });
+      }
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+/**
+ * Pronounces the vocalized Arabic Thikr using SpeechSynthesis (fallback with GC leak prevention)
  */
 export function speakThikr(textTashkeel: string, volume = 0.85): Promise<boolean> {
   return new Promise((resolve) => {
@@ -79,9 +159,12 @@ export function speakThikr(textTashkeel: string, volume = 0.85): Promise<boolean
     }
 
     try {
-      window.speechSynthesis.cancel(); // Stop any pending speech
+      stopThikrPlayback();
 
       const utterance = new SpeechSynthesisUtterance(textTashkeel);
+      // Retain utterance in module scope to prevent Chromium garbage collector cut-offs
+      activeUtterance = utterance;
+
       utterance.lang = 'ar-SA';
       utterance.rate = 0.85; // Calm, respectful pace for Thikr
       utterance.pitch = 1.0;
@@ -90,36 +173,66 @@ export function speakThikr(textTashkeel: string, volume = 0.85): Promise<boolean
       // Attempt to pick the highest quality Arabic voice
       const voices = window.speechSynthesis.getVoices();
       const arabicVoice = voices.find(
-        (v) => v.lang.startsWith('ar') || v.lang.includes('AR') || v.name.toLowerCase().includes('arabic')
+        (v) =>
+          v.lang.startsWith('ar') ||
+          v.lang.includes('AR') ||
+          v.name.toLowerCase().includes('arabic') ||
+          v.name.toLowerCase().includes('saudi')
       );
       if (arabicVoice) {
         utterance.voice = arabicVoice;
       }
 
-      utterance.onend = () => {
-        resolve(true);
+      let hasEnded = false;
+      const cleanup = (success: boolean) => {
+        if (hasEnded) return;
+        hasEnded = true;
+        activeUtterance = null;
+        resolve(success);
       };
 
-      utterance.onerror = () => {
-        resolve(false);
-      };
+      utterance.onend = () => cleanup(true);
+      utterance.onerror = () => cleanup(false);
 
       window.speechSynthesis.speak(utterance);
 
       // Failsafe timeout to prevent hung promises
       setTimeout(() => {
-        resolve(true);
-      }, 7000);
+        cleanup(true);
+      }, 9000);
     } catch {
+      activeUtterance = null;
       resolve(false);
     }
   });
 }
 
 /**
- * Checks if Speech Synthesis is supported in the current environment
+ * High-level player: Tries clear studio MP3 audio first, falls back gracefully to SpeechSynthesis
+ */
+export async function playThikrVoice(
+  audioUrl?: string,
+  textTashkeel?: string,
+  volume = 0.85
+): Promise<boolean> {
+  if (audioUrl) {
+    const audioOk = await playThikrAudio(audioUrl, volume);
+    if (audioOk) {
+      return true;
+    }
+  }
+
+  if (textTashkeel) {
+    return speakThikr(textTashkeel, volume);
+  }
+
+  return false;
+}
+
+/**
+ * Checks if Voice Thikr is supported (always true in browser since HTML5 Audio is universal)
  */
 export function isVoiceThikrSupported(): boolean {
   if (typeof window === 'undefined') return false;
-  return 'speechSynthesis' in window;
+  return typeof Audio !== 'undefined' || 'speechSynthesis' in window;
 }

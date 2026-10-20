@@ -5,7 +5,12 @@ import type { AutoAthkarSettings, VoiceThikr, ThikrCategory } from '@/types/athk
 import { DEFAULT_ATHKAR_SETTINGS } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST } from '@/lib/athkar-data';
 import { getAutoAthkarSettings, saveAutoAthkarSettings } from '@/lib/storage';
-import { playSpiritualChime, speakThikr, isVoiceThikrSupported } from '@/lib/voice-athkar-engine';
+import {
+  playSpiritualChime,
+  playThikrVoice,
+  stopThikrPlayback,
+  isVoiceThikrSupported,
+} from '@/lib/voice-athkar-engine';
 
 export function useAutoAthkar() {
   const [settings, setSettings] = useState<AutoAthkarSettings>(DEFAULT_ATHKAR_SETTINGS);
@@ -31,10 +36,12 @@ export function useAutoAthkar() {
     });
   }, []);
 
-  // Dismiss visual toast notification
+  // Dismiss visual toast notification and silence audio
   const dismissToast = useCallback(() => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setCurrentToast(null);
+    stopThikrPlayback();
+    setIsSpeaking(false);
   }, []);
 
   // Execute a specific thikr pronunciation & notification
@@ -59,17 +66,17 @@ export function useAutoAthkar() {
       setIsSpeaking(true);
       setCurrentToast(selected);
 
-      // Auto dismiss toast after 8 seconds
+      // Auto dismiss toast after 9 seconds
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       toastTimeoutRef.current = setTimeout(() => {
         setCurrentToast(null);
-      }, 8000);
+      }, 9000);
 
       try {
         if (settings.playChime) {
           await playSpiritualChime(settings.volume);
         }
-        await speakThikr(selected.textTashkeel, settings.volume);
+        await playThikrVoice(selected.audioUrl, selected.textTashkeel, settings.volume);
       } catch (err) {
         console.warn('Voice Thikr play error:', err);
       } finally {
