@@ -64,7 +64,7 @@ export default function AutoAthkarModal({
                 الأذكار الصوتية التلقائية
               </h2>
               <p className="text-xs opacity-80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                تذكير صوتي نقي وواضح بالصلاة على النبي ﷺ والاستغفار والتسبيح (بدون تقطيع)
+                تذكير صوتي بصوت رجل وقور بالصلاة على النبي ﷺ والاستغفار والتسبيح (بدون تقطيع)
               </p>
             </div>
           </div>
@@ -215,6 +215,24 @@ export default function AutoAthkarModal({
 
               {/* Volume & Chime Settings */}
               <div className="bg-white rounded-2xl p-4 border border-[#C8A85B]/30 shadow-xs space-y-4">
+                {/* Voice Gender Info */}
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🎙️</span>
+                    <div>
+                      <span className="text-xs font-bold text-[#123B2A] block" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                        صوت الأذكار:
+                      </span>
+                      <span className="text-[11px] text-[#0B5B43] font-bold">
+                        صوت رجل وقور (فصيح وهادئ بدون تقطيع)
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#123B2A]/10 text-[#123B2A]">
+                    رجل ✓
+                  </span>
+                </div>
+
                 {/* Volume Slider */}
                 <div>
                   <div className="flex items-center justify-between mb-2">

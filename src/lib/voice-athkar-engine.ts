@@ -170,15 +170,37 @@ export function speakThikr(textTashkeel: string, volume = 0.85): Promise<boolean
       utterance.pitch = 1.0;
       utterance.volume = Math.max(0.1, Math.min(1.0, volume));
 
-      // Attempt to pick the highest quality Arabic voice
+      // Attempt to pick the highest quality Arabic male voice
       const voices = window.speechSynthesis.getVoices();
-      const arabicVoice = voices.find(
+      const arabicMaleVoice = voices.find(
         (v) =>
-          v.lang.startsWith('ar') ||
-          v.lang.includes('AR') ||
-          v.name.toLowerCase().includes('arabic') ||
-          v.name.toLowerCase().includes('saudi')
+          (v.lang.startsWith('ar') || v.lang.includes('AR')) &&
+          (v.name.toLowerCase().includes('male') ||
+            v.name.toLowerCase().includes('hamed') ||
+            v.name.toLowerCase().includes('shakir') ||
+            v.name.toLowerCase().includes('naayf') ||
+            v.name.toLowerCase().includes('maged') ||
+            v.name.toLowerCase().includes('tarik') ||
+            (!v.name.toLowerCase().includes('female') &&
+              !v.name.toLowerCase().includes('zariyah') &&
+              !v.name.toLowerCase().includes('salma') &&
+              !v.name.toLowerCase().includes('fatima') &&
+              !v.name.toLowerCase().includes('hoda') &&
+              !v.name.toLowerCase().includes('layla') &&
+              !v.name.toLowerCase().includes('sana') &&
+              !v.name.toLowerCase().includes('amina') &&
+              !v.name.toLowerCase().includes('reem') &&
+              !v.name.toLowerCase().includes('maryam')))
       );
+      const arabicVoice =
+        arabicMaleVoice ||
+        voices.find(
+          (v) =>
+            v.lang.startsWith('ar') ||
+            v.lang.includes('AR') ||
+            v.name.toLowerCase().includes('arabic') ||
+            v.name.toLowerCase().includes('saudi')
+        );
       if (arabicVoice) {
         utterance.voice = arabicVoice;
       }
