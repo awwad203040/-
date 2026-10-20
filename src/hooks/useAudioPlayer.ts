@@ -22,6 +22,11 @@ export interface AudioPlayerState {
   currentReciter: number;
   surahName: string;
   reciterName: string;
+  // Ayah-to-Ayah repetition (تكرار المقطع بتحديد بداية ونهاية الآيات)
+  isAyahRangeLooping: boolean;
+  ayahRangeStart: number | null;
+  ayahRangeEnd: number | null;
+  currentAyahNumber: number | null;
 }
 
 export function useAudioPlayer() {
@@ -32,7 +37,8 @@ export function useAudioPlayer() {
         reciterId: number,
         surahName: string,
         reciterName: string,
-        verseKey?: string
+        verseKey?: string,
+        preserveRepeatState?: boolean
       ) => Promise<void>)
     | null
   >(null);
@@ -56,6 +62,10 @@ export function useAudioPlayer() {
     currentReciter: 7,
     surahName: '',
     reciterName: '',
+    isAyahRangeLooping: false,
+    ayahRangeStart: null,
+    ayahRangeEnd: null,
+    currentAyahNumber: null,
   });
 
   // Reference for real-time loop logic inside audio event listeners
@@ -70,6 +80,10 @@ export function useAudioPlayer() {
     currentSurah: 0,
     currentReciter: 7,
     reciterName: '',
+    isAyahRangeLooping: false,
+    ayahRangeStart: null as number | null,
+    ayahRangeEnd: null as number | null,
+    currentAyahNumber: null as number | null,
   });
 
   // Keep ref synchronized with state
@@ -85,6 +99,10 @@ export function useAudioPlayer() {
       currentSurah: state.currentSurah,
       currentReciter: state.currentReciter,
       reciterName: state.reciterName,
+      isAyahRangeLooping: state.isAyahRangeLooping,
+      ayahRangeStart: state.ayahRangeStart,
+      ayahRangeEnd: state.ayahRangeEnd,
+      currentAyahNumber: state.currentAyahNumber,
     };
   }, [
     state.isSegmentLooping,
@@ -97,6 +115,10 @@ export function useAudioPlayer() {
     state.currentSurah,
     state.currentReciter,
     state.reciterName,
+    state.isAyahRangeLooping,
+    state.ayahRangeStart,
+    state.ayahRangeEnd,
+    state.currentAyahNumber,
   ]);
 
   useEffect(() => {
@@ -156,8 +178,82 @@ export function useAudioPlayer() {
         currentSurah,
         currentReciter,
         reciterName,
+        isAyahRangeLooping,
+        ayahRangeStart,
+        ayahRangeEnd,
+        currentAyahNumber,
       } = loopRef.current;
 
+      // =========================================================================
+      // 0) Ayah Range Loop (تكرار المقطع بتحديد بداية ونهاية الآيات)
+      // =========================================================================
+      if (
+        isAyahRangeLooping &&
+        currentSurah > 0 &&
+        ayahRangeStart !== null &&
+        ayahRangeEnd !== null &&
+        currentAyahNumber !== null
+      ) {
+        // Did we finish an Ayah in the range that is not the end Ayah yet?
+        if (currentAyahNumber < ayahRangeEnd) {
+          const nextAyah = currentAyahNumber + 1;
+          loopRef.current.currentAyahNumber = nextAyah;
+          setState((prev) => ({ ...prev, currentAyahNumber: nextAyah }));
+          const verseKey = `${currentSurah}:${nextAyah}`;
+          const surahName = getSurahName(currentSurah);
+          loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
+          return;
+        }
+
+        // We reached the end Ayah of the range! 1 full repetition completed.
+        if (repeatCount === 999) {
+          // Infinite loop: restart range from startAyah
+          loopRef.current.currentAyahNumber = ayahRangeStart;
+          setState((prev) => ({ ...prev, currentAyahNumber: ayahRangeStart }));
+          const verseKey = `${currentSurah}:${ayahRangeStart}`;
+          const surahName = getSurahName(currentSurah);
+          loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
+          return;
+        }
+
+        if (remainingRepeats > 1) {
+          // Finite repeats left: decrement and restart from startAyah
+          const nextRemaining = remainingRepeats - 1;
+          loopRef.current.remainingRepeats = nextRemaining;
+          loopRef.current.currentAyahNumber = ayahRangeStart;
+          setState((prev) => ({
+            ...prev,
+            remainingRepeats: nextRemaining,
+            currentAyahNumber: ayahRangeStart,
+          }));
+          const verseKey = `${currentSurah}:${ayahRangeStart}`;
+          const surahName = getSurahName(currentSurah);
+          loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
+          return;
+        }
+
+        // Target repetitions reached! (e.g. Completed all 3 repetitions of the segment)
+        loopRef.current.isAyahRangeLooping = false;
+        loopRef.current.repeatCount = 1;
+        loopRef.current.remainingRepeats = 1;
+        loopRef.current.currentAyahNumber = null;
+        audio.pause();
+        audio.currentTime = 0;
+        setState((prev) => ({
+          ...prev,
+          isPlaying: false,
+          isAyahRangeLooping: false,
+          remainingRepeats: 1,
+          repeatCount: 1,
+          currentAyahNumber: null,
+          currentTime: 0,
+        }));
+        return;
+      }
+
+      // =========================================================================
+      // 1) Full Surah / Track Repetition
+      // =========================================================================
       // 1) Infinite loop (مستمر ∞)
       if (repeatCount === 999) {
         audio.currentTime = 0;
@@ -248,9 +344,14 @@ export function useAudioPlayer() {
       reciterId: number,
       surahName: string,
       reciterName: string,
-      verseKey?: string
+      verseKey?: string,
+      preserveRepeatState = false
     ) => {
-      const targetCount = loopRef.current.repeatCount || 1;
+      // In Ayah range looping or when preserveRepeatState is passed, maintain countdown without reset
+      const isLooping = loopRef.current.isAyahRangeLooping || preserveRepeatState;
+      const targetCount = isLooping
+        ? loopRef.current.remainingRepeats
+        : loopRef.current.repeatCount || 1;
       loopRef.current.remainingRepeats = targetCount;
 
       setState((prev) => ({
@@ -515,6 +616,77 @@ export function useAudioPlayer() {
     }));
   }, []);
 
+  // Start repeating a specific range of Ayahs from startAyah to endAyah
+  const startAyahRangeLoop = useCallback(
+    (
+      surahNumber: number,
+      startAyah: number,
+      endAyah: number,
+      reciterId: number,
+      reciterName: string,
+      repeats = 3
+    ) => {
+      const validStart = Math.max(1, startAyah);
+      const validEnd = Math.max(validStart, endAyah);
+
+      loopRef.current.isAyahRangeLooping = true;
+      loopRef.current.ayahRangeStart = validStart;
+      loopRef.current.ayahRangeEnd = validEnd;
+      loopRef.current.currentAyahNumber = validStart;
+      loopRef.current.currentSurah = surahNumber;
+      loopRef.current.currentReciter = reciterId;
+      loopRef.current.reciterName = reciterName;
+      loopRef.current.repeatCount = repeats;
+      loopRef.current.remainingRepeats = repeats;
+      loopRef.current.isSegmentLooping = false;
+      loopRef.current.segmentA = null;
+      loopRef.current.segmentB = null;
+
+      setState((prev) => ({
+        ...prev,
+        isAyahRangeLooping: true,
+        ayahRangeStart: validStart,
+        ayahRangeEnd: validEnd,
+        currentAyahNumber: validStart,
+        repeatCount: repeats,
+        remainingRepeats: repeats,
+        isSegmentLooping: false,
+        segmentA: null,
+        segmentB: null,
+      }));
+
+      const verseKey = `${surahNumber}:${validStart}`;
+      const sName = getSurahName(surahNumber);
+      if (loadAndPlayRef.current) {
+        loadAndPlayRef.current(surahNumber, reciterId, sName, reciterName, verseKey, true);
+      }
+    },
+    []
+  );
+
+  // Stop Ayah range loop
+  const stopAyahRangeLoop = useCallback(() => {
+    loopRef.current.isAyahRangeLooping = false;
+    loopRef.current.ayahRangeStart = null;
+    loopRef.current.ayahRangeEnd = null;
+    loopRef.current.currentAyahNumber = null;
+    loopRef.current.repeatCount = 1;
+    loopRef.current.remainingRepeats = 1;
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setState((prev) => ({
+      ...prev,
+      isPlaying: false,
+      isAyahRangeLooping: false,
+      ayahRangeStart: null,
+      ayahRangeEnd: null,
+      currentAyahNumber: null,
+      repeatCount: 1,
+      remainingRepeats: 1,
+    }));
+  }, []);
+
   const stop = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -524,6 +696,10 @@ export function useAudioPlayer() {
     loopRef.current.isSegmentLooping = false;
     loopRef.current.segmentA = null;
     loopRef.current.segmentB = null;
+    loopRef.current.isAyahRangeLooping = false;
+    loopRef.current.ayahRangeStart = null;
+    loopRef.current.ayahRangeEnd = null;
+    loopRef.current.currentAyahNumber = null;
     setState((prev) => ({
       ...prev,
       isPlaying: false,
@@ -536,6 +712,10 @@ export function useAudioPlayer() {
       segmentA: null,
       segmentB: null,
       isSegmentLooping: false,
+      isAyahRangeLooping: false,
+      ayahRangeStart: null,
+      ayahRangeEnd: null,
+      currentAyahNumber: null,
       remainingRepeats: 1,
     }));
   }, []);
@@ -556,6 +736,8 @@ export function useAudioPlayer() {
     clearSegment,
     toggleSegmentLoop,
     quickLoopLast,
+    startAyahRangeLoop,
+    stopAyahRangeLoop,
     playNextSurah,
     playPreviousSurah,
     toggleAutoPlayNext,

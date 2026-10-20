@@ -29,6 +29,10 @@ export default function HomePage() {
   const [selectedSurahForAudio, setSelectedSurahForAudio] = useState<number>(1);
   const [showReciterModal, setShowReciterModal] = useState(false);
   const [showAthkarModal, setShowAthkarModal] = useState(false);
+  const [ayahRangeStart, setAyahRangeStart] = useState<number>(1);
+  const [ayahRangeEnd, setAyahRangeEnd] = useState<number>(5);
+  const [rangeRepeatCount, setRangeRepeatCount] = useState<number>(3);
+  const [repeatTab, setRepeatTab] = useState<'ayahs' | 'surah' | 'time'>('ayahs');
 
   // Refresh reading progress freshly from localStorage
   const refreshProgress = useCallback(() => {
@@ -82,7 +86,39 @@ export default function HomePage() {
     }
   }, [audio.currentSurah, selectedSurahForAudio]);
 
+  // Adjust Ayah range limits when selectedSurahForAudio changes
+  useEffect(() => {
+    const meta = SURAH_METADATA[selectedSurahForAudio];
+    const total = meta?.versesCount || 7;
+    setAyahRangeStart(1);
+    setAyahRangeEnd(Math.min(5, total));
+  }, [selectedSurahForAudio]);
+
   const currentReciter = POPULAR_RECITERS.find((r) => r.id === selectedReciterId) || POPULAR_RECITERS[0];
+
+  // Start repeating a specific range of Ayahs from start to end
+  const handleStartAyahRangeLoop = useCallback(() => {
+    const meta = SURAH_METADATA[selectedSurahForAudio];
+    const total = meta?.versesCount || 7;
+    const start = Math.max(1, Math.min(total, ayahRangeStart));
+    const end = Math.max(start, Math.min(total, ayahRangeEnd));
+    audio.startAyahRangeLoop(
+      selectedSurahForAudio,
+      start,
+      end,
+      selectedReciterId,
+      currentReciter.name,
+      rangeRepeatCount
+    );
+  }, [
+    selectedSurahForAudio,
+    ayahRangeStart,
+    ayahRangeEnd,
+    selectedReciterId,
+    currentReciter.name,
+    rangeRepeatCount,
+    audio,
+  ]);
 
   // Toggle audio playback
   const handleTogglePlay = useCallback(() => {
@@ -146,6 +182,8 @@ export default function HomePage() {
   }, [audio, selectedSurahForAudio]);
 
   const percentage = Math.round((pagesRead / 604) * 1000) / 10;
+  const currentSurahMeta = SURAH_METADATA[selectedSurahForAudio] || SURAH_METADATA[1];
+  const totalVerses = currentSurahMeta?.versesCount || 7;
 
   // Filter surahs by search
   const filteredSurahs = Object.values(SURAH_METADATA).filter((s) => {
@@ -480,14 +518,47 @@ export default function HomePage() {
               </button>
             </div>
 
+            {/* Live Active Ayah Range Loop Card */}
+            {audio.isAyahRangeLooping && (
+              <div className="mt-3 p-3 rounded-xl bg-emerald-950/90 border-2 border-emerald-400 text-white shadow-lg animate-pulse">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-300">
+                    <span className="text-base">🎧</span>
+                    <span>جاري تكرار الآيات: سورة {SURAH_METADATA[audio.currentSurah]?.name || ''}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={audio.stopAyahRangeLoop}
+                    className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold cursor-pointer transition shadow-xs flex items-center gap-1"
+                  >
+                    <span>⏹</span>
+                    <span>إيقاف التكرار</span>
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center justify-between text-xs gap-2 pt-1.5 border-t border-emerald-500/30">
+                  <span className="bg-black/30 px-2.5 py-1 rounded-md text-emerald-200">
+                    النطاق: من الآية {audio.ayahRangeStart} إلى {audio.ayahRangeEnd}
+                  </span>
+                  <span className="bg-emerald-500/20 px-2.5 py-1 rounded-md font-bold text-[#FBF8EF]">
+                    الآية الجارية: {audio.currentAyahNumber || audio.ayahRangeStart}
+                  </span>
+                  <span className="bg-[#C8A85B] text-[#123B2A] px-2.5 py-1 rounded-md font-extrabold">
+                    {audio.repeatCount === 999
+                      ? 'تكرار مستمر ∞'
+                      : `متبقي: ${audio.remainingRepeats} من ${audio.repeatCount} مرات`}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Repetition & Segment Looping Controls (تكرار التلاوة وتحديد المقاطع) */}
             <div className="mt-3 pt-2.5 border-t border-white/15">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold text-[#C8A85B] flex items-center gap-1.5">
                   <span className="text-base">🔁</span>
-                  <span>تكرار التلاوة للحفظ:</span>
+                  <span>تكرار التلاوة للحفظ والإتقان:</span>
                 </span>
-                {audio.repeatCount > 1 && (
+                {audio.repeatCount > 1 && !audio.isAyahRangeLooping && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C8A85B] text-[#123B2A] font-extrabold shadow-sm animate-pulse">
                     {audio.repeatCount === 999
                       ? 'تكرار مستمر ∞'
@@ -496,135 +567,370 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* Repetition Quick Preset Badges */}
-              <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-                {[
-                  { count: 1, label: 'مرة واحدة' },
-                  { count: 3, label: '3 مرات (للحفظ)' },
-                  { count: 5, label: '5 مرات' },
-                  { count: 7, label: '7 مرات' },
-                  { count: 10, label: '10 مرات' },
-                  { count: 999, label: 'مستمر ∞' },
-                ].map((item) => {
-                  const isSelected = audio.repeatCount === item.count;
-                  return (
+              {/* Mode Tabs: Ayah Range vs Whole Surah vs Time AB */}
+              <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-black/20 mb-3 border border-white/10 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setRepeatTab('ayahs')}
+                  className={`py-1.5 px-2 rounded-lg font-bold transition text-center cursor-pointer ${
+                    repeatTab === 'ayahs'
+                      ? 'bg-[#C8A85B] text-[#123B2A] shadow-sm'
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  📖 تكرار بالآيات
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRepeatTab('surah')}
+                  className={`py-1.5 px-2 rounded-lg font-bold transition text-center cursor-pointer ${
+                    repeatTab === 'surah'
+                      ? 'bg-[#C8A85B] text-[#123B2A] shadow-sm'
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  🔁 كامل السورة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRepeatTab('time')}
+                  className={`py-1.5 px-2 rounded-lg font-bold transition text-center cursor-pointer ${
+                    repeatTab === 'time'
+                      ? 'bg-[#C8A85B] text-[#123B2A] shadow-sm'
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  ✂️ تكرار زمني
+                </button>
+              </div>
+
+              {/* TAB 1: Ayah Range Repetition (اختيار بداية ونهاية المقطع بالآيات) */}
+              {repeatTab === 'ayahs' && (
+                <div className="bg-[#123B2A]/90 rounded-2xl p-3 border border-[#C8A85B]/40 flex flex-col gap-2.5 shadow-md">
+                  <div className="flex items-center justify-between text-xs text-white/90">
+                    <span className="font-bold flex items-center gap-1 text-[#C8A85B]">
+                      <span>🎯</span>
+                      <span>حدد بداية ونهاية المقطع ليتكرر:</span>
+                    </span>
+                    <span className="text-[11px] opacity-75">
+                      سورة {currentSurahMeta.name} ({totalVerses} آية)
+                    </span>
+                  </div>
+
+                  {/* Start Ayah & End Ayah Selectors */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Start Ayah */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-white/80 font-medium flex items-center gap-1">
+                        <span>🟢</span>
+                        <span>بداية المقطع (من الآية):</span>
+                      </label>
+                      <select
+                        value={ayahRangeStart}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setAyahRangeStart(val);
+                          if (ayahRangeEnd < val) {
+                            setAyahRangeEnd(val);
+                          }
+                        }}
+                        className="w-full bg-[#0D281C] text-[#C8A85B] font-bold text-xs p-2 rounded-xl border border-[#C8A85B]/50 focus:outline-none cursor-pointer"
+                        style={{ fontFamily: "'Tajawal', sans-serif" }}
+                      >
+                        {Array.from({ length: totalVerses }, (_, i) => i + 1).map((num) => (
+                          <option key={num} value={num} className="bg-[#123B2A] text-white">
+                            الآية {num}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* End Ayah */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-white/80 font-medium flex items-center gap-1">
+                        <span>🛑</span>
+                        <span>نهاية المقطع (إلى الآية):</span>
+                      </label>
+                      <select
+                        value={ayahRangeEnd}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setAyahRangeEnd(Math.max(ayahRangeStart, val));
+                        }}
+                        className="w-full bg-[#0D281C] text-[#C8A85B] font-bold text-xs p-2 rounded-xl border border-[#C8A85B]/50 focus:outline-none cursor-pointer"
+                        style={{ fontFamily: "'Tajawal', sans-serif" }}
+                      >
+                        {Array.from({ length: totalVerses - ayahRangeStart + 1 }, (_, i) => ayahRangeStart + i).map((num) => (
+                          <option key={num} value={num} className="bg-[#123B2A] text-white">
+                            الآية {num}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Quick Preset Buttons */}
+                  <div className="flex flex-wrap items-center gap-1 pt-1 text-[10px]">
+                    <span className="text-white/60 ml-1">تحديد سريع:</span>
                     <button
-                      key={item.count}
                       type="button"
-                      onClick={() => audio.setRepeatCount(item.count)}
-                      className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer border ${
-                        isSelected
-                          ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-2 ring-[#C8A85B]/40'
-                          : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'
+                      onClick={() => setAyahRangeEnd(ayahRangeStart)}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[#C8A85B] border border-white/10 cursor-pointer"
+                    >
+                      آية {ayahRangeStart} فقط
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAyahRangeStart(1);
+                        setAyahRangeEnd(Math.min(totalVerses, 3));
+                      }}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 border border-white/10 cursor-pointer"
+                    >
+                      أول 3 آيات
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAyahRangeStart(1);
+                        setAyahRangeEnd(Math.min(totalVerses, 5));
+                      }}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 border border-white/10 cursor-pointer"
+                    >
+                      أول 5 آيات
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAyahRangeStart(1);
+                        setAyahRangeEnd(Math.min(totalVerses, 10));
+                      }}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 border border-white/10 cursor-pointer"
+                    >
+                      أول 10 آيات
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAyahRangeStart(1);
+                        setAyahRangeEnd(totalVerses);
+                      }}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 border border-white/10 cursor-pointer"
+                    >
+                      السورة كاملة
+                    </button>
+                  </div>
+
+                  {/* Repeats Count Preset for Ayah Range */}
+                  <div className="pt-2 border-t border-white/10">
+                    <div className="text-[10px] text-white/80 mb-1.5 flex items-center justify-between">
+                      <span>اختر عدد مرات التكرار:</span>
+                      <span className="text-[#C8A85B] font-bold">
+                        {rangeRepeatCount === 999 ? 'مستمر بلا توقف ∞' : `${rangeRepeatCount} مرات`}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {[
+                        { count: 1, label: 'مرة واحدة' },
+                        { count: 3, label: '3 مرات (للحفظ)' },
+                        { count: 5, label: '5 مرات' },
+                        { count: 7, label: '7 مرات' },
+                        { count: 10, label: '10 مرات' },
+                        { count: 999, label: 'مستمر ∞' },
+                      ].map((item) => {
+                        const isSelected = rangeRepeatCount === item.count;
+                        return (
+                          <button
+                            key={item.count}
+                            type="button"
+                            onClick={() => setRangeRepeatCount(item.count)}
+                            className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer border ${
+                              isSelected
+                                ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-2 ring-[#C8A85B]/40'
+                                : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Big Play / Repeat Button */}
+                  <button
+                    type="button"
+                    onClick={handleStartAyahRangeLoop}
+                    disabled={audio.isLoading}
+                    className="w-full mt-2 py-3 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-lg cursor-pointer flex flex-col items-center justify-center gap-0.5 border border-[#C8A85B]"
+                    style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  >
+                    <div className="flex items-center gap-2 text-base font-extrabold">
+                      <span>🔁</span>
+                      <span>
+                        تشغيل وتكرار من آية {ayahRangeStart} إلى {ayahRangeEnd}
+                      </span>
+                      <span>({rangeRepeatCount === 999 ? 'مستمر ∞' : `${rangeRepeatCount} مرات`})</span>
+                    </div>
+                    <div className="text-[11px] font-normal text-[#123B2A]/80">
+                      بصوت الشيخ {currentReciter.name} • سورة {currentSurahMeta.name}
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {/* TAB 2: Full Surah Repetition */}
+              {repeatTab === 'surah' && (
+                <div className="bg-[#123B2A]/90 rounded-2xl p-3 border border-[#C8A85B]/40 flex flex-col gap-2.5 shadow-md">
+                  <div className="flex items-center justify-between text-xs text-white/90">
+                    <span className="font-bold text-[#C8A85B]">تكرار سورة {currentSurahMeta.name} بالكامل:</span>
+                    {audio.repeatCount > 1 && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C8A85B] text-[#123B2A] font-bold">
+                        {audio.repeatCount === 999
+                          ? 'مستمر ∞'
+                          : `متبقي: ${audio.remainingRepeats} من ${audio.repeatCount}`}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { count: 1, label: 'مرة واحدة' },
+                      { count: 3, label: '3 مرات (للحفظ)' },
+                      { count: 5, label: '5 مرات' },
+                      { count: 7, label: '7 مرات' },
+                      { count: 10, label: '10 مرات' },
+                      { count: 999, label: 'مستمر ∞' },
+                    ].map((item) => {
+                      const isSelected = audio.repeatCount === item.count;
+                      return (
+                        <button
+                          key={item.count}
+                          type="button"
+                          onClick={() => audio.setRepeatCount(item.count)}
+                          className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer border ${
+                            isSelected
+                              ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-2 ring-[#C8A85B]/40'
+                              : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleTogglePlay}
+                    className="w-full mt-1 py-2.5 rounded-xl font-bold text-xs bg-[#C8A85B] text-[#123B2A] hover:bg-[#d4b66d] transition cursor-pointer"
+                  >
+                    {audio.isPlaying ? '⏸ إيقاف مؤقت' : `▶ تشغيل سورة ${currentSurahMeta.name}`}
+                  </button>
+                </div>
+              )}
+
+              {/* TAB 3: Time A-B Loop */}
+              {repeatTab === 'time' && (
+                <div className="bg-[#123B2A]/90 rounded-2xl p-2.5 border border-[#C8A85B]/30 flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-[11px] text-white/90">
+                    <span className="font-bold flex items-center gap-1 text-[#C8A85B]">
+                      <span>✂️</span>
+                      <span>تكرار مقطع زمني (A-B):</span>
+                    </span>
+                    <div className="flex items-center gap-2 font-mono text-[10px] text-emerald-300">
+                      <span>
+                        [A]:{' '}
+                        {audio.segmentA !== null
+                          ? `${Math.floor(audio.segmentA / 60)}:${Math.floor(audio.segmentA % 60)
+                              .toString()
+                              .padStart(2, '0')}`
+                          : '--:--'}
+                      </span>
+                      <span>➜</span>
+                      <span>
+                        [B]:{' '}
+                        {audio.segmentB !== null
+                          ? `${Math.floor(audio.segmentB / 60)}:${Math.floor(audio.segmentB % 60)
+                              .toString()
+                              .padStart(2, '0')}`
+                          : '--:--'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => audio.setSegmentA()}
+                      className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 text-center transition cursor-pointer"
+                      title="تحديد موضع بداية المقطع"
+                    >
+                      📍 [A] بداية
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => audio.setSegmentB()}
+                      className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 text-center transition cursor-pointer"
+                      title="تحديد موضع نهاية المقطع"
+                    >
+                      🎯 [B] نهاية
+                    </button>
+                    <button
+                      type="button"
+                      onClick={audio.toggleSegmentLoop}
+                      disabled={audio.segmentA === null || audio.segmentB === null}
+                      className={`py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold text-center transition cursor-pointer border ${
+                        audio.isSegmentLooping
+                          ? 'bg-emerald-500 text-white border-emerald-400 font-extrabold shadow-sm animate-pulse'
+                          : audio.segmentA !== null && audio.segmentB !== null
+                          ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B]'
+                          : 'bg-white/5 text-white/40 border-white/10 cursor-not-allowed'
                       }`}
+                      title="تفعيل أو إيقاف تكرار المقطع المحدد"
                     >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Segment Looping (A-B Loop) & Quick Seek */}
-              <div className="bg-[#123B2A]/90 rounded-xl p-2.5 border border-[#C8A85B]/30 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-[11px] text-white/90">
-                  <span className="font-bold flex items-center gap-1 text-[#C8A85B]">
-                    <span>✂️</span>
-                    <span>تكرار مقطع مخصص (A-B):</span>
-                  </span>
-                  <div className="flex items-center gap-2 font-mono text-[10px] text-emerald-300">
-                    <span>
-                      [A]:{' '}
-                      {audio.segmentA !== null
-                        ? `${Math.floor(audio.segmentA / 60)}:${Math.floor(audio.segmentA % 60)
-                            .toString()
-                            .padStart(2, '0')}`
-                        : '--:--'}
-                    </span>
-                    <span>➜</span>
-                    <span>
-                      [B]:{' '}
-                      {audio.segmentB !== null
-                        ? `${Math.floor(audio.segmentB / 60)}:${Math.floor(audio.segmentB % 60)
-                            .toString()
-                            .padStart(2, '0')}`
-                        : '--:--'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => audio.setSegmentA()}
-                    className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 text-center transition cursor-pointer"
-                    title="تحديد موضع بداية المقطع"
-                  >
-                    📍 [A] بداية
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => audio.setSegmentB()}
-                    className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 text-center transition cursor-pointer"
-                    title="تحديد موضع نهاية المقطع"
-                  >
-                    🎯 [B] نهاية
-                  </button>
-                  <button
-                    type="button"
-                    onClick={audio.toggleSegmentLoop}
-                    disabled={audio.segmentA === null || audio.segmentB === null}
-                    className={`py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold text-center transition cursor-pointer border ${
-                      audio.isSegmentLooping
-                        ? 'bg-emerald-500 text-white border-emerald-400 font-extrabold shadow-sm animate-pulse'
-                        : audio.segmentA !== null && audio.segmentB !== null
-                        ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B]'
-                        : 'bg-white/5 text-white/40 border-white/10 cursor-not-allowed'
-                    }`}
-                    title="تفعيل أو إيقاف تكرار المقطع المحدد"
-                  >
-                    {audio.isSegmentLooping ? '🔁 شغال' : '🔁 تكرار'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={audio.clearSegment}
-                    disabled={audio.segmentA === null && audio.segmentB === null}
-                    className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 text-center transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="إلغاء تحديد المقطع"
-                  >
-                    ✕ مسح
-                  </button>
-                </div>
-
-                {/* Quick 15s Preset & Skip buttons */}
-                <div className="flex items-center justify-between pt-1 border-t border-white/10 text-[10px]">
-                  <button
-                    type="button"
-                    onClick={() => audio.quickLoopLast(15)}
-                    className="px-2 py-1 rounded bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] font-bold transition cursor-pointer border border-[#C8A85B]/30"
-                    title="تكرار آخر 15 ثانية تلقائياً 3 مرات"
-                  >
-                    ↺ كرر آخر 15 ثانية (3x)
-                  </button>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => audio.skipTime(-5)}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 cursor-pointer"
-                      title="ترجيع 5 ثواني"
-                    >
-                      ⟲ -5ث
+                      {audio.isSegmentLooping ? '🔁 شغال' : '🔁 تكرار'}
                     </button>
                     <button
                       type="button"
-                      onClick={() => audio.skipTime(5)}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 cursor-pointer"
-                      title="تقديم 5 ثواني"
+                      onClick={audio.clearSegment}
+                      disabled={audio.segmentA === null && audio.segmentB === null}
+                      className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 text-center transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="إلغاء تحديد المقطع"
                     >
-                      ⟳ +5ث
+                      ✕ مسح
                     </button>
                   </div>
+
+                  {/* Quick 15s Preset & Skip buttons */}
+                  <div className="flex items-center justify-between pt-1 border-t border-white/10 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => audio.quickLoopLast(15)}
+                      className="px-2 py-1 rounded bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] font-bold transition cursor-pointer border border-[#C8A85B]/30"
+                      title="تكرار آخر 15 ثانية تلقائياً 3 مرات"
+                    >
+                      ↺ كرر آخر 15 ثانية (3x)
+                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => audio.skipTime(-5)}
+                        className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 cursor-pointer"
+                        title="ترجيع 5 ثواني"
+                      >
+                        ⟲ -5ث
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => audio.skipTime(5)}
+                        className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 cursor-pointer"
+                        title="تقديم 5 ثواني"
+                      >
+                        ⟳ +5ث
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -913,6 +1219,11 @@ export default function HomePage() {
           segmentA={audio.segmentA}
           segmentB={audio.segmentB}
           isSegmentLooping={audio.isSegmentLooping}
+          isAyahRangeLooping={audio.isAyahRangeLooping}
+          ayahRangeStart={audio.ayahRangeStart}
+          ayahRangeEnd={audio.ayahRangeEnd}
+          currentAyahNumber={audio.currentAyahNumber}
+          onStopAyahRangeLoop={audio.stopAyahRangeLoop}
           onTogglePlay={audio.togglePlayPause}
           onSeek={audio.seek}
           onSetSpeed={audio.setPlaybackRate}

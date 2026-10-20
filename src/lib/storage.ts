@@ -69,7 +69,35 @@ export function isBookmarked(surahNumber: number, ayahNumber: number): boolean {
 
 // Reading Progress
 export function getReadingProgress(): ReadingProgress | null {
-  return getItem<ReadingProgress | null>(STORAGE_KEYS.READING_PROGRESS, null);
+  const prog = getItem<ReadingProgress | null>(STORAGE_KEYS.READING_PROGRESS, null);
+  const visited = getPagesVisited();
+  const maxVisited = visited.length > 0 ? Math.max(...visited) : 1;
+  const khatmah = getKhatmah();
+  const khatmahPage = khatmah && khatmah.currentPage > 1 ? khatmah.currentPage : 1;
+  const highestKnownPage = Math.max(maxVisited, khatmahPage);
+
+  // Auto-heal: If reading progress is missing or was reset to page 1 while the user has visited further pages (e.g. page 90)
+  if (!prog || prog.pageNumber <= 1) {
+    if (highestKnownPage > 1) {
+      const recovered: ReadingProgress = {
+        pageNumber: highestKnownPage,
+        surahNumber: prog?.surahNumber || 1,
+        ayahNumber: 1,
+        updatedAt: prog?.updatedAt || new Date().toISOString(),
+      };
+      setItem(STORAGE_KEYS.READING_PROGRESS, recovered);
+      return recovered;
+    }
+  } else if (highestKnownPage > prog.pageNumber) {
+    const updated: ReadingProgress = {
+      ...prog,
+      pageNumber: highestKnownPage,
+    };
+    setItem(STORAGE_KEYS.READING_PROGRESS, updated);
+    return updated;
+  }
+
+  return prog;
 }
 
 export function saveReadingProgress(progress: ReadingProgress): void {

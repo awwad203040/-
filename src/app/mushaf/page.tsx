@@ -306,6 +306,14 @@ function MushafReaderInner() {
     setSelectedVerse(null);
   }, [audio, settings.selectedReciterId]);
 
+  const handlePlayRangeRepeatVerse = useCallback((verse: Verse, startAyah: number, endAyah: number, count: number = 3) => {
+    const chNum = getChapterNumber(verse);
+    const reciter = POPULAR_RECITERS.find((r) => r.id === (settings.selectedReciterId || 7));
+    const reciterName = reciter?.name || 'مشاري راشد العفاسي';
+    audio.startAyahRangeLoop(chNum, startAyah, endAyah, settings.selectedReciterId || 7, reciterName, count);
+    setSelectedVerse(null);
+  }, [audio, settings.selectedReciterId]);
+
   const handleOpenTafsir = useCallback((verse: Verse) => {
     setTafsirVerse(verse);
     setShowTafsir(true);
@@ -692,6 +700,11 @@ function MushafReaderInner() {
           segmentA={audio.segmentA}
           segmentB={audio.segmentB}
           isSegmentLooping={audio.isSegmentLooping}
+          isAyahRangeLooping={audio.isAyahRangeLooping}
+          ayahRangeStart={audio.ayahRangeStart}
+          ayahRangeEnd={audio.ayahRangeEnd}
+          currentAyahNumber={audio.currentAyahNumber}
+          onStopAyahRangeLoop={audio.stopAyahRangeLoop}
           onTogglePlay={audio.togglePlayPause}
           onSeek={audio.seek}
           onSetSpeed={audio.setPlaybackRate}
@@ -719,6 +732,7 @@ function MushafReaderInner() {
           onClose={() => setSelectedVerse(null)}
           onPlay={() => handlePlayVerse(selectedVerse)}
           onPlayRepeat={(count) => handlePlayRepeatVerse(selectedVerse, count)}
+          onPlayRangeRepeat={(start, end, count) => handlePlayRangeRepeatVerse(selectedVerse, start, end, count)}
           onCorrection={() => handleOpenCorrection(selectedVerse)}
           onTafsir={() => handleOpenTafsir(selectedVerse)}
           onBookmark={() => handleVerseBookmark(selectedVerse)}

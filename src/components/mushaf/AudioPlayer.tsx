@@ -16,6 +16,10 @@ interface AudioPlayerProps {
   segmentA?: number | null;
   segmentB?: number | null;
   isSegmentLooping?: boolean;
+  isAyahRangeLooping?: boolean;
+  ayahRangeStart?: number | null;
+  ayahRangeEnd?: number | null;
+  currentAyahNumber?: number | null;
   autoPlayNext?: boolean;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
@@ -26,6 +30,7 @@ interface AudioPlayerProps {
   onSetSegmentB?: () => void;
   onClearSegment?: () => void;
   onToggleSegmentLoop?: () => void;
+  onStopAyahRangeLoop?: () => void;
   onSkip?: (seconds: number) => void;
   onNextSurah?: () => void;
   onPreviousSurah?: () => void;
@@ -55,6 +60,10 @@ export default function AudioPlayer({
   segmentA = null,
   segmentB = null,
   isSegmentLooping = false,
+  isAyahRangeLooping = false,
+  ayahRangeStart = null,
+  ayahRangeEnd = null,
+  currentAyahNumber = null,
   autoPlayNext = true,
   onTogglePlay,
   onSeek,
@@ -65,6 +74,7 @@ export default function AudioPlayer({
   onSetSegmentB,
   onClearSegment,
   onToggleSegmentLoop,
+  onStopAyahRangeLoop,
   onSkip,
   onNextSurah,
   onPreviousSurah,
@@ -143,7 +153,29 @@ export default function AudioPlayer({
             {/* Loop indicator pill */}
             {isSegmentLooping && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 font-bold border border-emerald-400/40 animate-pulse">
-                🔁 مكرر {remainingRepeats > 1 ? `(${remainingRepeats})` : ''}
+                🔁 مقطع مكرر {remainingRepeats > 1 ? `(${remainingRepeats})` : ''}
+              </span>
+            )}
+
+            {/* Ayah Range Loop indicator pill */}
+            {isAyahRangeLooping && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C8A85B]/30 text-[#FBF8EF] font-bold border border-[#C8A85B]/60 animate-pulse flex items-center gap-1">
+                <span>🔁 آيات {ayahRangeStart}-{ayahRangeEnd}</span>
+                {currentAyahNumber && <span className="text-[#C8A85B]">(آية {currentAyahNumber})</span>}
+                {remainingRepeats > 1 && <span>• متبقي {remainingRepeats}</span>}
+                {onStopAyahRangeLoop && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStopAyahRangeLoop();
+                    }}
+                    className="ml-1 text-[9px] bg-red-500/30 hover:bg-red-500/50 text-red-200 px-1 rounded cursor-pointer"
+                    title="إيقاف التكرار"
+                  >
+                    ⏹
+                  </button>
+                )}
               </span>
             )}
           </div>
