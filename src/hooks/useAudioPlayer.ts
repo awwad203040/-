@@ -115,16 +115,30 @@ export function useAudioPlayer() {
       const { isSegmentLooping, segmentA, segmentB, repeatCount, remainingRepeats } = loopRef.current;
       if (isSegmentLooping && segmentB !== null && segmentB > (segmentA || 0)) {
         if (curTime >= segmentB) {
-          if (repeatCount === 999 || remainingRepeats > 1) {
-            const nextRemaining = repeatCount === 999 ? 999 : remainingRepeats - 1;
+          if (repeatCount === 999) {
+            audio.currentTime = segmentA ?? 0;
+            audio.play().catch(() => {});
+          } else if (remainingRepeats > 1) {
+            const nextRemaining = remainingRepeats - 1;
             loopRef.current.remainingRepeats = nextRemaining;
             setState((prev) => ({ ...prev, remainingRepeats: nextRemaining }));
             audio.currentTime = segmentA ?? 0;
             audio.play().catch(() => {});
           } else {
-            // Finished repetitions of segment
+            // Finished all repetitions of segment (stopped at target count like 3)
             loopRef.current.isSegmentLooping = false;
-            setState((prev) => ({ ...prev, isSegmentLooping: false, remainingRepeats: 1 }));
+            loopRef.current.repeatCount = 1;
+            loopRef.current.remainingRepeats = 1;
+            loopRef.current.isRepeat = false;
+            audio.pause();
+            setState((prev) => ({
+              ...prev,
+              isPlaying: false,
+              isSegmentLooping: false,
+              remainingRepeats: 1,
+              repeatCount: 1,
+              isRepeat: false,
+            }));
           }
         }
       }
@@ -136,7 +150,6 @@ export function useAudioPlayer() {
 
     const onEnded = () => {
       const {
-        isRepeat,
         repeatCount,
         remainingRepeats,
         autoPlayNext,
@@ -145,24 +158,38 @@ export function useAudioPlayer() {
         reciterName,
       } = loopRef.current;
 
-      if (isRepeat || repeatCount === 999) {
+      // 1) Infinite loop (مستمر ∞)
+      if (repeatCount === 999) {
         audio.currentTime = 0;
         audio.play().catch(() => {});
-      } else if (remainingRepeats > 1) {
+        return;
+      }
+
+      // 2) Finite repetition (3 times, 5 times, 7 times, 10 times)
+      if (remainingRepeats > 1) {
         const nextRemaining = remainingRepeats - 1;
         loopRef.current.remainingRepeats = nextRemaining;
         setState((prev) => ({ ...prev, remainingRepeats: nextRemaining }));
         audio.currentTime = 0;
         audio.play().catch(() => {});
-      } else if (autoPlayNext && currentSurah > 0 && currentSurah < 114) {
-        // Automatically transition to the next Surah!
+        return;
+      }
+
+      // 3) All repetitions completed! (e.g. Finished exactly 3 times)
+      const wasRepetitionActive = repeatCount > 1;
+
+      // Reset repetition state back to single play
+      loopRef.current.repeatCount = 1;
+      loopRef.current.remainingRepeats = 1;
+      loopRef.current.isRepeat = false;
+      loopRef.current.isSegmentLooping = false;
+      loopRef.current.segmentA = null;
+      loopRef.current.segmentB = null;
+
+      // If it was normal playback without repetition and auto-play next is enabled
+      if (!wasRepetitionActive && autoPlayNext && currentSurah > 0 && currentSurah < 114) {
         const nextSurah = currentSurah + 1;
         const nextSurahName = getSurahName(nextSurah);
-        loopRef.current.isSegmentLooping = false;
-        loopRef.current.segmentA = null;
-        loopRef.current.segmentB = null;
-        loopRef.current.repeatCount = 1;
-        loopRef.current.remainingRepeats = 1;
         setState((prev) => ({
           ...prev,
           segmentA: null,
@@ -170,16 +197,22 @@ export function useAudioPlayer() {
           isSegmentLooping: false,
           repeatCount: 1,
           remainingRepeats: 1,
+          isRepeat: false,
         }));
         if (loadAndPlayRef.current) {
           loadAndPlayRef.current(nextSurah, currentReciter, nextSurahName, reciterName);
         }
       } else {
+        // Stop audio cleanly at the target repetition count
+        audio.pause();
+        audio.currentTime = 0;
         setState((prev) => ({
           ...prev,
           isPlaying: false,
           currentTime: 0,
+          repeatCount: 1,
           remainingRepeats: 1,
+          isRepeat: false,
           segmentA: null,
           segmentB: null,
           isSegmentLooping: false,
@@ -217,6 +250,9 @@ export function useAudioPlayer() {
       reciterName: string,
       verseKey?: string
     ) => {
+      const targetCount = loopRef.current.repeatCount || 1;
+      loopRef.current.remainingRepeats = targetCount;
+
       setState((prev) => ({
         ...prev,
         isLoading: true,
@@ -226,6 +262,7 @@ export function useAudioPlayer() {
         currentReciter: reciterId,
         surahName: verseKey ? `${surahName} (آية ${verseKey.split(':')[1]})` : surahName,
         reciterName,
+        remainingRepeats: targetCount,
       }));
 
       try {
