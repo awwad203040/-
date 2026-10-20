@@ -128,6 +128,24 @@ export default function HomePage() {
         style={{ backgroundColor: '#123B2A', color: 'white' }}
       >
         <div className="max-w-2xl mx-auto">
+          {/* Dedication Banner: صدقة جارية لوالدي */}
+          <div
+            className="mb-5 mx-auto max-w-fit flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-2xl border border-[#C8A85B]/60 shadow-md transition-all"
+            style={{
+              background: 'linear-gradient(135deg, rgba(200, 168, 91, 0.22) 0%, rgba(11, 91, 67, 0.45) 100%)',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            <span className="text-[#C8A85B] text-base select-none">🤲</span>
+            <p
+              className="text-xs sm:text-sm font-bold text-[#F7EED8] text-center tracking-wide leading-relaxed"
+              style={{ fontFamily: "'Tajawal', 'Amiri', serif" }}
+            >
+              صدقة جارية لوالدي أرجو الدعاء لهما بالرحمة
+            </p>
+            <span className="text-[#C8A85B] text-base select-none">🤲</span>
+          </div>
+
           <div className="text-center mb-5">
             <h1
               className="text-3xl md:text-4xl font-bold mb-1 tracking-wide"
