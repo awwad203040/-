@@ -71,16 +71,19 @@ export function isBookmarked(surahNumber: number, ayahNumber: number): boolean {
 export function getReadingProgress(): ReadingProgress | null {
   const prog = getItem<ReadingProgress | null>(STORAGE_KEYS.READING_PROGRESS, null);
   const visited = getPagesVisited();
-  const maxVisited = visited.length > 0 ? Math.max(...visited) : 1;
-  const khatmah = getKhatmah();
-  const khatmahPage = khatmah && khatmah.currentPage > 1 ? khatmah.currentPage : 1;
-  const highestKnownPage = Math.max(maxVisited, khatmahPage);
 
-  // Auto-heal: If reading progress is missing or was reset to page 1 while the user has visited further pages (e.g. page 90)
-  if (!prog || prog.pageNumber <= 1) {
-    if (highestKnownPage > 1) {
+  // If visited pages are recorded (e.g. 90 pages):
+  // Filter out page 604 if total pages visited < 500,
+  // because opening Surah An-Nas/Al-Ikhlas should not hijack sequential reading progress!
+  const normalVisited = visited.length < 500 ? visited.filter((p) => p < 600) : visited;
+  const maxNormalVisited = normalVisited.length > 0 ? Math.max(...normalVisited) : 1;
+
+  // Auto-heal: If reading progress is missing, was reset to page 1 while the user read up to e.g. page 90,
+  // or was accidentally hijacked to page 604 when the user only read 90 pages
+  if (!prog || prog.pageNumber <= 1 || (prog.pageNumber >= 600 && visited.length < 500)) {
+    if (maxNormalVisited > 1) {
       const recovered: ReadingProgress = {
-        pageNumber: highestKnownPage,
+        pageNumber: maxNormalVisited,
         surahNumber: prog?.surahNumber || 1,
         ayahNumber: 1,
         updatedAt: prog?.updatedAt || new Date().toISOString(),
@@ -88,13 +91,6 @@ export function getReadingProgress(): ReadingProgress | null {
       setItem(STORAGE_KEYS.READING_PROGRESS, recovered);
       return recovered;
     }
-  } else if (highestKnownPage > prog.pageNumber) {
-    const updated: ReadingProgress = {
-      ...prog,
-      pageNumber: highestKnownPage,
-    };
-    setItem(STORAGE_KEYS.READING_PROGRESS, updated);
-    return updated;
   }
 
   return prog;
@@ -135,7 +131,22 @@ export function saveSettings(settings: Partial<UserSettings>): void {
 
 // Khatmah Planner
 export function getKhatmah(): Khatmah | null {
-  return getItem<Khatmah | null>(STORAGE_KEYS.KHATMAH, null);
+  const k = getItem<Khatmah | null>(STORAGE_KEYS.KHATMAH, null);
+  if (!k) return null;
+
+  // Auto-heal: If existing Khatmah got corrupted and stuck at page 604 while user hasn't actually read the whole Quran
+  const visited = getPagesVisited();
+  if (k.currentPage >= 600 && visited.length < 500 && !k.completed) {
+    const fixed: Khatmah = {
+      ...k,
+      currentPage: k.startPage && k.startPage < 600 ? k.startPage : 1,
+      startPage: k.startPage && k.startPage < 600 ? k.startPage : 1,
+    };
+    setItem(STORAGE_KEYS.KHATMAH, fixed);
+    return fixed;
+  }
+
+  return k;
 }
 
 export function saveKhatmah(khatmah: Khatmah): void {
@@ -151,13 +162,17 @@ export function deleteKhatmah(): void {
   }
 }
 
-export function updateKhatmahProgress(currentPage: number): void {
+export function updateKhatmahProgress(pageNumber: number): void {
   const current = getKhatmah();
-  if (current) {
-    const completed = currentPage >= 604;
+  if (!current || current.completed) return;
+
+  // Only advance khatmah if reading sequentially forward within a natural range (current page to current + 5)
+  // This prevents jumping hundreds of pages to 604 when simply browsing short surahs!
+  if (pageNumber >= current.currentPage && pageNumber <= current.currentPage + 5) {
+    const completed = pageNumber >= 604;
     saveKhatmah({
       ...current,
-      currentPage: Math.max(current.currentPage, currentPage),
+      currentPage: pageNumber,
       completed,
     });
   }
