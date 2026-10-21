@@ -1,5 +1,5 @@
 // Noor Al-Quran Service Worker (PWA Offline Support)
-const CACHE_NAME = 'noor-alquran-v4';
+const CACHE_NAME = 'noor-alquran-v5';
 const STATIC_ASSETS = [
   '/',
   '/mushaf',

@@ -149,6 +149,26 @@ export function playThikrAudio(audioUrl: string, volume = 0.85): Promise<boolean
 }
 
 /**
+ * Cleans and prepares vocalized Arabic text specifically for SpeechSynthesis
+ * to ensure natural Arabic pronunciation and avoid pronunciation of punctuation marks.
+ */
+export function prepareTextForSpeech(text: string): string {
+  if (!text) return '';
+  return text
+    // Replace peace-be-upon-him unicode ligature with vocalized words
+    .replace(/ﷺ/g, ' صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمْ ')
+    // Replace commas and semicolons that cause TTS to say "فاصلة" or pause awkwardly
+    .replace(/[،,؛;«»"']/g, ' ')
+    // Ensure Quranic dagger alif is vocalized smoothly for all TTS engines
+    .replace(/إِلَٰهَ/g, 'إِلَهَ')
+    .replace(/عَلَىٰ/g, 'عَلَى')
+    .replace(/الرَّحْمَٰنِ/g, 'الرَّحْمَنِ')
+    // Remove extra whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Pronounces the vocalized Arabic Thikr using SpeechSynthesis (fallback with GC leak prevention)
  */
 export function speakThikr(textTashkeel: string, volume = 0.85): Promise<boolean> {
@@ -161,12 +181,13 @@ export function speakThikr(textTashkeel: string, volume = 0.85): Promise<boolean
     try {
       stopThikrPlayback();
 
-      const utterance = new SpeechSynthesisUtterance(textTashkeel);
+      const spokenText = prepareTextForSpeech(textTashkeel);
+      const utterance = new SpeechSynthesisUtterance(spokenText);
       // Retain utterance in module scope to prevent Chromium garbage collector cut-offs
       activeUtterance = utterance;
 
       utterance.lang = 'ar-SA';
-      utterance.rate = 0.85; // Calm, respectful pace for Thikr
+      utterance.rate = 0.82; // Calm, respectful, dignified pace for Thikr
       utterance.pitch = 1.0;
       utterance.volume = Math.max(0.1, Math.min(1.0, volume));
 
