@@ -136,22 +136,22 @@ function MushafReaderInner() {
     setBookmarks(getBookmarks());
   }, []);
 
-  // Save reading progress only when verses for the current page are actually loaded
+  // Save reading progress immediately whenever currentPage changes
   useEffect(() => {
-    if (verses.length > 0 && !isLoading && currentPage >= 1 && currentPage <= 604) {
-      const firstVerse = verses[0];
-      const chapterNum = getChapterNumber(firstVerse);
+    if (currentPage >= 1 && currentPage <= 604) {
+      const firstVerse = verses.length > 0 ? verses[0] : null;
+      const chapterNum = firstVerse ? getChapterNumber(firstVerse) : 1;
       saveReadingProgress({
         pageNumber: currentPage,
         surahNumber: chapterNum,
-        ayahNumber: firstVerse.verseNumber,
+        ayahNumber: firstVerse ? firstVerse.verseNumber : 1,
         updatedAt: new Date().toISOString(),
       });
       addPageVisited(currentPage);
       updateKhatmahProgress(currentPage);
       recordWirdProgress(1);
     }
-  }, [currentPage, verses, isLoading]);
+  }, [currentPage, verses]);
 
   // Update URL query parameter and scroll to top smoothly when page changes
   useEffect(() => {

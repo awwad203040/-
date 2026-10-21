@@ -72,16 +72,16 @@ export function getReadingProgress(): ReadingProgress | null {
   const prog = getItem<ReadingProgress | null>(STORAGE_KEYS.READING_PROGRESS, null);
   const visited = getPagesVisited();
 
-  // If visited pages are recorded (e.g. 90 pages):
+  // If visited pages are recorded (e.g. 32 pages):
   // Filter out page 604 if total pages visited < 500,
   // because opening Surah An-Nas/Al-Ikhlas should not hijack sequential reading progress!
   const normalVisited = visited.length < 500 ? visited.filter((p) => p < 600) : visited;
-  const maxNormalVisited = normalVisited.length > 0 ? Math.max(...normalVisited) : 1;
+  const maxNormalVisited = normalVisited.length > 0 ? Math.max(...normalVisited) : (prog?.pageNumber || 1);
 
-  // Auto-heal: If reading progress is missing, was reset to page 1 while the user read up to e.g. page 90,
-  // or was accidentally hijacked to page 604 when the user only read 90 pages
-  if (!prog || prog.pageNumber <= 1 || (prog.pageNumber >= 600 && visited.length < 500)) {
-    if (maxNormalVisited > 1) {
+  // Auto-heal: If reading progress is missing, or is lagging behind the pages visited/read (e.g. says page 2 while user read 32 pages),
+  // or was accidentally hijacked to page 604 when the user only read e.g. 32 pages
+  if (!prog || prog.pageNumber < maxNormalVisited || (prog.pageNumber >= 600 && visited.length < 500)) {
+    if (maxNormalVisited >= 1) {
       const recovered: ReadingProgress = {
         pageNumber: maxNormalVisited,
         surahNumber: prog?.surahNumber || 1,

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { AutoAthkarSettings, VoiceThikr, ThikrCategory } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST, ATHKAR_CATEGORIES, ATHKAR_INTERVALS } from '@/lib/athkar-data';
+import { requestNotificationPermission } from '@/lib/athkar-notifications';
 
 interface AutoAthkarModalProps {
   isOpen: boolean;
@@ -136,12 +137,12 @@ export default function AutoAthkarModal({
                 <span className="text-2xl">{settings.enabled ? '🟢' : '⚪'}</span>
                 <div>
                   <h3 className="font-bold text-sm text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                    تشغيل الأذكار الصوتية التلقائية
+                    تشغيل الأذكار التلقائية
                   </h3>
                   <p className="text-xs opacity-75 mt-0.5">
                     {settings.enabled
-                      ? `يعمل حالياً كل ${settings.intervalMinutes} دقيقة`
-                      : 'المنبه الصوتي متوقف'}
+                      ? `يعمل حالياً كل ${settings.intervalMinutes} دقيقة (حتى عند إغلاق التطبيق)`
+                      : 'المنبه متوقف'}
                   </p>
                 </div>
               </div>
@@ -149,7 +150,13 @@ export default function AutoAthkarModal({
               {/* Switch button */}
               <button
                 type="button"
-                onClick={() => onUpdateSettings({ enabled: !settings.enabled })}
+                onClick={async () => {
+                  const nextVal = !settings.enabled;
+                  if (nextVal) {
+                    await requestNotificationPermission();
+                  }
+                  onUpdateSettings({ enabled: nextVal });
+                }}
                 className={`relative w-14 h-8 rounded-full transition-colors cursor-pointer ${
                   settings.enabled ? 'bg-[#0B5B43]' : 'bg-gray-300'
                 }`}
@@ -163,6 +170,19 @@ export default function AutoAthkarModal({
                 />
               </button>
             </div>
+
+            {/* Background Notification Status Banner */}
+            {settings.enabled && (
+              <div className="mt-3 pt-2.5 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-[#0B5B43] font-bold">
+                <span className="flex items-center gap-1.5">
+                  <span>🔔</span>
+                  <span>التنبيهات تعمل في الخلفية حتى عند إغلاق التطبيق</span>
+                </span>
+                <span className="bg-emerald-600/15 text-[#0B5B43] px-2 py-0.5 rounded-full text-[10px] font-extrabold">
+                  تعمل باستمرار ✓
+                </span>
+              </div>
+            )}
           </div>
 
           {activeTab === 'settings' && (

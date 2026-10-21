@@ -11,6 +11,10 @@ import {
   stopThikrPlayback,
   isVoiceThikrSupported,
 } from '@/lib/voice-athkar-engine';
+import {
+  syncBackgroundAthkarNotifications,
+  showSingleThikrNotification,
+} from '@/lib/athkar-notifications';
 
 export function useAutoAthkar() {
   const [settings, setSettings] = useState<AutoAthkarSettings>(DEFAULT_ATHKAR_SETTINGS);
@@ -20,18 +24,20 @@ export function useAutoAthkar() {
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastIndexRef = useRef<number>(0);
 
-  // Load settings on mount
+  // Load settings on mount and sync background notifications for phone
   useEffect(() => {
     setIsSupported(isVoiceThikrSupported());
     const stored = getAutoAthkarSettings();
     setSettings(stored);
+    syncBackgroundAthkarNotifications(stored).catch(() => {});
   }, []);
 
-  // Update settings handler
+  // Update settings handler and sync background notifications
   const updateSettings = useCallback((newSettings: Partial<AutoAthkarSettings>) => {
     setSettings((prev) => {
       const updated = { ...prev, ...newSettings };
       saveAutoAthkarSettings(updated);
+      syncBackgroundAthkarNotifications(updated).catch(() => {});
       return updated;
     });
   }, []);
@@ -71,6 +77,7 @@ export function useAutoAthkar() {
 
       setIsSpeaking(true);
       setCurrentToast(selected);
+      showSingleThikrNotification(selected).catch(() => {});
 
       // Auto dismiss toast after 9 seconds
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
