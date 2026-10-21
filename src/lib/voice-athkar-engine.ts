@@ -187,8 +187,8 @@ export function speakThikr(textTashkeel: string, volume = 0.85): Promise<boolean
       activeUtterance = utterance;
 
       utterance.lang = 'ar-SA';
-      utterance.rate = 0.80; // Calm, respectful, dignified pace for Thikr
-      utterance.pitch = 0.95; // Slightly lower pitch for deeper male voice
+      utterance.rate = 0.78; // Calm, respectful, dignified pace for Thikr
+      utterance.pitch = 0.78; // Low pitch for deep masculine voice
       utterance.volume = Math.max(0.1, Math.min(1.0, volume));
 
       // Pick the best Arabic MALE voice available on the device

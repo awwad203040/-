@@ -25,19 +25,29 @@ export default function AutoAthkarModal({
 
   if (!isOpen) return null;
 
-  const activeCategories: ThikrCategory[] = Array.isArray(settings?.activeCategories)
-    ? (settings.activeCategories as ThikrCategory[])
-    : (['istighfar', 'tasbeeh', 'hawqala', 'tahmeed', 'salawat'] as ThikrCategory[]);
+  const allThikrIds = VOICE_ATHKAR_LIST.map((t) => t.id);
+  const activeThikrIds: string[] = Array.isArray(settings?.activeThikrIds) && settings.activeThikrIds.length > 0
+    ? settings.activeThikrIds
+    : allThikrIds;
 
-  const handleToggleCategory = (category: ThikrCategory) => {
-    let nextList: ThikrCategory[];
-    if (activeCategories.includes(category)) {
-      if (activeCategories.length === 1) return; // Keep at least one
-      nextList = activeCategories.filter((c) => c !== category);
+  const handleToggleThikr = (thikrId: string) => {
+    let nextIds: string[];
+    if (activeThikrIds.includes(thikrId)) {
+      if (activeThikrIds.length === 1) return; // Keep at least one active
+      nextIds = activeThikrIds.filter((id) => id !== thikrId);
     } else {
-      nextList = [...activeCategories, category];
+      nextIds = [...activeThikrIds, thikrId];
     }
-    onUpdateSettings({ activeCategories: nextList });
+    const correspondingCategories = Array.from(
+      new Set(
+        VOICE_ATHKAR_LIST.filter((t) => nextIds.includes(t.id)).map((t) => t.category)
+      )
+    ) as ThikrCategory[];
+
+    onUpdateSettings({
+      activeThikrIds: nextIds,
+      activeCategories: correspondingCategories,
+    });
   };
 
   return (
@@ -184,34 +194,66 @@ export default function AutoAthkarModal({
                 </div>
               </div>
 
-              {/* Categories of Athkar */}
+              {/* New Athkar with Tashkeel & Male Voice - Placed directly here as requested */}
               <div className="bg-white rounded-2xl p-4 border border-[#C8A85B]/30 shadow-xs space-y-3">
-                <label className="block text-xs font-bold text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  📿 أنواع الأذكار المفعلة للنطق:
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {ATHKAR_CATEGORIES.map((cat) => {
-                    const isActive = activeCategories.includes(cat.id);
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                    📿 الأذكار المفعلة للنطق (بصوت رجل):
+                  </label>
+                  <span className="text-[11px] text-[#0B5B43] font-bold">
+                    {activeThikrIds.length} من {VOICE_ATHKAR_LIST.length} مفعلة
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {VOICE_ATHKAR_LIST.map((thikr) => {
+                    const isActive = activeThikrIds.includes(thikr.id);
                     return (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => handleToggleCategory(cat.id)}
-                        className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between border transition-all cursor-pointer ${
+                      <div
+                        key={thikr.id}
+                        className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-2.5 ${
                           isActive
-                            ? 'bg-[#123B2A]/8 border-[#C8A85B] text-[#123B2A]'
-                            : 'bg-black/5 border-transparent text-gray-400'
+                            ? 'bg-[#123B2A]/5 border-[#C8A85B] shadow-xs'
+                            : 'bg-black/5 border-transparent opacity-60'
                         }`}
-                        style={{ fontFamily: "'Tajawal', sans-serif" }}
                       >
-                        <span className="flex items-center gap-2">
-                          <span>{cat.icon}</span>
-                          <span>{cat.name}</span>
-                        </span>
-                        <span className="text-sm font-bold">
-                          {isActive ? '✓' : '—'}
-                        </span>
-                      </button>
+                        {/* Checkbox and Text */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleThikr(thikr.id)}
+                          className="flex items-center gap-2.5 flex-1 text-right cursor-pointer"
+                        >
+                          <span
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
+                              isActive
+                                ? 'bg-[#123B2A] text-[#C8A85B]'
+                                : 'bg-gray-200 text-transparent'
+                            }`}
+                          >
+                            ✓
+                          </span>
+                          <span
+                            className="font-bold text-sm text-[#123B2A] leading-relaxed"
+                            style={{ fontFamily: "'Amiri', serif" }}
+                            dir="rtl"
+                          >
+                            • {thikr.textDisplay}
+                          </span>
+                        </button>
+
+                        {/* Test Male Voice Button */}
+                        <button
+                          type="button"
+                          onClick={() => onTestThikr(thikr)}
+                          disabled={isSpeaking}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#C8A85B]/20 text-[#123B2A] hover:bg-[#C8A85B]/35 transition-colors flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                          style={{ fontFamily: "'Tajawal', sans-serif" }}
+                          title="استمع لصوت الرجل"
+                        >
+                          <span>🔊</span>
+                          <span>استماع</span>
+                        </button>
+                      </div>
                     );
                   })}
                 </div>

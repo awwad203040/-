@@ -47,14 +47,16 @@ export function useAutoAthkar() {
   // Execute a specific thikr pronunciation & notification
   const triggerThikr = useCallback(
     async (thikrToPlay?: VoiceThikr) => {
-      // Pick available thikrs matching active categories
-      const activeCats = Array.isArray(settings?.activeCategories)
-        ? settings.activeCategories
-        : ['istighfar', 'tasbeeh', 'hawqala', 'tahmeed', 'salawat'];
+      // Pick available thikrs matching active ids or active categories
+      const activeIds = Array.isArray(settings?.activeThikrIds) && settings.activeThikrIds.length > 0
+        ? settings.activeThikrIds
+        : null;
 
-      const activeList = VOICE_ATHKAR_LIST.filter((t) =>
-        activeCats.includes(t.category)
-      );
+      const activeList = activeIds
+        ? VOICE_ATHKAR_LIST.filter((t) => activeIds.includes(t.id))
+        : VOICE_ATHKAR_LIST.filter((t) =>
+            (settings?.activeCategories || ['istighfar', 'tasbeeh', 'hawqala', 'tahmeed', 'salawat']).includes(t.category)
+          );
 
       const candidateList = activeList.length > 0 ? activeList : VOICE_ATHKAR_LIST;
 
