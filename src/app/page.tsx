@@ -268,25 +268,27 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Reading Progress Card (Clickable: Navigates to last read page) */}
+          {/* Reading Progress Card (Clickable: Navigates to last read page on Mobile and Web) */}
           <button
             type="button"
             onClick={handleContinueReading}
-            className="w-full text-right rounded-2xl p-5 mb-4 border border-white/15 bg-white/10 hover:bg-white/15 hover:border-[#C8A85B]/60 transition-all active:scale-[0.99] cursor-pointer shadow-md group block"
+            className="w-full text-right rounded-2xl p-5 mb-4 border border-[#C8A85B]/40 bg-gradient-to-r from-white/12 via-white/18 to-white/12 hover:border-[#C8A85B] transition-all active:scale-[0.98] cursor-pointer shadow-lg group block touch-manipulation select-none"
             aria-label={`الذهاب إلى صفحة التلاوة ${progress?.pageNumber ? `صفحة ${progress.pageNumber}` : 'صفحة 1'}`}
             title="اضغط للانتقال مباشرة إلى الصفحة التي وقفت عندها في التلاوة"
           >
             <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-base group-hover:scale-110 transition-transform">📖</span>
-                <span className="text-sm font-bold text-white group-hover:text-[#C8A85B] transition-colors" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  تقدمك العام في القراءة
-                </span>
-                {progress && progress.pageNumber > 0 && (
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#C8A85B]/25 text-[#F7EED8] border border-[#C8A85B]/50 font-bold">
-                    صفحة {progress.pageNumber}
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl group-hover:scale-110 transition-transform">📖</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-bold text-white group-hover:text-[#C8A85B] transition-colors" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                    تقدمك العام في القراءة
                   </span>
-                )}
+                  {progress && progress.pageNumber > 0 && (
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#C8A85B]/30 text-[#FDF6E2] border border-[#C8A85B]/60 font-extrabold shadow-xs">
+                      صفحة {progress.pageNumber}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-bold text-[#C8A85B]" dir="ltr">
@@ -297,54 +299,22 @@ export default function HomePage() {
                 </span>
               </div>
             </div>
-            <div className="h-2.5 rounded-full overflow-hidden bg-white/15">
+            <div className="h-2.5 rounded-full overflow-hidden bg-white/15 mb-3">
               <div
                 className="h-full rounded-full transition-all duration-700 bg-[#C8A85B]"
                 style={{ width: `${percentage}%` }}
               />
             </div>
-            <div className="flex justify-between items-center mt-2.5 text-xs">
-              <span className="opacity-80 text-white">
+            <div className="flex justify-between items-center text-xs">
+              <span className="opacity-80 text-white font-medium">
                 {pagesRead} صفحة مقروءة • 604 صفحة
               </span>
-              <span className="text-[#C8A85B] font-bold text-[11px] flex items-center gap-1 group-hover:underline">
-                <span>{progress && progress.pageNumber > 0 ? `اضغط للمتابعة من صفحة ${progress.pageNumber}` : 'اضغط للبدء في القراءة'}</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#C8A85B] text-[#123B2A] font-extrabold text-xs shadow-sm group-hover:brightness-105 transition-all">
+                <span>{progress && progress.pageNumber > 0 ? `المتابعة من صفحة ${progress.pageNumber}` : 'ابدأ القراءة الآن'}</span>
                 <span>←</span>
               </span>
             </div>
           </button>
-
-          {/* Continue Reading Button */}
-          {progress && progress.pageNumber > 0 ? (
-            <button
-              type="button"
-              onClick={handleContinueReading}
-              className="w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-transform active:scale-[0.98] shadow-lg mb-4 cursor-pointer"
-              style={{
-                backgroundColor: '#C8A85B',
-                color: '#123B2A',
-                fontFamily: "'Tajawal', sans-serif",
-              }}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#123B2A">
-                <polygon points="5,3 19,12 5,21" />
-              </svg>
-              متابعة القراءة — صفحة {progress.pageNumber}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleContinueReading}
-              className="w-full py-4 rounded-2xl font-bold text-lg transition-transform active:scale-[0.98] shadow-lg mb-4 cursor-pointer"
-              style={{
-                backgroundColor: '#C8A85B',
-                color: '#123B2A',
-                fontFamily: "'Tajawal', sans-serif",
-              }}
-            >
-              افتح المصحف الشريف
-            </button>
-          )}
 
           {/* Audio Listening & Sheikh Selection Card */}
           <div
