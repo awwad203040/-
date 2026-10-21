@@ -1,4 +1,4 @@
-export type ThikrCategory = 'salawat' | 'tasbeeh' | 'istighfar' | 'hawqala' | 'tahlil' | 'tahmeed';
+export type ThikrCategory = 'istighfar' | 'tasbeeh' | 'hawqala' | 'tahmeed' | 'salawat';
 
 export interface VoiceThikr {
   id: string;
@@ -23,5 +23,5 @@ export const DEFAULT_ATHKAR_SETTINGS: AutoAthkarSettings = {
   intervalMinutes: 10,
   volume: 0.85,
   playChime: true,
-  activeCategories: ['salawat', 'tasbeeh', 'istighfar', 'hawqala', 'tahlil', 'tahmeed'],
+  activeCategories: ['istighfar', 'tasbeeh', 'hawqala', 'tahmeed', 'salawat'],
 };

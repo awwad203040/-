@@ -187,43 +187,41 @@ export function speakThikr(textTashkeel: string, volume = 0.85): Promise<boolean
       activeUtterance = utterance;
 
       utterance.lang = 'ar-SA';
-      utterance.rate = 0.82; // Calm, respectful, dignified pace for Thikr
-      utterance.pitch = 1.0;
+      utterance.rate = 0.80; // Calm, respectful, dignified pace for Thikr
+      utterance.pitch = 0.95; // Slightly lower pitch for deeper male voice
       utterance.volume = Math.max(0.1, Math.min(1.0, volume));
 
-      // Attempt to pick the highest quality Arabic male voice
+      // Pick the best Arabic MALE voice available on the device
+      // Exclude all known female voice names explicitly
       const voices = window.speechSynthesis.getVoices();
-      const arabicMaleVoice = voices.find(
-        (v) =>
-          (v.lang.startsWith('ar') || v.lang.includes('AR')) &&
-          (v.name.toLowerCase().includes('male') ||
-            v.name.toLowerCase().includes('hamed') ||
-            v.name.toLowerCase().includes('shakir') ||
-            v.name.toLowerCase().includes('naayf') ||
-            v.name.toLowerCase().includes('maged') ||
-            v.name.toLowerCase().includes('tarik') ||
-            (!v.name.toLowerCase().includes('female') &&
-              !v.name.toLowerCase().includes('zariyah') &&
-              !v.name.toLowerCase().includes('salma') &&
-              !v.name.toLowerCase().includes('fatima') &&
-              !v.name.toLowerCase().includes('hoda') &&
-              !v.name.toLowerCase().includes('layla') &&
-              !v.name.toLowerCase().includes('sana') &&
-              !v.name.toLowerCase().includes('amina') &&
-              !v.name.toLowerCase().includes('reem') &&
-              !v.name.toLowerCase().includes('maryam')))
-      );
-      const arabicVoice =
-        arabicMaleVoice ||
-        voices.find(
-          (v) =>
-            v.lang.startsWith('ar') ||
-            v.lang.includes('AR') ||
-            v.name.toLowerCase().includes('arabic') ||
-            v.name.toLowerCase().includes('saudi')
-        );
-      if (arabicVoice) {
-        utterance.voice = arabicVoice;
+      const femaleNames = [
+        'female', 'zariyah', 'salma', 'fatima', 'hoda', 'layla',
+        'sana', 'amina', 'reem', 'maryam', 'lana', 'zeina', 'rana',
+        'nora', 'noura', 'hala', 'dalia', 'dalya', 'maha', 'mona',
+        'samira', 'sara', 'lina', 'aisha', 'ghada', 'majida',
+      ];
+      const maleNames = [
+        'male', 'hamed', 'shakir', 'naayf', 'maged', 'tarik',
+        'khalid', 'omar', 'ahmed', 'ali', 'saud', 'fahd', 'faisal',
+        'sultan', 'mansur', 'majed', 'nawaf', 'turki',
+      ];
+
+      const isFemale = (name: string) => femaleNames.some((f) => name.toLowerCase().includes(f));
+      const isMale = (name: string) => maleNames.some((m) => name.toLowerCase().includes(m));
+      const isArabic = (v: SpeechSynthesisVoice) =>
+        v.lang.startsWith('ar') || v.lang.includes('AR') ||
+        v.name.toLowerCase().includes('arabic') || v.name.toLowerCase().includes('saudi');
+
+      // Priority 1: Explicitly named male Arabic voice
+      const explicitMale = voices.find((v) => isArabic(v) && isMale(v.name));
+      // Priority 2: Arabic voice that is NOT female
+      const nonFemaleMale = voices.find((v) => isArabic(v) && !isFemale(v.name));
+      // Priority 3: Any Arabic voice as last resort
+      const anyArabic = voices.find((v) => isArabic(v));
+
+      const selectedVoice = explicitMale || nonFemaleMale || anyArabic;
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
       }
 
       let hasEnded = false;
