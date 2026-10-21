@@ -55,13 +55,6 @@ export function useMushafPage(initialPage: number) {
     error: null,
   });
 
-  // Keep currentPage synchronized whenever initialPage changes (e.g. navigation via ?page=)
-  useEffect(() => {
-    if (initialPage >= 1 && initialPage <= 604) {
-      setCurrentPage((prev) => (prev !== initialPage ? initialPage : prev));
-    }
-  }, [initialPage]);
-
   const fetchPage = useCallback(async (page: number) => {
     // Check cache first
     if (pageCache.has(page)) {
@@ -134,16 +127,12 @@ export function useMushafPage(initialPage: number) {
   }, []);
 
   const nextPage = useCallback(() => {
-    if (currentPage < 604) {
-      setCurrentPage((p) => p + 1);
-    }
-  }, [currentPage]);
+    setCurrentPage((p) => (p < 604 ? p + 1 : p));
+  }, []);
 
   const previousPage = useCallback(() => {
-    if (currentPage > 1) {
-      setCurrentPage((p) => p - 1);
-    }
-  }, [currentPage]);
+    setCurrentPage((p) => (p > 1 ? p - 1 : p));
+  }, []);
 
   return {
     ...data,

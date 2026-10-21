@@ -125,10 +125,12 @@ export default function PageNavigator({
       >
         {/* Next page (RTL: right arrow on left side) */}
         <button
+          type="button"
           onClick={onNext}
           disabled={currentPage >= 604}
           aria-label="الصفحة التالية"
           title="الصفحة التالية (▶)"
+          style={{ touchAction: 'manipulation' }}
           className="p-2.5 sm:p-3 rounded-full hover:bg-white/10 active:scale-95 transition-all disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center border border-white/10"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -171,10 +173,12 @@ export default function PageNavigator({
 
         {/* Previous page (RTL: left arrow on right side) */}
         <button
+          type="button"
           onClick={onPrevious}
           disabled={currentPage <= 1}
           aria-label="الصفحة السابقة"
           title="الصفحة السابقة (◀)"
+          style={{ touchAction: 'manipulation' }}
           className="p-2.5 sm:p-3 rounded-full hover:bg-white/10 active:scale-95 transition-all disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center border border-white/10"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

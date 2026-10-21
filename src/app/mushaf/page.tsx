@@ -73,16 +73,21 @@ function MushafReaderInner() {
   const audio = useAudioPlayer();
   const autoAthkar = useAutoAthkar();
 
-  // Synchronize page when URL query param ?page= changes
+  // Synchronize page when user clicks browser Back/Forward history
   useEffect(() => {
-    const p = searchParams.get('page');
-    if (p) {
-      const parsed = parseArabicOrWesternNumber(p);
-      if (!isNaN(parsed) && parsed >= 1 && parsed <= 604 && parsed !== currentPage) {
-        goToPage(parsed);
+    const handlePopState = () => {
+      const url = new URL(window.location.href);
+      const p = url.searchParams.get('page');
+      if (p) {
+        const parsed = parseArabicOrWesternNumber(p);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= 604) {
+          goToPage(parsed);
+        }
       }
-    }
-  }, [searchParams, currentPage, goToPage]);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [goToPage]);
 
   const [settings, setSettings] = useState<UserSettings>({
     fontSize: 28,
@@ -585,6 +590,27 @@ function MushafReaderInner() {
                 ))}
               </div>
             ))}
+            {/* Quick Page Navigation for Verse Mode */}
+            <div className="w-full mt-6 flex items-center justify-between gap-3 text-xs font-bold pt-4 border-t border-[#C8A85B]/30">
+              <button
+                type="button"
+                onClick={nextPage}
+                disabled={currentPage >= 604}
+                className="flex-1 py-3 px-3 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+                style={{ fontFamily: "'Tajawal', sans-serif", touchAction: 'manipulation' }}
+              >
+                <span>◀ الصفحة التالية ({currentPage < 604 ? currentPage + 1 : 604})</span>
+              </button>
+              <button
+                type="button"
+                onClick={previousPage}
+                disabled={currentPage <= 1}
+                className="flex-1 py-3 px-3 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+                style={{ fontFamily: "'Tajawal', sans-serif", touchAction: 'manipulation' }}
+              >
+                <span>({currentPage > 1 ? currentPage - 1 : 1}) الصفحة السابقة ▶</span>
+              </button>
+            </div>
           </div>
         ) : !pageImageError ? (
           /* Madinah Mushaf Page View - Identical to King Fahd Complex / User's Uploaded Image */
@@ -618,52 +644,56 @@ function MushafReaderInner() {
               />
 
               {/* Interactive Screen Tap Navigation Zones */}
-              <div className="absolute inset-0 z-10 flex">
-                {/* Left 35%: Next Page (RTL) */}
-                <button
-                  type="button"
+              <div className="absolute inset-0 z-20 flex select-none">
+                {/* Left 40%: Next Page (RTL) */}
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => {
                     e.stopPropagation();
                     nextPage();
                   }}
-                  disabled={currentPage >= 604}
-                  className="w-[35%] h-full cursor-pointer opacity-0 hover:opacity-100 transition-opacity flex items-center justify-start pl-3 group"
+                  className="w-[40%] h-full cursor-pointer flex items-center justify-start pl-3 group active:bg-white/10 transition-colors"
                   aria-label="الانتقال للصفحة التالية"
                   title="اضغط هنا للذهاب للصفحة التالية (▶)"
+                  style={{ touchAction: 'manipulation' }}
                 >
                   <span className="p-3 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                    ◀ التالي
+                    ◀ التالي ({currentPage < 604 ? currentPage + 1 : 604})
                   </span>
-                </button>
+                </div>
 
-                {/* Center 30%: Toggle Menu & Toolbar Controls */}
-                <button
-                  type="button"
+                {/* Center 20%: Toggle Menu & Toolbar Controls */}
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => {
                     e.stopPropagation();
                     setControlsVisible((prev) => !prev);
                   }}
-                  className="w-[30%] h-full cursor-pointer"
+                  className="w-[20%] h-full cursor-pointer"
                   aria-label="إظهار أو إخفاء القوائم والأشرطة"
                   title="اضغط في الوسط لإظهار أو إخفاء الأشرطة"
+                  style={{ touchAction: 'manipulation' }}
                 />
 
-                {/* Right 35%: Previous Page (RTL) */}
-                <button
-                  type="button"
+                {/* Right 40%: Previous Page (RTL) */}
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => {
                     e.stopPropagation();
                     previousPage();
                   }}
-                  disabled={currentPage <= 1}
-                  className="w-[35%] h-full cursor-pointer opacity-0 hover:opacity-100 transition-opacity flex items-center justify-end pr-3 group"
+                  className="w-[40%] h-full cursor-pointer flex items-center justify-end pr-3 group active:bg-white/10 transition-colors"
                   aria-label="الانتقال للصفحة السابقة"
                   title="اضغط هنا للرجوع للصفحة السابقة (◀)"
+                  style={{ touchAction: 'manipulation' }}
                 >
                   <span className="p-3 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                    السابق ▶
+                    ({currentPage > 1 ? currentPage - 1 : 1}) السابق ▶
                   </span>
-                </button>
+                </div>
               </div>
             </div>
 
