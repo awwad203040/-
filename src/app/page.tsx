@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReadingProgress, Bookmark } from '@/types/quran';
 import { getReadingProgress, getBookmarks, getPagesVisited, getSettings, saveSettings } from '@/lib/storage';
-import { SURAH_METADATA, JUZ_METADATA, POPULAR_RECITERS, getSurahName } from '@/lib/quran-meta';
+import { SURAH_METADATA, JUZ_METADATA, POPULAR_RECITERS, getSurahName, getSurahForPage, parseArabicOrWesternNumber } from '@/lib/quran-meta';
 import KhatmahTracker from '@/components/mushaf/KhatmahTracker';
 import RecitationPracticeHub from '@/components/home/RecitationPracticeHub';
 import InstallAppModal from '@/components/home/InstallAppModal';
@@ -33,6 +33,14 @@ export default function HomePage() {
   const [ayahRangeEnd, setAyahRangeEnd] = useState<number>(5);
   const [rangeRepeatCount, setRangeRepeatCount] = useState<number>(3);
   const [repeatTab, setRepeatTab] = useState<'ayahs' | 'surah' | 'time'>('ayahs');
+  const [homePageJumpInput, setHomePageJumpInput] = useState('');
+
+  const handleHomeJumpToPage = (targetPage?: number) => {
+    const page = targetPage !== undefined ? targetPage : parseArabicOrWesternNumber(homePageJumpInput);
+    if (!isNaN(page) && page >= 1 && page <= 604) {
+      router.push(`/mushaf?page=${page}`);
+    }
+  };
 
   // Refresh reading progress freshly from localStorage
   const refreshProgress = useCallback(() => {
@@ -973,18 +981,110 @@ export default function HomePage() {
         {/* Tab 1: Surah Index */}
         {activeTab === 'surahs' && (
           <div>
+            {/* Quick Page Jump Bar */}
+            <div className="p-3.5 bg-gradient-to-r from-[#123B2A]/8 via-[#C8A85B]/15 to-[#123B2A]/8 border-b border-[#C8A85B]/30">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  <span className="text-sm">📖</span>
+                  <span>الانتقال لصفحة محددة (1 - 604):</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={homePageJumpInput}
+                    onChange={(e) => setHomePageJumpInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleHomeJumpToPage();
+                      }
+                    }}
+                    placeholder="رقم الصفحة..."
+                    className="w-28 px-3 py-1.5 rounded-xl border border-[#C8A85B] bg-white text-xs font-bold text-center text-[#17231D] focus:outline-none focus:ring-2 focus:ring-[#C8A85B]"
+                  />
+
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val)) {
+                        handleHomeJumpToPage(val);
+                      }
+                    }}
+                    className="px-2 py-1.5 rounded-xl border border-[#C8A85B]/60 bg-white text-[#17231D] text-xs font-medium focus:outline-none cursor-pointer max-w-[130px]"
+                    style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  >
+                    <option value="">أو اختر صفحة ▾</option>
+                    {Array.from({ length: 604 }, (_, i) => i + 1).map((p) => {
+                      const s = getSurahForPage(p);
+                      return (
+                        <option key={p} value={p}>
+                          ص {p} {s ? `(${s.name})` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => handleHomeJumpToPage()}
+                    className="px-3.5 py-1.5 rounded-xl font-bold text-xs text-white bg-[#123B2A] hover:bg-[#0B5B43] active:scale-95 transition shadow-xs cursor-pointer border border-[#C8A85B]/50 whitespace-nowrap"
+                    style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  >
+                    انتقال ◀
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Quick Filter */}
             <div className="p-4 border-b border-[#123B2A]/5 bg-white/40">
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ابحث عن اسم السورة أو رقمها..."
+                placeholder="ابحث عن اسم السورة، أو رقم الصفحة (مثل 150)..."
                 className="w-full px-4 py-2.5 rounded-xl border border-[#C8A85B]/40 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#C8A85B]"
                 style={{ fontFamily: "'Tajawal', sans-serif" }}
                 dir="rtl"
               />
             </div>
+
+            {/* If query matches a page number, show immediate jump banner */}
+            {(() => {
+              const queryNum = parseArabicOrWesternNumber(searchQuery);
+              if (!isNaN(queryNum) && queryNum >= 1 && queryNum <= 604) {
+                const s = getSurahForPage(queryNum);
+                return (
+                  <div className="mx-4 my-2.5 p-3 rounded-2xl bg-gradient-to-r from-[#123B2A] to-[#0B5B43] text-white flex items-center justify-between shadow-md border border-[#C8A85B]/60 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl text-[#C8A85B]">📖</span>
+                      <div>
+                        <div className="text-sm font-bold" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                          الانتقال المباشر إلى صفحة {queryNum}
+                        </div>
+                        {s && (
+                          <div className="text-xs text-[#C8A85B]" style={{ fontFamily: "'Amiri', serif" }}>
+                            سورة {s.name} • الجزء {SURAH_METADATA[s.number]?.startPage || 1}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/mushaf?page=${queryNum}`)}
+                      className="px-4 py-2 rounded-xl bg-[#C8A85B] text-[#123B2A] text-xs font-bold hover:brightness-110 active:scale-95 transition shadow-sm cursor-pointer whitespace-nowrap"
+                      style={{ fontFamily: "'Tajawal', sans-serif" }}
+                    >
+                      انتقال للصفحة ◀
+                    </button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <div className="divide-y divide-[#123B2A]/6">
               {filteredSurahs.map((meta) => {

@@ -11,6 +11,7 @@ interface MushafToolbarProps {
   onSettings: () => void;
   onSearch: () => void;
   onOpenCorrection?: () => void;
+  onOpenPageJump?: () => void;
 }
 
 export default function MushafToolbar({
@@ -22,6 +23,7 @@ export default function MushafToolbar({
   onSettings,
   onSearch,
   onOpenCorrection,
+  onOpenPageJump,
 }: MushafToolbarProps) {
   return (
     <header
@@ -46,9 +48,17 @@ export default function MushafToolbar({
         </div>
       </div>
 
-      {/* Center: Page info */}
-      <div className="text-center">
-        <div className="text-sm opacity-90">صفحة {currentPage}</div>
+      {/* Center: Page info (Clickable to jump to specific page) */}
+      <button
+        type="button"
+        onClick={onOpenPageJump}
+        className="text-center px-3 py-1 rounded-xl hover:bg-white/10 active:scale-95 transition cursor-pointer"
+        title="اضغط لاختيار أو كتابة رقم الصفحة والانتقال إليها"
+      >
+        <div className="text-sm font-bold flex items-center justify-center gap-1 opacity-95">
+          <span>صفحة {currentPage}</span>
+          <span className="text-xs text-[#C8A85B]">▾</span>
+        </div>
         <div className="text-xs opacity-75" style={{ fontFamily: "'Amiri', serif" }}>
           {surahName}
         </div>
@@ -58,7 +68,7 @@ export default function MushafToolbar({
             {hizbNumber ? ` • الحزب ${hizbNumber}` : ''}
           </div>
         )}
-      </div>
+      </button>
 
       {/* Left side (RTL: correction/search/settings) */}
       <div className="flex items-center gap-1.5">

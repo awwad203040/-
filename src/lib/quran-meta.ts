@@ -206,3 +206,46 @@ export function getSurahPage(surahNumber: number): number {
 export function getSurahName(surahNumber: number): string {
   return SURAH_METADATA[surahNumber]?.name || `سورة ${surahNumber}`;
 }
+
+/**
+ * Normalizes input containing Arabic-Indic numerals (٠-٩) or Persian numerals (۰-۹)
+ * and extracts a valid positive integer.
+ */
+export function parseArabicOrWesternNumber(input: string | number | null | undefined): number {
+  if (input === null || input === undefined) return NaN;
+  if (typeof input === 'number') {
+    return isNaN(input) ? NaN : Math.floor(input);
+  }
+  const str = input.toString().trim();
+  if (!str) return NaN;
+
+  const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const easternPersian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+
+  let normalized = str;
+  for (let i = 0; i < 10; i++) {
+    normalized = normalized.replaceAll(arabicNumerals[i], i.toString());
+    normalized = normalized.replaceAll(easternPersian[i], i.toString());
+  }
+
+  const digitsOnly = normalized.replace(/[^\d]/g, '');
+  return digitsOnly ? parseInt(digitsOnly, 10) : NaN;
+}
+
+/**
+ * Returns the primary Surah that appears or starts on the given page (1-604).
+ */
+export function getSurahForPage(page: number): SurahMeta | undefined {
+  if (page < 1 || page > 604) return undefined;
+  let result: SurahMeta = SURAH_METADATA[1];
+  for (let i = 1; i <= 114; i++) {
+    const meta = SURAH_METADATA[i];
+    if (meta && meta.startPage <= page) {
+      result = meta;
+    } else {
+      break;
+    }
+  }
+  return result;
+}
+

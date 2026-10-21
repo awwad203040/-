@@ -22,7 +22,7 @@ import {
   updateKhatmahProgress,
   recordWirdProgress,
 } from '@/lib/storage';
-import { SURAH_NAMES, POPULAR_RECITERS, getSurahMeta } from '@/lib/quran-meta';
+import { SURAH_NAMES, POPULAR_RECITERS, getSurahMeta, parseArabicOrWesternNumber } from '@/lib/quran-meta';
 import MushafToolbar from '@/components/mushaf/MushafToolbar';
 import PageNavigator from '@/components/mushaf/PageNavigator';
 import AyahActions from '@/components/mushaf/AyahActions';
@@ -50,12 +50,12 @@ function MushafReaderInner() {
   const pageParam = searchParams.get('page');
 
   // Compute starting page accurately:
-  // 1. If explicit ?page=X param in URL -> use it
+  // 1. If explicit ?page=X param in URL -> use it (supports Arabic-Indic numerals)
   // 2. Otherwise retrieve the last saved reading page from localStorage
   // 3. Fallback to 1 only if neither exists
   const initialPage = (() => {
     if (pageParam) {
-      const parsed = parseInt(pageParam, 10);
+      const parsed = parseArabicOrWesternNumber(pageParam);
       if (!isNaN(parsed) && parsed >= 1 && parsed <= 604) {
         return parsed;
       }
@@ -77,7 +77,7 @@ function MushafReaderInner() {
   useEffect(() => {
     const p = searchParams.get('page');
     if (p) {
-      const parsed = parseInt(p, 10);
+      const parsed = parseArabicOrWesternNumber(p);
       if (!isNaN(parsed) && parsed >= 1 && parsed <= 604 && parsed !== currentPage) {
         goToPage(parsed);
       }
@@ -98,6 +98,7 @@ function MushafReaderInner() {
   const [correctionVerse, setCorrectionVerse] = useState<Verse | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showPageJumpModal, setShowPageJumpModal] = useState(false);
   const [showReciterSelect, setShowReciterSelect] = useState(false);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [noteInput, setNoteInput] = useState('');
@@ -128,7 +129,7 @@ function MushafReaderInner() {
     }
   }, [currentPage, verses, isLoading]);
 
-  // Update URL query parameter when page changes
+  // Update URL query parameter and scroll to top smoothly when page changes
   useEffect(() => {
     if (typeof window !== 'undefined' && currentPage >= 1 && currentPage <= 604) {
       const url = new URL(window.location.href);
@@ -136,6 +137,7 @@ function MushafReaderInner() {
         url.searchParams.set('page', currentPage.toString());
         window.history.replaceState({}, '', url.toString());
       }
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, [currentPage]);
 
@@ -418,6 +420,7 @@ function MushafReaderInner() {
           onBack={() => router.push('/')}
           onSettings={() => setShowSettings(true)}
           onSearch={() => setShowSearch(true)}
+          onOpenPageJump={() => setShowPageJumpModal(true)}
           onOpenCorrection={() => {
             if (verses.length > 0) {
               handleOpenCorrection(verses[0]);
@@ -681,6 +684,8 @@ function MushafReaderInner() {
           onGoToPage={goToPage}
           onBookmarkPage={handleBookmarkPage}
           isBookmarked={isPageBookmarked}
+          isOpenModal={showPageJumpModal}
+          onCloseModal={() => setShowPageJumpModal(false)}
         />
       )}
 

@@ -1,7 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { SURAH_NAMES, SURAH_PAGES, getSurahName } from '@/lib/quran-meta';
+import {
+  SURAH_NAMES,
+  SURAH_PAGES,
+  SURAH_METADATA,
+  getSurahName,
+  getSurahForPage,
+  parseArabicOrWesternNumber,
+} from '@/lib/quran-meta';
 
 interface SearchResultItem {
   verseKey: string;
@@ -34,18 +41,33 @@ export default function SearchModal({
 
   if (!isOpen) return null;
 
+  const parsedQueryNum = parseArabicOrWesternNumber(query);
+  const isValidPageNum = !isNaN(parsedQueryNum) && parsedQueryNum >= 1 && parsedQueryNum <= 604;
+  const isValidSurahNum = !isNaN(parsedQueryNum) && parsedQueryNum >= 1 && parsedQueryNum <= 114;
+  const pageSurah = isValidPageNum ? getSurahForPage(parsedQueryNum) : undefined;
+  const directSurahMeta = isValidSurahNum ? SURAH_METADATA[parsedQueryNum] : undefined;
+
   const handleSearch = async () => {
     const trimmed = query.trim();
     if (!trimmed) return;
 
     setError(null);
 
+    // Check for explicit page query: e.g. "صفحة 50", "ص 50", "صفحة ٥٠"
+    if (/^(صفحة|ص|page)\s*[\d٠-٩]+/i.test(trimmed)) {
+      const pageNum = parseArabicOrWesternNumber(trimmed);
+      if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= 604) {
+        onNavigateToPage(pageNum);
+        onClose();
+        return;
+      }
+    }
+
     // Check for direct surah:ayah reference, e.g. "2:255" or "1:1"
-    const ayahMatch = trimmed.match(/^(\d{1,3}):(\d{1,3})$/);
+    const ayahMatch = trimmed.match(/^([\d٠-٩]+)\s*[:：]\s*([\d٠-٩]+)$/);
     if (ayahMatch) {
-      const surahNum = parseInt(ayahMatch[1], 10);
-      const ayahNum = parseInt(ayahMatch[2], 10);
-      if (surahNum >= 1 && surahNum <= 114) {
+      const surahNum = parseArabicOrWesternNumber(ayahMatch[1]);
+      if (!isNaN(surahNum) && surahNum >= 1 && surahNum <= 114) {
         const page = SURAH_PAGES[surahNum] || 1;
         onNavigateToPage(page);
         onClose();
@@ -190,8 +212,43 @@ export default function SearchModal({
             </button>
           </div>
           <p className="text-xs mt-2 opacity-60" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-            أمثلة: «الله نور السماوات» أو «2:255» (سورة:آية) أو رقم السورة مباشرة.
+            أمثلة: «الله نور السماوات» أو «صفحة 150» أو «2:255» (سورة:آية).
           </p>
+
+          {/* Quick Direct Jump Suggestions if query is a number */}
+          {(isValidPageNum || isValidSurahNum) && (
+            <div className="mt-3 pt-2 border-t border-[#C8A85B]/30 flex flex-wrap gap-2">
+              {isValidPageNum && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigateToPage(parsedQueryNum);
+                    onClose();
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-[#123B2A] text-[#C8A85B] text-xs font-bold hover:brightness-110 transition active:scale-95 cursor-pointer border border-[#C8A85B]/60 shadow-xs flex items-center gap-1.5"
+                >
+                  <span>📖</span>
+                  <span>الانتقال لصفحة {parsedQueryNum} {pageSurah ? `(سورة ${pageSurah.name})` : ''}</span>
+                  <span>◀</span>
+                </button>
+              )}
+
+              {isValidSurahNum && directSurahMeta && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigateToPage(directSurahMeta.startPage);
+                    onClose();
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[#123B2A] text-xs font-bold transition active:scale-95 cursor-pointer border border-[#123B2A]/20 shadow-xs flex items-center gap-1.5"
+                >
+                  <span>📜</span>
+                  <span>سورة {directSurahMeta.name} (صفحة {directSurahMeta.startPage})</span>
+                  <span>◀</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Results Area */}
