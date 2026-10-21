@@ -41,7 +41,12 @@ export default function MushafToolbar({
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
-        <div>
+        <div className="flex items-center gap-2">
+          <img
+            src="/icon-192.png"
+            alt="شعار"
+            className="w-7 h-7 rounded-lg border border-[#C8A85B]/50 object-cover"
+          />
           <h1 className="text-lg font-bold" style={{ fontFamily: "'Tajawal', sans-serif" }}>
             نور القرآن
           </h1>

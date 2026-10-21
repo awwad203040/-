@@ -63,9 +63,11 @@ export default function InstallAppModal({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#123B2A]/10">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#123B2A] flex items-center justify-center text-2xl shadow-sm">
-              📱
-            </div>
+            <img
+              src="/logo.png"
+              alt="نور القرآن"
+              className="w-14 h-14 rounded-2xl border-2 border-[#C8A85B]/50 shadow-md object-cover"
+            />
             <div>
               <h2 className="text-xl font-bold text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                 تثبيت تطبيق نور القرآن على الأندرويد

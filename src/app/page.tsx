@@ -230,7 +230,17 @@ export default function HomePage() {
             <span className="text-[#C8A85B] text-base select-none">🤲</span>
           </div>
 
-          <div className="text-center mb-5">
+          <div className="text-center mb-5 flex flex-col items-center">
+            {/* App Logo */}
+            <div className="relative mb-3 group">
+              <img
+                src="/logo.png"
+                alt="شعار نور القرآن"
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl shadow-xl border-2 border-[#C8A85B]/60 object-cover transform transition-transform group-hover:scale-105 duration-300"
+              />
+              <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-[#C8A85B]/20 via-[#123B2A]/10 to-[#C8A85B]/20 blur-xs -z-10" />
+            </div>
+
             <h1
               className="text-3xl md:text-4xl font-bold mb-1 tracking-wide"
               style={{ fontFamily: "'Amiri', serif" }}

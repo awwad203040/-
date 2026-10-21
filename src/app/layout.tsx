@@ -29,8 +29,9 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className="h-full">
       <head>
+        <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
         <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body
         className="min-h-full flex flex-col antialiased"

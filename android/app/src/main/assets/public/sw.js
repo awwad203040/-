@@ -1,11 +1,15 @@
 // Noor Al-Quran Service Worker (PWA Offline Support)
-const CACHE_NAME = 'noor-alquran-v8';
+const CACHE_NAME = 'noor-alquran-v9';
 
 const STATIC_ASSETS = [
   '/',
   '/mushaf',
   '/manifest.json',
   '/favicon.ico',
+  '/favicon.png',
+  '/logo.png',
+  '/icon-192.png',
+  '/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
