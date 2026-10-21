@@ -105,6 +105,25 @@ function MushafReaderInner() {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteVerse, setNoteVerse] = useState<Verse | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [showPageVersesDrawer, setShowPageVersesDrawer] = useState(false);
+  const [pageImageError, setPageImageError] = useState(false);
+
+  // Reset page image error when changing pages
+  useEffect(() => {
+    setPageImageError(false);
+  }, [currentPage]);
+
+  // Prefetch adjacent Madinah Mushaf page images for instant transitions
+  useEffect(() => {
+    if (currentPage < 604) {
+      const nextImg = new Image();
+      nextImg.src = `https://files.quran.app/hafs/madani/width_1024/page${(currentPage + 1).toString().padStart(3, '0')}.png`;
+    }
+    if (currentPage > 1) {
+      const prevImg = new Image();
+      prevImg.src = `https://files.quran.app/hafs/madani/width_1024/page${(currentPage - 1).toString().padStart(3, '0')}.png`;
+    }
+  }, [currentPage]);
 
   // Load settings and bookmarks from localStorage
   useEffect(() => {
@@ -441,8 +460,7 @@ function MushafReaderInner() {
       {/* Quran Content */}
       <main
         ref={swipeRef}
-        className="flex-1 px-4 py-6 md:px-8 lg:px-16 max-w-4xl mx-auto w-full page-transition"
-        onClick={handleCenterTap}
+        className="flex-1 px-2 sm:px-4 py-3 sm:py-6 md:px-8 lg:px-16 max-w-4xl mx-auto w-full page-transition"
         role="main"
         aria-label={`صفحة ${currentPage} من المصحف`}
       >
@@ -568,15 +586,168 @@ function MushafReaderInner() {
               </div>
             ))}
           </div>
+        ) : !pageImageError ? (
+          /* Madinah Mushaf Page View - Identical to King Fahd Complex / User's Uploaded Image */
+          <div className="relative w-full flex flex-col items-center justify-center select-none py-1">
+            {/* Quick Top Info Bar */}
+            <div className="w-full max-w-2xl mb-2 flex items-center justify-between text-xs font-bold px-2" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+              <span className="px-3 py-1 rounded-full bg-[#123B2A]/10 text-[#123B2A] border border-[#123B2A]/20">
+                {mainSurahName}
+              </span>
+              <span className="text-[#C8A85B] font-bold">
+                صفحة {currentPage} من 604
+              </span>
+              {juzNumber && (
+                <span className="px-3 py-1 rounded-full bg-[#C8A85B]/20 text-[#123B2A] border border-[#C8A85B]/30">
+                  الجزء {juzNumber}
+                </span>
+              )}
+            </div>
+
+            {/* Page Container with Screen Tap Navigation */}
+            <div className="relative w-full max-w-2xl mx-auto flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF]">
+              {/* Authentic Madinah Mushaf Page Image */}
+              <img
+                src={`https://files.quran.app/hafs/madani/width_1024/page${currentPage.toString().padStart(3, '0')}.png`}
+                alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
+                onError={() => setPageImageError(true)}
+                className={`w-full h-auto max-h-[85vh] object-contain transition-all duration-200 pointer-events-none ${
+                  settings.nightMode ? 'invert-[0.92] hue-rotate-180 brightness-95 contrast-125' : ''
+                }`}
+                loading="eager"
+              />
+
+              {/* Interactive Screen Tap Navigation Zones */}
+              <div className="absolute inset-0 z-10 flex">
+                {/* Left 35%: Next Page (RTL) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nextPage();
+                  }}
+                  disabled={currentPage >= 604}
+                  className="w-[35%] h-full cursor-pointer opacity-0 hover:opacity-100 transition-opacity flex items-center justify-start pl-3 group"
+                  aria-label="الانتقال للصفحة التالية"
+                  title="اضغط هنا للذهاب للصفحة التالية (▶)"
+                >
+                  <span className="p-3 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                    ◀ التالي
+                  </span>
+                </button>
+
+                {/* Center 30%: Toggle Menu & Toolbar Controls */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setControlsVisible((prev) => !prev);
+                  }}
+                  className="w-[30%] h-full cursor-pointer"
+                  aria-label="إظهار أو إخفاء القوائم والأشرطة"
+                  title="اضغط في الوسط لإظهار أو إخفاء الأشرطة"
+                />
+
+                {/* Right 35%: Previous Page (RTL) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    previousPage();
+                  }}
+                  disabled={currentPage <= 1}
+                  className="w-[35%] h-full cursor-pointer opacity-0 hover:opacity-100 transition-opacity flex items-center justify-end pr-3 group"
+                  aria-label="الانتقال للصفحة السابقة"
+                  title="اضغط هنا للرجوع للصفحة السابقة (◀)"
+                >
+                  <span className="p-3 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                    السابق ▶
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Page Navigation Controls */}
+            <div className="w-full max-w-2xl mt-3 flex items-center justify-between px-1 gap-2 text-xs font-bold">
+              {/* Next Page Button */}
+              <button
+                type="button"
+                onClick={nextPage}
+                disabled={currentPage >= 604}
+                className="flex-1 py-3 px-3 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+                title="الانتقال إلى الصفحة التالية"
+              >
+                <span>◀ الصفحة التالية ({currentPage < 604 ? currentPage + 1 : 604})</span>
+              </button>
+
+              {/* Verses Drawer Trigger */}
+              <button
+                type="button"
+                onClick={() => setShowPageVersesDrawer(!showPageVersesDrawer)}
+                className="py-3 px-3.5 rounded-xl border border-[#C8A85B]/70 bg-[#C8A85B] text-[#123B2A] hover:bg-[#d6b86e] active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+                title="تفسير واستماع آيات هذه الصفحة"
+              >
+                <span>📖</span>
+                <span>{showPageVersesDrawer ? 'إخفاء الآيات' : 'آيات وتفسير الصفحة'}</span>
+              </button>
+
+              {/* Previous Page Button */}
+              <button
+                type="button"
+                onClick={previousPage}
+                disabled={currentPage <= 1}
+                className="flex-1 py-3 px-3 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+                title="الرجوع إلى الصفحة السابقة"
+              >
+                <span>({currentPage > 1 ? currentPage - 1 : 1}) الصفحة السابقة ▶</span>
+              </button>
+            </div>
+
+            {/* Expandable Verses List for Tafsir & Audio Interaction */}
+            {showPageVersesDrawer && (
+              <div className="w-full max-w-2xl mt-4 bg-white/95 rounded-2xl p-4 border border-[#C8A85B]/50 shadow-xl space-y-3 animate-fadeIn">
+                <div className="flex items-center justify-between pb-2 border-b border-[#123B2A]/10">
+                  <span className="font-bold text-sm text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                    آيات الصفحة {currentPage} ({verses.length} آية)
+                  </span>
+                  <span className="text-xs text-gray-500 font-sans">
+                    اضغط على أي آية للاستماع أو التفسير
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                  {verses.map((verse) => (
+                    <div
+                      key={verse.id || verse.verseKey}
+                      onClick={() => setSelectedVerse(verse)}
+                      className="p-3 rounded-xl bg-black/5 hover:bg-[#123B2A]/10 transition-colors cursor-pointer border border-transparent hover:border-[#C8A85B]/40"
+                    >
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <span className="font-bold text-[#123B2A]">الآية {verse.verseKey}</span>
+                        <span className="text-[#C8A85B]">اضغط للخيارات والتفسير ▾</span>
+                      </div>
+                      <p className="text-base text-[#17231D] leading-relaxed font-bold" style={{ fontFamily: "'Amiri', serif" }} dir="rtl">
+                        {verse.textUthmani}
+                        <span className="verse-number inline-flex mr-1" style={{ backgroundColor: verseNumberBg }}>
+                          {verse.verseNumber}
+                        </span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
-          /* Mushaf Mode - Page-oriented continuous text */
+          /* Mushaf Mode Fallback - Page-oriented continuous text */
           <div dir="rtl">
             {groupedVerses.map((group) => (
               <div key={group.chapterNumber}>
                 {/* Surah Header */}
                 {group.verses.some((v) => v.verseNumber === 1) && (
                   <div className="surah-header my-6 p-4 rounded-2xl text-center shadow-sm border-2 border-[#C8A85B]/60">
-                    {/* Badges bar */}
                     {(() => {
                       const meta = getSurahMeta(group.chapterNumber);
                       return (
@@ -604,7 +775,6 @@ function MushafReaderInner() {
                             )}
                           </div>
 
-                          {/* Bismillah - not shown for Surah 9 (At-Tawbah) or Surah 1 */}
                           {group.chapterNumber !== 9 && group.chapterNumber !== 1 && (
                             <div className="bismillah mt-3 text-lg md:text-xl font-bold" style={{ fontFamily: "'Amiri', serif" }}>
                               بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ

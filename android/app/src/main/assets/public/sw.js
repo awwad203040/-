@@ -1,5 +1,5 @@
 // Noor Al-Quran Service Worker (PWA Offline Support)
-const CACHE_NAME = 'noor-alquran-v9';
+const CACHE_NAME = 'noor-alquran-v10';
 
 const STATIC_ASSETS = [
   '/',
@@ -123,7 +123,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Default Network-First for other assets
+  // 5. Quran Page Images (files.quran.app): Cache-First for instant offline reading
+  if (url.hostname.includes('files.quran.app') || url.pathname.includes('/hafs/madani/')) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // 6. Default Network-First for other assets
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {

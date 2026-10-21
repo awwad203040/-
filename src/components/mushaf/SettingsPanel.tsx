@@ -101,25 +101,25 @@ export default function SettingsPanel({
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => onUpdateSettings({ readingMode: 'mushaf' })}
-              className="py-3 rounded-xl text-sm font-medium transition-colors"
+              className="py-3 px-2 rounded-xl text-xs sm:text-sm font-bold transition-colors"
               style={{
                 backgroundColor: settings.readingMode === 'mushaf' ? '#123B2A' : 'rgba(18,59,42,0.1)',
                 color: settings.readingMode === 'mushaf' ? 'white' : '#123B2A',
                 fontFamily: "'Tajawal', sans-serif",
               }}
             >
-              المصحف
+              مصحف المدينة 📖
             </button>
             <button
               onClick={() => onUpdateSettings({ readingMode: 'verse' })}
-              className="py-3 rounded-xl text-sm font-medium transition-colors"
+              className="py-3 px-2 rounded-xl text-xs sm:text-sm font-bold transition-colors"
               style={{
                 backgroundColor: settings.readingMode === 'verse' ? '#123B2A' : 'rgba(18,59,42,0.1)',
                 color: settings.readingMode === 'verse' ? 'white' : '#123B2A',
                 fontFamily: "'Tajawal', sans-serif",
               }}
             >
-              آية آية
+              نصي (آية آية) 📝
             </button>
           </div>
         </div>

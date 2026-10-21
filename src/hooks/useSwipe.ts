@@ -12,7 +12,7 @@ interface UseSwipeOptions {
 }
 
 export function useSwipe(options: UseSwipeOptions) {
-  const { onSwipeLeft, onSwipeRight, threshold = 50, preventScroll = false } = options;
+  const { onSwipeLeft, onSwipeRight, threshold = 35, preventScroll = false } = options;
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const touchEndX = useRef(0);
