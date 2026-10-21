@@ -260,16 +260,16 @@ export default function HomePage() {
               <button
                 onClick={() => setShowAthkarModal(true)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
-                  autoAthkar.settings.enabled
+                  autoAthkar?.settings?.enabled
                     ? 'border-emerald-400/60 bg-emerald-700/40 text-emerald-200 hover:bg-emerald-700/60'
                     : 'border-white/20 bg-white/10 text-white/80 hover:bg-white/20'
                 }`}
                 style={{ fontFamily: "'Tajawal', sans-serif" }}
                 title="إعداد الأذكار الصوتية التلقائية"
               >
-                <span className={autoAthkar.settings.enabled ? 'animate-bounce' : ''}>🔔</span>
+                <span className={autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}>🔔</span>
                 <span>
-                  الأذكار الصوتية: {autoAthkar.settings.enabled ? `كل ${autoAthkar.settings.intervalMinutes} د` : 'متوقفة'}
+                  الأذكار الصوتية: {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
                 </span>
                 <span className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded-md">⚙️ ضبط</span>
               </button>

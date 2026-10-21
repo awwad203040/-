@@ -25,13 +25,17 @@ export default function AutoAthkarModal({
 
   if (!isOpen) return null;
 
+  const activeCategories: ThikrCategory[] = Array.isArray(settings?.activeCategories)
+    ? (settings.activeCategories as ThikrCategory[])
+    : (['istighfar', 'tasbeeh', 'hawqala', 'tahmeed', 'salawat'] as ThikrCategory[]);
+
   const handleToggleCategory = (category: ThikrCategory) => {
     let nextList: ThikrCategory[];
-    if (settings.activeCategories.includes(category)) {
-      if (settings.activeCategories.length === 1) return; // Keep at least one
-      nextList = settings.activeCategories.filter((c) => c !== category);
+    if (activeCategories.includes(category)) {
+      if (activeCategories.length === 1) return; // Keep at least one
+      nextList = activeCategories.filter((c) => c !== category);
     } else {
-      nextList = [...settings.activeCategories, category];
+      nextList = [...activeCategories, category];
     }
     onUpdateSettings({ activeCategories: nextList });
   };
@@ -187,7 +191,7 @@ export default function AutoAthkarModal({
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {ATHKAR_CATEGORIES.map((cat) => {
-                    const isActive = settings.activeCategories.includes(cat.id);
+                    const isActive = activeCategories.includes(cat.id);
                     return (
                       <button
                         key={cat.id}

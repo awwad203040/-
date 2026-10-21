@@ -1,7 +1,7 @@
 'use client';
 
 import type { Bookmark, ReadingProgress, UserSettings, Khatmah, DailyWird } from '@/types/quran';
-import type { AutoAthkarSettings } from '@/types/athkar';
+import type { AutoAthkarSettings, ThikrCategory } from '@/types/athkar';
 import { DEFAULT_ATHKAR_SETTINGS } from '@/types/athkar';
 
 const STORAGE_KEYS = {
@@ -204,7 +204,20 @@ export function recordWirdProgress(pagesCount = 1): void {
 
 // Auto Voice Athkar Settings
 export function getAutoAthkarSettings(): AutoAthkarSettings {
-  return getItem<AutoAthkarSettings>(STORAGE_KEYS.AUTO_ATHKAR, DEFAULT_ATHKAR_SETTINGS);
+  const stored = getItem<AutoAthkarSettings | null>(STORAGE_KEYS.AUTO_ATHKAR, null);
+  if (!stored || typeof stored !== 'object') {
+    return DEFAULT_ATHKAR_SETTINGS;
+  }
+  const validCategories: ThikrCategory[] = ['istighfar', 'tasbeeh', 'hawqala', 'tahmeed', 'salawat'];
+  const filtered = Array.isArray(stored.activeCategories)
+    ? (stored.activeCategories.filter((c) => validCategories.includes(c as ThikrCategory)) as ThikrCategory[])
+    : validCategories;
+
+  return {
+    ...DEFAULT_ATHKAR_SETTINGS,
+    ...stored,
+    activeCategories: filtered.length > 0 ? filtered : validCategories,
+  };
 }
 
 export function saveAutoAthkarSettings(settings: Partial<AutoAthkarSettings>): void {

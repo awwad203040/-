@@ -4,8 +4,8 @@
 	"webDir": "public",
 	"server": {
 		"url": "https://awwad2030.vercel.app",
-		"androidScheme": "https",
-		"cleartext": true
+		"cleartext": true,
+		"androidScheme": "https"
 	},
 	"android": {
 		"allowMixedContent": true,

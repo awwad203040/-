@@ -1,5 +1,6 @@
 // Noor Al-Quran Service Worker (PWA Offline Support)
-const CACHE_NAME = 'noor-alquran-v1';
+const CACHE_NAME = 'noor-alquran-v7';
+
 const STATIC_ASSETS = [
   '/',
   '/mushaf',
@@ -8,12 +9,12 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS).catch(() => {});
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -34,12 +35,52 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Audio files should stream and not be blocked by cache
+  // Audio files must stream directly and not be intercepted
   if (url.pathname.endsWith('.mp3') || url.hostname.includes('verses.quran.com') || url.hostname.includes('audio.qurancdn.com')) {
     return;
   }
 
-  // Network-first for API Quran page requests with runtime caching for offline reading
+  // 1. Navigation (HTML Pages): ALWAYS Network-First!
+  // Ensures user immediately gets the latest Next.js build and never gets stuck with stale chunk hashes.
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse.ok) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(event.request).then((cached) => {
+            return cached || caches.match('/') || caches.match('/mushaf');
+          });
+        })
+    );
+    return;
+  }
+
+  // 2. Next.js Static Chunks (_next/static/): Cache-First with network fallback
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        return (
+          cached ||
+          fetch(event.request).then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+            return response;
+          })
+        );
+      })
+    );
+    return;
+  }
+
+  // 3. API Quran Pages: Network-First with runtime caching for offline reading
   if (url.pathname.startsWith('/api/quran/pages/')) {
     event.respondWith(
       fetch(event.request)
@@ -59,7 +100,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for fonts and static assets
+  // 4. External Fonts: Cache-First
   if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
@@ -78,20 +119,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default Stale-While-Revalidate for app shell
+  // 5. Default Network-First for other assets
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse.ok && event.request.method === 'GET') {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return networkResponse;
-        })
-        .catch(() => cached);
-
-      return cached || fetchPromise;
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse.ok && event.request.method === 'GET') {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

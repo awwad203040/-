@@ -15,6 +15,7 @@ export default function AthkarToast({
   onReplay,
   isSpeaking = false,
 }: AthkarToastProps) {
+  if (!thikr) return null;
   return (
     <div
       className="fixed top-5 inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-lg z-50 transition-all duration-300"

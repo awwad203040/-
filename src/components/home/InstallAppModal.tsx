@@ -166,19 +166,32 @@ export default function InstallAppModal({
             <div className="p-4 rounded-2xl bg-white border border-[#C8A85B]/30 shadow-xs space-y-2">
               <h3 className="font-bold text-sm text-[#123B2A] flex items-center gap-2" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                 <span>📦</span>
-                <span>توليد ملف APK جاهز للتثبيت (.apk)</span>
+                <span>تحميل ملف APK المباشر للأندرويد (.apk)</span>
               </h3>
               <p className="text-xs leading-relaxed opacity-80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                تم تجهيز وضبط ملف المانيفست (Manifest) وأيقونات التطبيق بدقة فائقة لتوليد ملف APK جاهز في ثوانٍ معدودة عبر خدمة <strong>PWABuilder الرسمية من مايكروسوفت</strong>.
+                ملف APK رسمي وجاهز للتثبيت الفوري على أي جهاز أندرويد بحجم خفيف (حوالي 3.9 ميجابايت).
               </p>
             </div>
 
+            <a
+              href="/Noor-AlQuran.apk"
+              download="Noor-AlQuran.apk"
+              className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-md transition-transform active:scale-98 cursor-pointer text-center block"
+              style={{
+                backgroundColor: '#123B2A',
+                color: '#C8A85B',
+                fontFamily: "'Tajawal', sans-serif",
+              }}
+            >
+              <span>📥</span>
+              <span>تحميل تطبيق نور القرآن APK الآن</span>
+            </a>
+
             <div className="p-4 rounded-2xl bg-[#C8A85B]/15 border border-[#C8A85B]/40 text-xs text-[#123B2A] space-y-2">
-              <p className="font-bold">خطوات الحصول على ملف الـ APK فوراً:</p>
-              <p>1. ارفع التطبيق أو رابطه إلى Vercel أو نطاقك الخاص (أو استخدم ngrok للرابط المحلي).</p>
-              <p>2. افتح الرابط في أداة: <a href="https://www.pwabuilder.com" target="_blank" rel="noopener noreferrer" className="font-bold underline text-[#0B5B43]">PWABuilder.com</a></p>
-              <p>3. اضغط على <strong>«Build My App»</strong> ثم اختر <strong>«Android»</strong>.</p>
-              <p>4. ستحصل فوراً على ملف <strong>.apk</strong> موقع وجاهز للتثبيت المباشر على أي هاتف أندرويد.</p>
+              <p className="font-bold">طريقة تثبيت ملف الـ APK:</p>
+              <p>1. اضغط على زر التحميل أعلاه.</p>
+              <p>2. بعد اكتمال التنزيل، افتح الملف واضغط على «تثبيت» (قد يطلب منك السماح بالتثبيت من هذا المصدر).</p>
+              <p>3. سيتم تثبيت التطبيق ويعمل مباشرة مع التحديثات التلقائية فوراً.</p>
             </div>
           </div>
         )}

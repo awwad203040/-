@@ -48,8 +48,12 @@ export function useAutoAthkar() {
   const triggerThikr = useCallback(
     async (thikrToPlay?: VoiceThikr) => {
       // Pick available thikrs matching active categories
+      const activeCats = Array.isArray(settings?.activeCategories)
+        ? settings.activeCategories
+        : ['istighfar', 'tasbeeh', 'hawqala', 'tahmeed', 'salawat'];
+
       const activeList = VOICE_ATHKAR_LIST.filter((t) =>
-        settings.activeCategories.includes(t.category)
+        activeCats.includes(t.category)
       );
 
       const candidateList = activeList.length > 0 ? activeList : VOICE_ATHKAR_LIST;
