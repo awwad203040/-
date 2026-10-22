@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import type { Verse, Bookmark, UserSettings } from '@/types/quran';
@@ -51,10 +51,21 @@ function MushafReaderInner() {
   const pageParam = searchParams.get('page');
 
   // Compute starting page accurately:
-  // 1. If explicit ?page=X param in URL -> use it (supports Arabic-Indic numerals)
-  // 2. Otherwise retrieve the last saved reading page from localStorage
-  // 3. Fallback to 1 only if neither exists
+  // 1. Direct window.location.search FIRST (instant and synchronous in browser)
+  // 2. Next.js searchParams fallback
+  // 3. Otherwise retrieve the last saved reading page from localStorage
+  // 4. Fallback to 1 only if neither exists
   const initialPage = (() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const raw = sp.get('page');
+      if (raw) {
+        const parsed = parseArabicOrWesternNumber(raw);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= 604) {
+          return parsed;
+        }
+      }
+    }
     if (pageParam) {
       const parsed = parseArabicOrWesternNumber(pageParam);
       if (!isNaN(parsed) && parsed >= 1 && parsed <= 604) {
@@ -71,6 +82,7 @@ function MushafReaderInner() {
   })();
 
   const { currentPage, verses, isLoading, error, goToPage, nextPage, previousPage, refetch } = useMushafPage(initialPage);
+  const isFirstRender = useRef(true);
   const audio = useAudioPlayer();
   const autoAthkar = useAutoAthkar();
 
@@ -167,6 +179,10 @@ function MushafReaderInner() {
 
   // Update URL query parameter and scroll to top smoothly when page changes
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     if (typeof window !== 'undefined' && currentPage >= 1 && currentPage <= 604) {
       const url = new URL(window.location.href);
       if (url.searchParams.get('page') !== currentPage.toString()) {

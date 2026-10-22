@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReadingProgress, Bookmark } from '@/types/quran';
-import { getReadingProgress, getBookmarks, getPagesVisited, getSettings, saveSettings } from '@/lib/storage';
+import { getReadingProgress, saveReadingProgress, getBookmarks, getPagesVisited, getSettings, saveSettings } from '@/lib/storage';
 import { SURAH_METADATA, JUZ_METADATA, POPULAR_RECITERS, getSurahName, getSurahForPage, parseArabicOrWesternNumber } from '@/lib/quran-meta';
 import KhatmahTracker from '@/components/mushaf/KhatmahTracker';
 import RecitationPracticeHub from '@/components/home/RecitationPracticeHub';
@@ -40,6 +40,12 @@ export default function HomePage() {
   const handleHomeJumpToPage = (targetPage?: number) => {
     const page = targetPage !== undefined ? targetPage : parseArabicOrWesternNumber(homePageJumpInput);
     if (!isNaN(page) && page >= 1 && page <= 604) {
+      saveReadingProgress({
+        pageNumber: page,
+        surahNumber: 1,
+        ayahNumber: 1,
+        updatedAt: new Date().toISOString(),
+      });
       router.push(`/mushaf?page=${page}`);
     }
   };
@@ -1100,7 +1106,15 @@ export default function HomePage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => router.push(`/mushaf?page=${queryNum}`)}
+                      onClick={() => {
+                        saveReadingProgress({
+                          pageNumber: queryNum,
+                          surahNumber: s ? s.number : 1,
+                          ayahNumber: 1,
+                          updatedAt: new Date().toISOString(),
+                        });
+                        router.push(`/mushaf?page=${queryNum}`);
+                      }}
                       className="px-4 py-2 rounded-xl bg-[#C8A85B] text-[#123B2A] text-xs font-bold hover:brightness-110 active:scale-95 transition shadow-sm cursor-pointer whitespace-nowrap"
                       style={{ fontFamily: "'Tajawal', sans-serif" }}
                     >
@@ -1118,7 +1132,15 @@ export default function HomePage() {
                 return (
                   <div
                     key={meta.number}
-                    onClick={() => router.push(`/mushaf?page=${meta.startPage}`)}
+                    onClick={() => {
+                      saveReadingProgress({
+                        pageNumber: meta.startPage,
+                        surahNumber: meta.number,
+                        ayahNumber: 1,
+                        updatedAt: new Date().toISOString(),
+                      });
+                      router.push(`/mushaf?page=${meta.startPage}`);
+                    }}
                     className="w-full flex items-center justify-between px-5 py-3.5 text-right hover:bg-[#123B2A]/5 transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -1192,7 +1214,15 @@ export default function HomePage() {
             {JUZ_METADATA.map((juz) => (
               <button
                 key={juz.juzNumber}
-                onClick={() => router.push(`/mushaf?page=${juz.startPage}`)}
+                onClick={() => {
+                  saveReadingProgress({
+                    pageNumber: juz.startPage,
+                    surahNumber: 1,
+                    ayahNumber: 1,
+                    updatedAt: new Date().toISOString(),
+                  });
+                  router.push(`/mushaf?page=${juz.startPage}`);
+                }}
                 className="w-full flex items-center gap-4 px-5 py-4 text-right hover:bg-[#123B2A]/5 transition-colors"
               >
                 <div
@@ -1262,7 +1292,15 @@ export default function HomePage() {
                   return (
                     <button
                       key={bm.id}
-                      onClick={() => router.push(`/mushaf?page=${bm.pageNumber}`)}
+                      onClick={() => {
+                        saveReadingProgress({
+                          pageNumber: bm.pageNumber,
+                          surahNumber: bm.surahNumber,
+                          ayahNumber: bm.ayahNumber,
+                          updatedAt: new Date().toISOString(),
+                        });
+                        router.push(`/mushaf?page=${bm.pageNumber}`);
+                      }}
                       className="w-full p-4 rounded-2xl text-right transition-colors hover:bg-[#123B2A]/5 border border-[#C8A85B]/20 bg-white shadow-xs"
                     >
                       <div className="flex items-center justify-between mb-1">

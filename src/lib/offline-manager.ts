@@ -48,12 +48,12 @@ export async function checkOfflineProgress(): Promise<{
 
 /**
  * Pre-caches critical app routes (HTML and basic assets) so the reader
- * can navigate to the Mushaf page without needing an internet connection.
+ * can navigate to any surah or page without needing an internet connection.
  */
 export async function preCacheAppShell(): Promise<void> {
   if (typeof window === 'undefined' || !('caches' in window)) return;
   try {
-    const cache = await caches.open('noor-alquran-v16');
+    const cache = await caches.open('noor-alquran-v17');
     const urlsToCache = ['/', '/mushaf', '/manifest.json'];
     for (const url of urlsToCache) {
       try {
@@ -71,11 +71,11 @@ export async function preCacheAppShell(): Promise<void> {
 }
 
 /**
- * Downloads and caches all 604 Madinah Mushaf pages with robust pacing and retries.
- * - Uses CONCURRENCY = 2 with gentle delays (50ms) to completely avoid CDN rate-limiting / socket exhaustion.
- * - Retries any failed page up to 3 times with progressive backoff.
- * - Performs a second sequential pass for any pages that had transient network glitches.
- * - Seamlessly resumes from the exact number of pages previously downloaded.
+ * Downloads and caches all 604 Madinah Mushaf pages with robust timeout protection.
+ * - Every single request has a strict 6-second timeout so it never hangs or stalls.
+ * - Paced concurrency prevents CDN throttling.
+ * - Retries any failed page with progressive backoff.
+ * - Automatically resumes from the exact number of pages previously downloaded.
  */
 export async function downloadAllPages(
   onProgress: (progress: DownloadProgress) => void,
@@ -101,19 +101,6 @@ export async function downloadAllPages(
     }
   }
 
-  onProgress({
-    current: downloadedCount,
-    total: TOTAL_QURAN_PAGES,
-    percentage: Math.round((downloadedCount / TOTAL_QURAN_PAGES) * 100),
-    currentPage: 1,
-    isCompleted: downloadedCount >= TOTAL_QURAN_PAGES,
-    isPaused: false,
-  });
-
-  if (downloadedCount >= TOTAL_QURAN_PAGES) {
-    return true;
-  }
-
   // Queue of pages that still need to be downloaded
   const pagesToDownload: number[] = [];
   for (let p = 1; p <= TOTAL_QURAN_PAGES; p++) {
@@ -123,17 +110,30 @@ export async function downloadAllPages(
     }
   }
 
+  onProgress({
+    current: downloadedCount,
+    total: TOTAL_QURAN_PAGES,
+    percentage: Math.round((downloadedCount / TOTAL_QURAN_PAGES) * 100),
+    currentPage: pagesToDownload[0] || 1,
+    isCompleted: downloadedCount >= TOTAL_QURAN_PAGES,
+    isPaused: false,
+  });
+
+  if (downloadedCount >= TOTAL_QURAN_PAGES) {
+    return true;
+  }
+
   const initialToDownload = pagesToDownload.length;
   let successInThisRun = 0;
   let index = 0;
   const failedPages: number[] = [];
 
-  // Paced concurrency: 2 workers with 50ms pause prevents CDN rate-limits completely
+  // 2 concurrent workers with paced interval prevents CDN throttling completely
   const CONCURRENCY = 2;
 
   async function fetchSinglePage(pageNum: number): Promise<boolean> {
     const url = getPageImageUrl(pageNum);
-    const retryDelays = [0, 400, 1000];
+    const retryDelays = [0, 300, 800];
 
     for (let attempt = 0; attempt < retryDelays.length; attempt++) {
       if (abortSignal?.aborted) return false;
@@ -143,17 +143,34 @@ export async function downloadAllPages(
         if (abortSignal?.aborted) return false;
       }
 
+      // 6-second timeout per request prevents any stalled socket from hanging the worker
+      const timeoutController = new AbortController();
+      const timeoutTimer = setTimeout(() => timeoutController.abort(), 6000);
+
+      const abortHandler = () => timeoutController.abort();
+      if (abortSignal) {
+        abortSignal.addEventListener('abort', abortHandler, { once: true });
+      }
+
       try {
         const response = await fetch(url, {
           mode: 'no-cors',
-          signal: abortSignal,
+          signal: timeoutController.signal,
         });
+        clearTimeout(timeoutTimer);
+        if (abortSignal) {
+          abortSignal.removeEventListener('abort', abortHandler);
+        }
 
         if (response && (response.type === 'opaque' || response.ok || response.status === 200)) {
           await cache.put(url, response);
           return true;
         }
       } catch (err: unknown) {
+        clearTimeout(timeoutTimer);
+        if (abortSignal) {
+          abortSignal.removeEventListener('abort', abortHandler);
+        }
         if (abortSignal?.aborted) return false;
         // Continue to next attempt
       }
@@ -171,6 +188,16 @@ export async function downloadAllPages(
 
       const pageNum = pagesToDownload[currentIndex];
       if (!pageNum) return;
+
+      // Update progress immediately so user sees which page is actively being fetched
+      onProgress({
+        current: downloadedCount,
+        total: TOTAL_QURAN_PAGES,
+        percentage: Math.round((downloadedCount / TOTAL_QURAN_PAGES) * 100),
+        currentPage: pageNum,
+        isCompleted: false,
+        isPaused: false,
+      });
 
       const success = await fetchSinglePage(pageNum);
 
@@ -190,7 +217,7 @@ export async function downloadAllPages(
         failedPages.push(pageNum);
       }
 
-      // Small 40ms pause between downloads keeps network socket healthy and prevents CDN throttling
+      // Small 40ms pause between downloads
       await new Promise((res) => setTimeout(res, 40));
     }
   }
@@ -202,12 +229,21 @@ export async function downloadAllPages(
     return false;
   }
 
-  // Second Pass: If any pages failed during the fast pass, retry them one by one
+  // Second Pass: If any pages failed, retry them gently
   if (failedPages.length > 0 && !abortSignal?.aborted) {
-    await new Promise((res) => setTimeout(res, 800));
+    await new Promise((res) => setTimeout(res, 600));
 
     for (const pageNum of failedPages) {
       if (abortSignal?.aborted) break;
+
+      onProgress({
+        current: downloadedCount,
+        total: TOTAL_QURAN_PAGES,
+        percentage: Math.round((downloadedCount / TOTAL_QURAN_PAGES) * 100),
+        currentPage: pageNum,
+        isCompleted: false,
+        isPaused: false,
+      });
 
       const success = await fetchSinglePage(pageNum);
       if (success) {
@@ -223,11 +259,10 @@ export async function downloadAllPages(
           isPaused: false,
         });
       }
-      await new Promise((res) => setTimeout(res, 80));
+      await new Promise((res) => setTimeout(res, 60));
     }
   }
 
-  // Only throw an error if absolutely zero progress was made AND we had pages to download
   if (successInThisRun === 0 && initialToDownload > 0 && !abortSignal?.aborted) {
     throw new Error('تعذر تنزيل صفحات المصحف. يرجى التأكد من اتصال الإنترنت ثم إعادة المحاولة.');
   }
