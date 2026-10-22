@@ -1,5 +1,5 @@
 // Noor Al-Quran Service Worker (PWA Offline Support)
-const CACHE_NAME = 'noor-alquran-v12';
+const CACHE_NAME = 'noor-alquran-v13';
 
 const STATIC_ASSETS = [
   '/',
@@ -10,6 +10,12 @@ const STATIC_ASSETS = [
   '/logo.png',
   '/icon-192.png',
   '/icon-512.png',
+  '/audio/athkar/istighfar-1.mp3?v=male-v3',
+  '/audio/athkar/tasbeeh-1.mp3?v=male-v3',
+  '/audio/athkar/tasbeeh-2.mp3?v=male-v3',
+  '/audio/athkar/hawqala-1.mp3?v=male-v3',
+  '/audio/athkar/tahmeed-1.mp3?v=male-v3',
+  '/audio/athkar/salawat-1.mp3?v=male-v3',
 ];
 
 self.addEventListener('install', (event) => {
@@ -39,8 +45,25 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Audio files must stream directly and not be intercepted
-  if (url.pathname.endsWith('.mp3') || url.hostname.includes('verses.quran.com') || url.hostname.includes('audio.qurancdn.com')) {
+  // 0. Local Athkar audio clips: Cache-First for 100% offline audio playback
+  if (url.pathname.startsWith('/audio/athkar/')) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Heavy external recitation audio streams bypass SW
+  if (url.hostname.includes('verses.quran.com') || url.hostname.includes('audio.qurancdn.com')) {
     return;
   }
 
