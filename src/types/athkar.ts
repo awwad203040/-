@@ -7,7 +7,8 @@ export interface VoiceThikr {
   textTashkeel: string; // Vocalized Arabic for natural pronunciation
   textDisplay: string;  // Clean Arabic for display
   virtue: string;       // فضل الذكر
-  audioUrl?: string;    // Studio-quality Arabic audio recording URL
+  audioUrl?: string;    // Studio-quality Arabic audio recording URL for in-app playback
+  rawSound?: string;    // Native Android res/raw sound file (e.g. 'tasbeeh_azeem.mp3') for background notifications
 }
 
 export interface AutoAthkarSettings {

@@ -9,6 +9,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textDisplay: 'سُبْحَانَ رَبِّيَ الْعَظِيمِ وَبِحَمْدِهِ.',
     virtue: '«سُبْحَانَ رَبِّيَ الْعَظِيمِ وَبِحَمْدِهِ - تَعْظِيمٌ لِلَّهِ وَتَنْزِيهٌ لَهُ سُبْحَانَهُ»',
     audioUrl: '/audio/athkar/tasbeeh-azeem.mp3?v=custom-1',
+    rawSound: 'tasbeeh_azeem.mp3',
   },
   {
     id: 'tawheed-1',
@@ -18,6 +19,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textDisplay: 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ.',
     virtue: 'قال ﷺ: «خَيْرُ مَا قُلْتُ أَنَا وَالنَّبِيُّونَ مِنْ قَبْلِي: لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ...»',
     audioUrl: '/audio/athkar/tawheed-1.mp3?v=custom-1',
+    rawSound: 'tawheed.mp3',
   },
   {
     id: 'hawqala-1',
@@ -27,6 +29,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textDisplay: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ.',
     virtue: 'قال ﷺ: «أَلَا أَدُلُّكَ عَلَى كَلِمَةٍ هِيَ كَنْزٌ مِنْ كُنُوزِ الْجَنَّةِ؟: لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ»',
     audioUrl: '/audio/athkar/hawqala-1.mp3?v=custom-1',
+    rawSound: 'hawqala.mp3',
   },
   {
     id: 'salawat-nabi',
@@ -36,6 +39,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textDisplay: 'إِنَّ اللَّهَ وَمَلَائِكَتَهُ يُصَلُّونَ عَلَى النَّبِيِّ ۝ يَا أَيُّهَا الَّذِينَ آمَنُوا صَلُّوا عَلَيْهِ وَسَلِّمُوا تَسْلِيمًا.',
     virtue: 'قال ﷺ: «مَنْ صَلَّى عَلَيَّ صَلَاةً صَلَّى اللَّهُ عَلَيْهِ بِهَا عَشْرًا»',
     audioUrl: '/audio/athkar/salawat-nabi.mp3?v=custom-1',
+    rawSound: 'salawat_nabi.mp3',
   },
   {
     id: 'tasbeeh-quddoos',
@@ -45,6 +49,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textDisplay: 'سُبْحَانَ الْمَلِكِ الْقُدُّوسِ.',
     virtue: '«كَانَ رَسُولُ اللَّهِ ﷺ إِذَا سَلَّمَ مِنَ الْوِتْرِ قَالَ: سُبْحَانَ الْمَلِكِ الْقُدُّوسِ»',
     audioUrl: '/audio/athkar/tasbeeh-quddoos.mp3?v=custom-1',
+    rawSound: 'tasbeeh_quddoos.mp3',
   },
   {
     id: 'baqiyat-1',
@@ -54,6 +59,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textDisplay: 'سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَاللَّهُ أَكْبَرُ.',
     virtue: '«أَحَبُّ الْكَلَامِ إِلَى اللَّهِ أَرْبَعٌ: سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ»',
     audioUrl: '/audio/athkar/baqiyat-1.mp3?v=custom-1',
+    rawSound: 'baqiyat.mp3',
   },
   {
     id: 'istighfar-custom',
@@ -63,6 +69,7 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     textDisplay: 'أَسْتَغْفِرُ اللَّهَ.',
     virtue: 'قال ﷺ: «مَنْ لَزِمَ الِاسْتِغْفَارَ جَعَلَ اللَّهُ لَهُ مِنْ كُلِّ ضِيقٍ مَخْرَجًا»',
     audioUrl: '/audio/athkar/istighfar-custom.mp3?v=custom-1',
+    rawSound: 'istighfar.mp3',
   },
 ];
 

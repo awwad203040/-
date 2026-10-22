@@ -4,7 +4,18 @@ import { Capacitor } from '@capacitor/core';
 import type { AutoAthkarSettings, VoiceThikr } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST } from '@/lib/athkar-data';
 
-const ATHKAR_CHANNEL_ID = 'noor_athkar_channel';
+const DEFAULT_ATHKAR_CHANNEL_ID = 'noor_athkar_default_v2';
+
+/**
+ * Get the channel ID for a specific thikr
+ */
+export function getThikrChannelId(thikr: VoiceThikr): string {
+  if (thikr.rawSound) {
+    const base = thikr.rawSound.replace(/\.[^/.]+$/, '');
+    return `noor_ch_${base}_v2`;
+  }
+  return DEFAULT_ATHKAR_CHANNEL_ID;
+}
 
 /**
  * Request notification permissions across Native Capacitor and Web browsers
@@ -42,30 +53,50 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 /**
- * Create Android Notification Channel for Athkar (Sound, Vibration & High Priority)
+ * Create dedicated Android Notification Channels for each Thikr sound.
+ * This guarantees that Android plays the exact custom MP3 voice clip even when the app is completely closed.
  */
-async function ensureNotificationChannel(): Promise<void> {
+async function ensureNotificationChannels(pool: VoiceThikr[]): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
 
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
+
+    // Default channel
     await LocalNotifications.createChannel({
-      id: ATHKAR_CHANNEL_ID,
+      id: DEFAULT_ATHKAR_CHANNEL_ID,
       name: 'أذكار نور القرآن',
-      description: 'تنبيهات الأذكار الدورية بصوت وقور وتذكير روحي',
-      importance: 4, // High importance (displays heads-up and in status bar)
-      visibility: 1, // Public
+      description: 'تنبيهات صوتية للأذكار',
+      importance: 5, // IMPORTANCE_HIGH (pops on screen and makes sound)
+      visibility: 1, // VISIBILITY_PUBLIC
       vibration: true,
       lights: true,
       lightColor: '#C8A85B',
     });
-  } catch {
-    // Channel creation fallback
+
+    // Create a high-priority channel for each thikr with its audio sound from res/raw
+    for (const thikr of pool) {
+      if (!thikr.rawSound) continue;
+      const chId = getThikrChannelId(thikr);
+      await LocalNotifications.createChannel({
+        id: chId,
+        name: `أذكار: ${thikr.categoryName}`,
+        description: `تنبيه صوتي للذكر: ${thikr.textDisplay}`,
+        importance: 5, // IMPORTANCE_HIGH
+        visibility: 1, // VISIBILITY_PUBLIC
+        sound: thikr.rawSound, // Points to res/raw/<rawSound>
+        vibration: true,
+        lights: true,
+        lightColor: '#C8A85B',
+      });
+    }
+  } catch (e) {
+    console.warn('Channel creation error:', e);
   }
 }
 
 /**
- * Schedule recurring background Athkar notifications that fire even when app is closed.
+ * Schedule recurring background Athkar notifications that fire with sound even when app is closed.
  * Pre-schedules upcoming notifications rotating through the active Athkar list.
  */
 export async function syncBackgroundAthkarNotifications(
@@ -96,8 +127,6 @@ export async function syncBackgroundAthkarNotifications(
       const hasPerm = await requestNotificationPermission();
       if (!hasPerm) return;
 
-      await ensureNotificationChannel();
-
       // Determine active athkar
       const activeIds = Array.isArray(settings.activeThikrIds) && settings.activeThikrIds.length > 0
         ? settings.activeThikrIds
@@ -106,23 +135,28 @@ export async function syncBackgroundAthkarNotifications(
       const activeList = VOICE_ATHKAR_LIST.filter((t) => activeIds.includes(t.id));
       const pool = activeList.length > 0 ? activeList : VOICE_ATHKAR_LIST;
 
+      // Create channels with custom sound for each active thikr
+      await ensureNotificationChannels(pool);
+
       const intervalMs = Math.max(1, settings.intervalMinutes) * 60 * 1000;
       const notificationsToSchedule = [];
 
-      // Pre-schedule up to 48 upcoming notifications covering several days
-      const count = Math.min(48, Math.floor((24 * 60) / Math.max(1, settings.intervalMinutes)));
+      // Pre-schedule up to 64 upcoming notifications covering several days
+      const count = Math.min(64, Math.floor((48 * 60) / Math.max(1, settings.intervalMinutes)));
       const now = Date.now();
 
       for (let i = 1; i <= count; i++) {
         const thikr = pool[(i - 1) % pool.length];
         const triggerTime = new Date(now + i * intervalMs);
+        const channelId = getThikrChannelId(thikr);
 
         notificationsToSchedule.push({
           id: 1000 + i,
           title: 'نور القرآن 📿',
           body: thikr.textDisplay,
           summaryText: thikr.categoryName,
-          channelId: ATHKAR_CHANNEL_ID,
+          channelId: channelId,
+          sound: thikr.rawSound || undefined,
           smallIcon: 'ic_launcher',
           largeIcon: 'ic_launcher',
           iconColor: '#C8A85B',
@@ -159,17 +193,20 @@ export async function showSingleThikrNotification(thikr: VoiceThikr): Promise<vo
   try {
     if (Capacitor.isNativePlatform()) {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
-      await ensureNotificationChannel();
+      await ensureNotificationChannels([thikr]);
+      const channelId = getThikrChannelId(thikr);
+
       await LocalNotifications.schedule({
         notifications: [
           {
             id: 9999,
             title: 'نور القرآن 📿',
             body: thikr.textDisplay,
-            channelId: ATHKAR_CHANNEL_ID,
+            channelId: channelId,
+            sound: thikr.rawSound || undefined,
             smallIcon: 'ic_launcher',
             iconColor: '#C8A85B',
-            schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
+            schedule: { at: new Date(Date.now() + 200), allowWhileIdle: true },
           },
         ],
       });
