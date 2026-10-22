@@ -22,7 +22,7 @@ import {
   updateKhatmahProgress,
   recordWirdProgress,
 } from '@/lib/storage';
-import { SURAH_NAMES, POPULAR_RECITERS, getSurahMeta, parseArabicOrWesternNumber } from '@/lib/quran-meta';
+import { SURAH_NAMES, POPULAR_RECITERS, getSurahMeta, getSurahForPage, parseArabicOrWesternNumber } from '@/lib/quran-meta';
 import MushafToolbar from '@/components/mushaf/MushafToolbar';
 import PageNavigator from '@/components/mushaf/PageNavigator';
 import AyahActions from '@/components/mushaf/AyahActions';
@@ -243,11 +243,12 @@ function MushafReaderInner() {
     return acc;
   }, []);
 
+  const pageMeta = getSurahForPage(currentPage);
   const mainSurahName = chaptersOnPage.length > 0
     ? SURAH_NAMES[chaptersOnPage[0]] || `سورة ${chaptersOnPage[0]}`
-    : '';
+    : pageMeta ? `سورة ${pageMeta.name}` : '';
 
-  const juzNumber = verses.length > 0 ? verses[0].juzNumber : undefined;
+  const juzNumber = verses.length > 0 ? verses[0].juzNumber : (pageMeta ? Math.min(30, Math.ceil(currentPage / 20)) : undefined);
 
   const isPageBookmarked = bookmarks.some((b) => b.pageNumber === currentPage);
 
@@ -472,7 +473,7 @@ function MushafReaderInner() {
         role="main"
         aria-label={`صفحة ${currentPage} من المصحف`}
       >
-        {error ? (
+        {error && (settings.readingMode === 'verse' || pageImageError) ? (
           /* Error State */
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
             <div
