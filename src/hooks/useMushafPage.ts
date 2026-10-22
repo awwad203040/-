@@ -55,6 +55,13 @@ export function useMushafPage(initialPage: number) {
     error: null,
   });
 
+  // Keep currentPage synchronized whenever initialPage changes (e.g. user selected another surah from home)
+  useEffect(() => {
+    if (initialPage >= 1 && initialPage <= 604 && initialPage !== currentPage) {
+      setCurrentPage(initialPage);
+    }
+  }, [initialPage, currentPage]);
+
   const fetchPage = useCallback(async (page: number) => {
     // Check cache first
     if (pageCache.has(page)) {
@@ -70,7 +77,13 @@ export function useMushafPage(initialPage: number) {
     setData((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const res = await fetch(`/api/quran/pages/${page}`);
+      // 3.5s timeout prevents fetch from hanging indefinitely on offline/spotty mobile networks
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3500);
+
+      const res = await fetch(`/api/quran/pages/${page}`, { signal: controller.signal });
+      clearTimeout(timer);
+
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }

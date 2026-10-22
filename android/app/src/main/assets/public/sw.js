@@ -1,5 +1,5 @@
 // Noor Al-Quran Service Worker (PWA Offline Support)
-const CACHE_NAME = 'noor-alquran-v15';
+const CACHE_NAME = 'noor-alquran-v16';
 const PAGES_CACHE_NAME = 'noor-mushaf-pages-v1';
 
 const STATIC_ASSETS = [
@@ -151,16 +151,22 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('files.quran.app') || url.pathname.includes('/hafs/madani/')) {
     event.respondWith(
       caches.open(PAGES_CACHE_NAME).then((pagesCache) => {
-        return pagesCache.match(event.request).then((cached) => {
+        // Match by exact URL string first to bypass any request mode/Vary differences
+        return pagesCache.match(event.request.url).then((cached) => {
           if (cached) return cached;
-          return fetch(event.request).then((response) => {
-            if (response && (response.ok || response.type === 'opaque')) {
-              try {
-                const clone = response.clone();
-                pagesCache.put(event.request, clone).catch(() => {});
-              } catch (_) {}
-            }
-            return response;
+          return caches.match(event.request.url).then((anyCached) => {
+            if (anyCached) return anyCached;
+            return fetch(event.request).then((response) => {
+              if (response && (response.ok || response.type === 'opaque')) {
+                try {
+                  const clone = response.clone();
+                  pagesCache.put(event.request.url, clone).catch(() => {});
+                } catch (_) {}
+              }
+              return response;
+            }).catch(() => {
+              return pagesCache.match(event.request.url);
+            });
           });
         });
       })

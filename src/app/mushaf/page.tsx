@@ -90,6 +90,16 @@ function MushafReaderInner() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [goToPage]);
 
+  // Synchronize immediately whenever URL ?page= changes (e.g. user clicked any surah from home)
+  useEffect(() => {
+    if (pageParam) {
+      const parsed = parseArabicOrWesternNumber(pageParam);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 604 && parsed !== currentPage) {
+        goToPage(parsed);
+      }
+    }
+  }, [pageParam, currentPage, goToPage]);
+
   const [settings, setSettings] = useState<UserSettings>({
     fontSize: 28,
     nightMode: false,
@@ -431,7 +441,8 @@ function MushafReaderInner() {
   const textColor = settings.nightMode ? '#E8E4D9' : '#17231D';
   const verseNumberBg = settings.nightMode ? '#C8A85B' : '#C8A85B';
 
-  if (isLoading && verses.length === 0) {
+  // Only show full skeleton in verse-by-verse mode; in mushaf page mode the authentic page image renders immediately
+  if (isLoading && verses.length === 0 && settings.readingMode === 'verse') {
     return <MushafSkeleton />;
   }
 
