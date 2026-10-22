@@ -1,5 +1,5 @@
 // Noor Al-Quran Service Worker (PWA Offline Support)
-const CACHE_NAME = 'noor-alquran-v16';
+const CACHE_NAME = 'noor-alquran-v17';
 const PAGES_CACHE_NAME = 'noor-mushaf-pages-v1';
 
 const STATIC_ASSETS = [
@@ -82,7 +82,11 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           return caches.match(event.request).then((cached) => {
-            return cached || caches.match('/') || caches.match('/mushaf');
+            if (cached) return cached;
+            if (url.pathname.startsWith('/mushaf')) {
+              return caches.match('/mushaf').then((mushafHtml) => mushafHtml || caches.match('/'));
+            }
+            return caches.match('/').then((homeHtml) => homeHtml || caches.match('/mushaf'));
           });
         })
     );

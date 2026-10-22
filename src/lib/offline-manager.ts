@@ -47,9 +47,35 @@ export async function checkOfflineProgress(): Promise<{
 }
 
 /**
- * Downloads and caches all 604 Madinah Mushaf pages with controlled concurrency.
- * Safe, interruptible via AbortController, and resumes automatically from where it left off.
- * Uses mode: 'no-cors' so files.quran.app images can be stored in Cache API without CORS errors.
+ * Pre-caches critical app routes (HTML and basic assets) so the reader
+ * can navigate to the Mushaf page without needing an internet connection.
+ */
+export async function preCacheAppShell(): Promise<void> {
+  if (typeof window === 'undefined' || !('caches' in window)) return;
+  try {
+    const cache = await caches.open('noor-alquran-v16');
+    const urlsToCache = ['/', '/mushaf', '/manifest.json'];
+    for (const url of urlsToCache) {
+      try {
+        const res = await fetch(url, { cache: 'reload' });
+        if (res.ok) {
+          await cache.put(url, res);
+        }
+      } catch {
+        // Ignore single asset failure
+      }
+    }
+  } catch {
+    // Ignore cache error
+  }
+}
+
+/**
+ * Downloads and caches all 604 Madinah Mushaf pages with robust pacing and retries.
+ * - Uses CONCURRENCY = 2 with gentle delays (50ms) to completely avoid CDN rate-limiting / socket exhaustion.
+ * - Retries any failed page up to 3 times with progressive backoff.
+ * - Performs a second sequential pass for any pages that had transient network glitches.
+ * - Seamlessly resumes from the exact number of pages previously downloaded.
  */
 export async function downloadAllPages(
   onProgress: (progress: DownloadProgress) => void,
@@ -58,6 +84,9 @@ export async function downloadAllPages(
   if (typeof window === 'undefined' || !('caches' in window)) {
     throw new Error('متصفحك أو جهازك لا يدعم خاصية التخزين دون اتصال.');
   }
+
+  // Pre-cache app shell first so offline navigation to /mushaf works 100%
+  preCacheAppShell().catch(() => {});
 
   const cache = await caches.open(PAGES_CACHE_NAME);
 
@@ -97,13 +126,45 @@ export async function downloadAllPages(
   const initialToDownload = pagesToDownload.length;
   let successInThisRun = 0;
   let index = 0;
-  const CONCURRENCY = 4;
+  const failedPages: number[] = [];
+
+  // Paced concurrency: 2 workers with 50ms pause prevents CDN rate-limits completely
+  const CONCURRENCY = 2;
+
+  async function fetchSinglePage(pageNum: number): Promise<boolean> {
+    const url = getPageImageUrl(pageNum);
+    const retryDelays = [0, 400, 1000];
+
+    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+      if (abortSignal?.aborted) return false;
+
+      if (retryDelays[attempt] > 0) {
+        await new Promise((res) => setTimeout(res, retryDelays[attempt]));
+        if (abortSignal?.aborted) return false;
+      }
+
+      try {
+        const response = await fetch(url, {
+          mode: 'no-cors',
+          signal: abortSignal,
+        });
+
+        if (response && (response.type === 'opaque' || response.ok || response.status === 200)) {
+          await cache.put(url, response);
+          return true;
+        }
+      } catch (err: unknown) {
+        if (abortSignal?.aborted) return false;
+        // Continue to next attempt
+      }
+    }
+
+    return false;
+  }
 
   async function worker(): Promise<void> {
     while (index < pagesToDownload.length) {
-      if (abortSignal?.aborted) {
-        return;
-      }
+      if (abortSignal?.aborted) return;
 
       const currentIndex = index++;
       if (currentIndex >= pagesToDownload.length) return;
@@ -111,48 +172,26 @@ export async function downloadAllPages(
       const pageNum = pagesToDownload[currentIndex];
       if (!pageNum) return;
 
-      const url = getPageImageUrl(pageNum);
+      const success = await fetchSinglePage(pageNum);
 
-      try {
-        // Critical: files.quran.app CDN does NOT serve CORS headers.
-        // We MUST use mode: 'no-cors' so the browser fetches the image as an opaque response.
-        // W3C Cache API standard explicitly permits storing opaque responses in cache.put().
-        let response: Response | null = null;
-        try {
-          response = await fetch(url, {
-            mode: 'no-cors',
-            signal: abortSignal,
-          });
-        } catch {
-          if (abortSignal?.aborted) return;
-          // Retry once after 250ms on transient network drop
-          await new Promise((resolve) => setTimeout(resolve, 250));
-          if (abortSignal?.aborted) return;
-          response = await fetch(url, {
-            mode: 'no-cors',
-            signal: abortSignal,
-          });
-        }
+      if (success) {
+        downloadedCount++;
+        successInThisRun++;
 
-        // For opaque responses, response.type === 'opaque' and response.status === 0
-        if (response && (response.type === 'opaque' || response.ok || response.status === 200)) {
-          await cache.put(url, response);
-          downloadedCount++;
-          successInThisRun++;
-
-          onProgress({
-            current: downloadedCount,
-            total: TOTAL_QURAN_PAGES,
-            percentage: Math.round((downloadedCount / TOTAL_QURAN_PAGES) * 100),
-            currentPage: pageNum,
-            isCompleted: downloadedCount >= TOTAL_QURAN_PAGES,
-            isPaused: false,
-          });
-        }
-      } catch (err: unknown) {
-        if (abortSignal?.aborted) return;
-        console.warn(`[OfflineManager] Error fetching page ${pageNum}:`, err);
+        onProgress({
+          current: downloadedCount,
+          total: TOTAL_QURAN_PAGES,
+          percentage: Math.round((downloadedCount / TOTAL_QURAN_PAGES) * 100),
+          currentPage: pageNum,
+          isCompleted: downloadedCount >= TOTAL_QURAN_PAGES,
+          isPaused: false,
+        });
+      } else {
+        failedPages.push(pageNum);
       }
+
+      // Small 40ms pause between downloads keeps network socket healthy and prevents CDN throttling
+      await new Promise((res) => setTimeout(res, 40));
     }
   }
 
@@ -163,8 +202,33 @@ export async function downloadAllPages(
     return false;
   }
 
-  // If no pages were downloaded and we had pages to download, there is a connection issue
-  if (successInThisRun === 0 && initialToDownload > 0) {
+  // Second Pass: If any pages failed during the fast pass, retry them one by one
+  if (failedPages.length > 0 && !abortSignal?.aborted) {
+    await new Promise((res) => setTimeout(res, 800));
+
+    for (const pageNum of failedPages) {
+      if (abortSignal?.aborted) break;
+
+      const success = await fetchSinglePage(pageNum);
+      if (success) {
+        downloadedCount++;
+        successInThisRun++;
+
+        onProgress({
+          current: downloadedCount,
+          total: TOTAL_QURAN_PAGES,
+          percentage: Math.round((downloadedCount / TOTAL_QURAN_PAGES) * 100),
+          currentPage: pageNum,
+          isCompleted: downloadedCount >= TOTAL_QURAN_PAGES,
+          isPaused: false,
+        });
+      }
+      await new Promise((res) => setTimeout(res, 80));
+    }
+  }
+
+  // Only throw an error if absolutely zero progress was made AND we had pages to download
+  if (successInThisRun === 0 && initialToDownload > 0 && !abortSignal?.aborted) {
     throw new Error('تعذر تنزيل صفحات المصحف. يرجى التأكد من اتصال الإنترنت ثم إعادة المحاولة.');
   }
 

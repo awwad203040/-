@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   checkOfflineProgress,
   downloadAllPages,
@@ -20,6 +21,7 @@ export default function OfflineDownloadModal({
   onClose,
   nightMode = false,
 }: OfflineDownloadModalProps) {
+  const router = useRouter();
   const [cachedCount, setCachedCount] = useState<number>(0);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [currentPageDownloading, setCurrentPageDownloading] = useState<number>(0);
@@ -58,6 +60,12 @@ export default function OfflineDownloadModal({
     setErrorMessage(null);
     setIsCleared(false);
     setIsDownloading(true);
+
+    // Pre-cache Next.js JS bundles for Mushaf page immediately
+    try {
+      router.prefetch('/mushaf');
+      router.prefetch('/');
+    } catch {}
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -310,17 +318,23 @@ export default function OfflineDownloadModal({
           )}
 
           {isComplete && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full py-3.5 px-4 rounded-2xl text-white font-bold text-sm shadow-md active:scale-98 transition cursor-pointer"
-              style={{
-                backgroundColor: '#123B2A',
-                fontFamily: "'Tajawal', sans-serif",
-              }}
-            >
-              تم، العودة للقراءة
-            </button>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  router.push('/mushaf?page=1');
+                }}
+                className="w-full py-3.5 px-4 rounded-2xl text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 active:scale-98 transition cursor-pointer"
+                style={{
+                  backgroundColor: '#123B2A',
+                  fontFamily: "'Tajawal', sans-serif",
+                }}
+              >
+                <span>📖</span>
+                <span>فتح المصحف والبدء بالقراءة الآن</span>
+              </button>
+            </div>
           )}
 
           {/* Secondary Action: Clear or Close */}
