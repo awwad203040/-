@@ -46,13 +46,32 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     virtue: '«كَانَ رَسُولُ اللَّهِ ﷺ إِذَا سَلَّمَ مِنَ الْوِتْرِ قَالَ: سُبْحَانَ الْمَلِكِ الْقُدُّوسِ»',
     audioUrl: '/audio/athkar/tasbeeh-quddoos.mp3?v=custom-1',
   },
+  {
+    id: 'baqiyat-1',
+    category: 'tahmeed',
+    categoryName: 'الباقيات الصالحات',
+    textTashkeel: 'سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَاللَّهُ أَكْبَرُ',
+    textDisplay: 'سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَاللَّهُ أَكْبَرُ.',
+    virtue: '«أَحَبُّ الْكَلَامِ إِلَى اللَّهِ أَرْبَعٌ: سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ»',
+    audioUrl: '/audio/athkar/baqiyat-1.mp3?v=custom-1',
+  },
+  {
+    id: 'istighfar-custom',
+    category: 'istighfar',
+    categoryName: 'الاستغفار',
+    textTashkeel: 'أَسْتَغْفِرُ اللَّهَ',
+    textDisplay: 'أَسْتَغْفِرُ اللَّهَ.',
+    virtue: 'قال ﷺ: «مَنْ لَزِمَ الِاسْتِغْفَارَ جَعَلَ اللَّهُ لَهُ مِنْ كُلِّ ضِيقٍ مَخْرَجًا»',
+    audioUrl: '/audio/athkar/istighfar-custom.mp3?v=custom-1',
+  },
 ];
 
 export const ATHKAR_CATEGORIES = [
   { id: 'tasbeeh', name: 'التسبيح والتقديس', icon: '✨' },
-  { id: 'tahmeed', name: 'التهليل والتوحيد', icon: '🌿' },
+  { id: 'tahmeed', name: 'التهليل والباقيات الصالحات', icon: '🌿' },
   { id: 'hawqala', name: 'الحوقلة', icon: '💎' },
   { id: 'salawat', name: 'الصلاة على النبي ﷺ', icon: '💚' },
+  { id: 'istighfar', name: 'الاستغفار', icon: '🤲' },
 ] as const;
 
 export const ATHKAR_INTERVALS = [

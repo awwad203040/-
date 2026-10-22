@@ -213,16 +213,35 @@ export function getAutoAthkarSettings(): AutoAthkarSettings {
     ? (stored.activeCategories.filter((c) => validCategories.includes(c as ThikrCategory)) as ThikrCategory[])
     : DEFAULT_ATHKAR_SETTINGS.activeCategories;
 
-  const validThikrIds = ['tasbeeh-azeem', 'tawheed-1', 'hawqala-1', 'salawat-nabi', 'tasbeeh-quddoos'];
-  const filteredThikrs = Array.isArray(stored.activeThikrIds)
+  const validThikrIds = [
+    'tasbeeh-azeem',
+    'tawheed-1',
+    'hawqala-1',
+    'salawat-nabi',
+    'tasbeeh-quddoos',
+    'baqiyat-1',
+    'istighfar-custom',
+  ];
+  let filteredThikrs = Array.isArray(stored.activeThikrIds)
     ? stored.activeThikrIds.filter((id) => validThikrIds.includes(id))
     : validThikrIds;
+
+  if (filteredThikrs.length === 0) {
+    filteredThikrs = validThikrIds;
+  } else {
+    // Automatically ensure the two newly added athkar are included for the user
+    for (const newId of ['baqiyat-1', 'istighfar-custom']) {
+      if (!filteredThikrs.includes(newId)) {
+        filteredThikrs.push(newId);
+      }
+    }
+  }
 
   return {
     ...DEFAULT_ATHKAR_SETTINGS,
     ...stored,
     activeCategories: filtered.length > 0 ? filtered : DEFAULT_ATHKAR_SETTINGS.activeCategories,
-    activeThikrIds: filteredThikrs.length > 0 ? filteredThikrs : validThikrIds,
+    activeThikrIds: filteredThikrs,
   };
 }
 

@@ -24,6 +24,14 @@ export const DEFAULT_ATHKAR_SETTINGS: AutoAthkarSettings = {
   intervalMinutes: 10,
   volume: 0.85,
   playChime: true,
-  activeCategories: ['tasbeeh', 'tahmeed', 'hawqala', 'salawat'],
-  activeThikrIds: ['tasbeeh-azeem', 'tawheed-1', 'hawqala-1', 'salawat-nabi', 'tasbeeh-quddoos'],
+  activeCategories: ['tasbeeh', 'tahmeed', 'hawqala', 'salawat', 'istighfar'],
+  activeThikrIds: [
+    'tasbeeh-azeem',
+    'tawheed-1',
+    'hawqala-1',
+    'salawat-nabi',
+    'tasbeeh-quddoos',
+    'baqiyat-1',
+    'istighfar-custom',
+  ],
 };
