@@ -55,13 +55,6 @@ export function useMushafPage(initialPage: number) {
     error: null,
   });
 
-  // Keep currentPage synchronized whenever initialPage changes (e.g. user selected another surah from home)
-  useEffect(() => {
-    if (initialPage >= 1 && initialPage <= 604 && initialPage !== currentPage) {
-      setCurrentPage(initialPage);
-    }
-  }, [initialPage, currentPage]);
-
   const fetchPage = useCallback(async (page: number) => {
     // Check cache first
     if (pageCache.has(page)) {

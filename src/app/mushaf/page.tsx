@@ -82,9 +82,9 @@ function MushafReaderInner() {
   })();
 
   const { currentPage, verses, isLoading, error, goToPage, nextPage, previousPage, refetch } = useMushafPage(initialPage);
-  const isFirstRender = useRef(true);
   const audio = useAudioPlayer();
   const autoAthkar = useAutoAthkar();
+  const lastSyncedParamRef = useRef<string | null>(pageParam);
 
   // Synchronize page when user clicks browser Back/Forward history
   useEffect(() => {
@@ -94,6 +94,7 @@ function MushafReaderInner() {
       if (p) {
         const parsed = parseArabicOrWesternNumber(p);
         if (!isNaN(parsed) && parsed >= 1 && parsed <= 604) {
+          lastSyncedParamRef.current = p;
           goToPage(parsed);
         }
       }
@@ -102,9 +103,10 @@ function MushafReaderInner() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [goToPage]);
 
-  // Synchronize immediately whenever URL ?page= changes (e.g. user clicked any surah from home)
+  // Synchronize only when pageParam changes externally (e.g. user selected another surah from navigation)
   useEffect(() => {
-    if (pageParam) {
+    if (pageParam && pageParam !== lastSyncedParamRef.current) {
+      lastSyncedParamRef.current = pageParam;
       const parsed = parseArabicOrWesternNumber(pageParam);
       if (!isNaN(parsed) && parsed >= 1 && parsed <= 604 && parsed !== currentPage) {
         goToPage(parsed);
@@ -177,19 +179,16 @@ function MushafReaderInner() {
     }
   }, [currentPage, verses]);
 
-  // Update URL query parameter and scroll to top smoothly when page changes
+  // Update URL query parameter smoothly when user flips pages
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
     if (typeof window !== 'undefined' && currentPage >= 1 && currentPage <= 604) {
+      const pageStr = currentPage.toString();
+      lastSyncedParamRef.current = pageStr;
       const url = new URL(window.location.href);
-      if (url.searchParams.get('page') !== currentPage.toString()) {
-        url.searchParams.set('page', currentPage.toString());
+      if (url.searchParams.get('page') !== pageStr) {
+        url.searchParams.set('page', pageStr);
         window.history.replaceState({}, '', url.toString());
       }
-      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, [currentPage]);
 

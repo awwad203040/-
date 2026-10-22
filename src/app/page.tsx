@@ -92,6 +92,12 @@ export default function HomePage() {
         : progress && progress.pageNumber >= 1 && progress.pageNumber <= 604
         ? progress.pageNumber
         : 1;
+    saveReadingProgress({
+      pageNumber: targetPage,
+      surahNumber: 1,
+      ayahNumber: 1,
+      updatedAt: new Date().toISOString(),
+    });
     router.push(`/mushaf?page=${targetPage}`);
   }, [progress, router]);
 
