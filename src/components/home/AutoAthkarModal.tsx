@@ -79,7 +79,7 @@ export default function AutoAthkarModal({
                 الأذكار الصوتية التلقائية
               </h2>
               <p className="text-xs opacity-80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                تذكير صوتي بصوت رجل وقور بالصلاة على النبي ﷺ والاستغفار والتسبيح (بدون تقطيع)
+                تذكير صوتي ندي بالتسبيح والتوحيد والحوقلة والصلاة على النبي ﷺ
               </p>
             </div>
           </div>
