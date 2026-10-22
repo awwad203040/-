@@ -12,6 +12,7 @@ interface MushafToolbarProps {
   onSearch: () => void;
   onOpenCorrection?: () => void;
   onOpenPageJump?: () => void;
+  onOpenOfflineModal?: () => void;
 }
 
 export default function MushafToolbar({
@@ -24,6 +25,7 @@ export default function MushafToolbar({
   onSearch,
   onOpenCorrection,
   onOpenPageJump,
+  onOpenOfflineModal,
 }: MushafToolbarProps) {
   return (
     <header
@@ -75,8 +77,22 @@ export default function MushafToolbar({
         )}
       </button>
 
-      {/* Left side (RTL: correction/search/settings) */}
+      {/* Left side (RTL: offline download/correction/search/settings) */}
       <div className="flex items-center gap-1.5">
+        {onOpenOfflineModal && (
+          <button
+            onClick={onOpenOfflineModal}
+            aria-label="تحميل المصحف للقراءة بدون إنترنت"
+            title="تحميل المصحف كاملاً للقراءة بدون إنترنت"
+            className="p-2 rounded-full hover:bg-white/10 active:scale-95 transition-colors text-white"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+        )}
         {onOpenCorrection && (
           <button
             onClick={onOpenCorrection}

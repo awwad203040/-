@@ -1,5 +1,6 @@
 // Noor Al-Quran Service Worker (PWA Offline Support)
-const CACHE_NAME = 'noor-alquran-v13';
+const CACHE_NAME = 'noor-alquran-v14';
+const PAGES_CACHE_NAME = 'noor-mushaf-pages-v1';
 
 const STATIC_ASSETS = [
   '/',
@@ -32,7 +33,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key !== CACHE_NAME && key !== PAGES_CACHE_NAME) {
             return caches.delete(key);
           }
         })
@@ -146,17 +147,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Quran Page Images (files.quran.app): Cache-First for instant offline reading
+  // 5. Quran Page Images (files.quran.app): Cache-First from PAGES_CACHE_NAME for instant offline reading
   if (url.hostname.includes('files.quran.app') || url.pathname.includes('/hafs/madani/')) {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
+      caches.open(PAGES_CACHE_NAME).then((pagesCache) => {
+        return pagesCache.match(event.request).then((cached) => {
+          if (cached) return cached;
+          return fetch(event.request).then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              pagesCache.put(event.request, clone);
+            }
+            return response;
+          });
         });
       })
     );

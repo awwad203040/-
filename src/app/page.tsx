@@ -13,6 +13,7 @@ import ReciterModal from '@/components/mushaf/ReciterModal';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAutoAthkar } from '@/hooks/useAutoAthkar';
 import AutoAthkarModal from '@/components/home/AutoAthkarModal';
+import OfflineDownloadModal from '@/components/mushaf/OfflineDownloadModal';
 import AthkarToast from '@/components/common/AthkarToast';
 
 export default function HomePage() {
@@ -29,6 +30,7 @@ export default function HomePage() {
   const [selectedSurahForAudio, setSelectedSurahForAudio] = useState<number>(1);
   const [showReciterModal, setShowReciterModal] = useState(false);
   const [showAthkarModal, setShowAthkarModal] = useState(false);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [ayahRangeStart, setAyahRangeStart] = useState<number>(1);
   const [ayahRangeEnd, setAyahRangeEnd] = useState<number>(5);
   const [rangeRepeatCount, setRangeRepeatCount] = useState<number>(3);
@@ -265,6 +267,20 @@ export default function HomePage() {
               >
                 <span>📲</span>
                 <span>تثبيت التطبيق (APK)</span>
+              </button>
+
+              <button
+                onClick={() => setShowOfflineModal(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs"
+                style={{
+                  backgroundColor: 'rgba(200, 168, 91, 0.18)',
+                  color: '#C8A85B',
+                  fontFamily: "'Tajawal', sans-serif",
+                }}
+                title="تحميل المصحف كاملاً للقراءة بدون إنترنت"
+              >
+                <span>📥</span>
+                <span>تحميل المصحف بدون نت</span>
               </button>
 
               <button
@@ -1354,6 +1370,12 @@ export default function HomePage() {
           isSpeaking={autoAthkar.isSpeaking}
         />
       )}
+
+      {/* Offline Download Mushaf Modal */}
+      <OfflineDownloadModal
+        isOpen={showOfflineModal}
+        onClose={() => setShowOfflineModal(false)}
+      />
     </div>
   );
 }

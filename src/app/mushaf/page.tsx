@@ -33,6 +33,7 @@ import SettingsPanel from '@/components/mushaf/SettingsPanel';
 import SearchModal from '@/components/mushaf/SearchModal';
 import ReciterModal from '@/components/mushaf/ReciterModal';
 import RecitationCorrectionModal from '@/components/mushaf/RecitationCorrectionModal';
+import OfflineDownloadModal from '@/components/mushaf/OfflineDownloadModal';
 import MushafSkeleton from '@/components/mushaf/MushafSkeleton';
 import { useAutoAthkar } from '@/hooks/useAutoAthkar';
 import AthkarToast from '@/components/common/AthkarToast';
@@ -112,6 +113,7 @@ function MushafReaderInner() {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [showPageVersesDrawer, setShowPageVersesDrawer] = useState(false);
   const [pageImageError, setPageImageError] = useState(false);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
 
   // Reset page image error when changing pages
   useEffect(() => {
@@ -445,6 +447,7 @@ function MushafReaderInner() {
           onSettings={() => setShowSettings(true)}
           onSearch={() => setShowSearch(true)}
           onOpenPageJump={() => setShowPageJumpModal(true)}
+          onOpenOfflineModal={() => setShowOfflineModal(true)}
           onOpenCorrection={() => {
             if (verses.length > 0) {
               handleOpenCorrection(verses[0]);
@@ -1057,6 +1060,13 @@ function MushafReaderInner() {
           </div>
         </>
       )}
+
+      {/* Offline Download Mushaf Modal */}
+      <OfflineDownloadModal
+        isOpen={showOfflineModal}
+        onClose={() => setShowOfflineModal(false)}
+        nightMode={settings.nightMode}
+      />
 
       {/* Floating Auto Voice Athkar Toast Notification */}
       {autoAthkar.currentToast && (
