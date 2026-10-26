@@ -7,16 +7,13 @@ export default function DownloadPage() {
   const [downloadStarted, setDownloadStarted] = useState(false);
   const [countdown, setCountdown] = useState(2);
 
+  const APK_DOWNLOAD_URL = 'https://github.com/awwad203040/awwad2030/raw/main/public/Noor-AlQuran.apk';
+
   useEffect(() => {
     // Automatically trigger APK download after 1.5 seconds
     const timer = setTimeout(() => {
       setDownloadStarted(true);
-      const link = document.createElement('a');
-      link.href = '/api/download-apk';
-      link.download = 'Noor-AlQuran.apk';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.location.href = APK_DOWNLOAD_URL;
     }, 1500);
 
     const interval = setInterval(() => {
@@ -31,12 +28,7 @@ export default function DownloadPage() {
 
   const handleManualDownload = () => {
     setDownloadStarted(true);
-    const link = document.createElement('a');
-    link.href = '/api/download-apk';
-    link.download = 'Noor-AlQuran.apk';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.location.href = APK_DOWNLOAD_URL;
   };
 
   return (

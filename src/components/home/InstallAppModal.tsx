@@ -252,7 +252,7 @@ export default function InstallAppModal({
             </div>
 
             <a
-              href="/api/download-apk"
+              href="https://github.com/awwad203040/awwad2030/raw/main/public/Noor-AlQuran.apk"
               download="Noor-AlQuran.apk"
               className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-md transition-transform active:scale-98 cursor-pointer text-center block"
               style={{
