@@ -345,6 +345,7 @@ export default function HomePage() {
 
               {/* Row 2: Athkar Button, Prayer Times Button & Blind Accessibility Button */}
               <div className="flex flex-wrap items-center gap-2">
+                {/* 1. Athkar Button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -367,7 +368,23 @@ export default function HomePage() {
                   <span className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded-md">⚙️ ضبط</span>
                 </button>
 
-                {/* Prayer Times Button right beside Athkar */}
+                {/* 2. Blind Accessibility Button right beside Athkar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('tap');
+                    setShowAccessibilityModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title="تسهيل الوصول وخدمة المكفوفين"
+                  aria-label="فتح إعدادات خدمة المكفوفين وتسهيل الوصول"
+                >
+                  <span className="text-sm">🦯</span>
+                  <span>خدمة المكفوفين</span>
+                </button>
+
+                {/* 3. Prayer Times Button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -389,21 +406,6 @@ export default function HomePage() {
                       {prayerTimes.prayerData.nextPrayer.remainingFormatted}
                     </span>
                   </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('tap');
-                    setShowAccessibilityModal(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title="تسهيل الوصول وخدمة المكفوفين"
-                  aria-label="فتح إعدادات خدمة المكفوفين وتسهيل الوصول"
-                >
-                  <span className="text-sm">🦯</span>
-                  <span>خدمة المكفوفين</span>
                 </button>
               </div>
             </div>
