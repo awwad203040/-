@@ -18,6 +18,35 @@ export default function InstallAppModal({
   const [isInstalled, setIsInstalled] = useState(false);
   const [activeTab, setActiveTab] = useState<'pwa' | 'apk' | 'qr' | 'developer'>('pwa');
   const [showManualGuide, setShowManualGuide] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+
+  const handleUpdateApp = async () => {
+    setIsUpdating(true);
+    setUpdateSuccess(false);
+    try {
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.update();
+        }
+      }
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        const cacheKeys = await caches.keys();
+        for (const key of cacheKeys) {
+          if (!key.includes('offline-audio') && !key.includes('mushaf-pages')) {
+            await caches.delete(key);
+          }
+        }
+      }
+      setUpdateSuccess(true);
+      setTimeout(() => {
+        window.location.href = window.location.origin + '?v=' + Date.now();
+      }, 700);
+    } catch {
+      window.location.reload();
+    }
+  };
 
   useEffect(() => {
     // Detect if already running as standalone PWA
@@ -150,19 +179,76 @@ export default function InstallAppModal({
             </div>
 
             {isInstalled ? (
-              <div className="p-4 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold text-center">
-                ✓ التطبيق مثبت بالفعل على هذا الجهاز ويعمل بنجاح.
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-2xl bg-emerald-50 text-emerald-850 border border-emerald-300 text-xs font-bold flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-base text-emerald-600">✓</span>
+                    <span className="text-emerald-900">التطبيق مثبت على هذا الجهاز (WebAPK)</span>
+                  </span>
+                  <span className="bg-emerald-600 text-white text-[10px] px-2.5 py-0.5 rounded-full font-normal">
+                    نشط ويعمل
+                  </span>
+                </div>
+
+                {/* Instant Update Button */}
+                <button
+                  type="button"
+                  onClick={handleUpdateApp}
+                  disabled={isUpdating}
+                  className="w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2.5 shadow-lg transition-transform active:scale-98 cursor-pointer bg-gradient-to-r from-[#123B2A] via-[#0E4933] to-[#123B2A] text-[#C8A85B] border-2 border-[#C8A85B] hover:brightness-110"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
+                  {isUpdating ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-[#C8A85B] border-t-transparent rounded-full animate-spin" />
+                      <span>جاري تحديث التطبيق وحفظ إعداداتك...</span>
+                    </>
+                  ) : updateSuccess ? (
+                    <>
+                      <span className="text-xl">✅</span>
+                      <span>تم التحديث بنجاح! جاري التنشيط...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xl">🔄</span>
+                      <span>تحديث التطبيق الفوري الآن (آخر إصدار)</span>
+                    </>
+                  )}
+                </button>
+
+                {/* 100% Settings Preserved Reassurance */}
+                <div className="p-3.5 rounded-2xl bg-[#C8A85B]/15 border border-[#C8A85B]/40 text-xs text-[#123B2A] space-y-1">
+                  <p className="font-bold flex items-center gap-1.5 text-[#123B2A]">
+                    <span>🛡️</span>
+                    <span>ضمان الحفاظ التام على بياناتك (100%):</span>
+                  </p>
+                  <p className="text-[11px] leading-relaxed opacity-90 pr-1">
+                    موضع قراءتك الحالي، علامة الختمة، إعدادات التكرار، واختيار القارئ ومواقيت الصلاة ومميزات المكفوفين <strong>محفوظة بالكامل ولا تتأثر بالتحديث مطلقاً</strong>.
+                  </p>
+                </div>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={handleInstallClick}
-                className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-98 cursor-pointer bg-gradient-to-r from-[#123B2A] via-[#0E4933] to-[#123B2A] text-[#C8A85B] border border-[#C8A85B]/50 hover:brightness-110"
-                style={{ fontFamily: "'Tajawal', sans-serif" }}
-              >
-                <span className="text-xl">📲</span>
-                <span>تثبيت تطبيق نور القرآن فورياً على الجوال</span>
-              </button>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleInstallClick}
+                  className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-98 cursor-pointer bg-gradient-to-r from-[#123B2A] via-[#0E4933] to-[#123B2A] text-[#C8A85B] border border-[#C8A85B]/50 hover:brightness-110"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
+                  <span className="text-xl">📲</span>
+                  <span>تثبيت تطبيق نور القرآن فورياً على الجوال</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleUpdateApp}
+                  disabled={isUpdating}
+                  className="w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border border-[#C8A85B]/60 text-[#123B2A] bg-white hover:bg-[#C8A85B]/10 cursor-pointer transition shadow-xs"
+                >
+                  <span className="text-sm">🔄</span>
+                  <span>أو تحديث بيانات التطبيق الفوري الآن</span>
+                </button>
+              </div>
             )}
 
             {/* Illustrated Instant Guide for Chrome / Samsung Browser */}
