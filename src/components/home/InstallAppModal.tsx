@@ -16,7 +16,7 @@ export default function InstallAppModal({
 }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pwa' | 'apk' | 'developer'>('pwa');
+  const [activeTab, setActiveTab] = useState<'pwa' | 'apk' | 'qr' | 'developer'>('pwa');
   const [showManualGuide, setShowManualGuide] = useState(false);
 
   useEffect(() => {
@@ -94,33 +94,43 @@ export default function InstallAppModal({
         <div className="flex bg-[#123B2A]/8 p-1 rounded-2xl mt-4 mb-5 text-xs font-bold" style={{ fontFamily: "'Tajawal', sans-serif" }}>
           <button
             onClick={() => setActiveTab('pwa')}
-            className={`flex-1 py-2.5 rounded-xl transition-all text-center cursor-pointer ${
+            className={`flex-1 py-2 rounded-xl transition-all text-center cursor-pointer ${
               activeTab === 'pwa'
                 ? 'bg-[#123B2A] text-[#C8A85B] shadow-sm'
                 : 'text-[#123B2A] opacity-70 hover:opacity-100'
             }`}
           >
-            التثبيت الفوري (WebAPK) ⚡
+            التثبيت الفوري ⚡
+          </button>
+          <button
+            onClick={() => setActiveTab('qr')}
+            className={`flex-1 py-2 rounded-xl transition-all text-center cursor-pointer ${
+              activeTab === 'qr'
+                ? 'bg-[#123B2A] text-[#C8A85B] shadow-sm'
+                : 'text-[#123B2A] opacity-70 hover:opacity-100'
+            }`}
+          >
+            باركود التحميل 📷
           </button>
           <button
             onClick={() => setActiveTab('apk')}
-            className={`flex-1 py-2.5 rounded-xl transition-all text-center cursor-pointer ${
+            className={`flex-1 py-2 rounded-xl transition-all text-center cursor-pointer ${
               activeTab === 'apk'
                 ? 'bg-[#123B2A] text-[#C8A85B] shadow-sm'
                 : 'text-[#123B2A] opacity-70 hover:opacity-100'
             }`}
           >
-            ملف APK مباشر 📦
+            ملف APK 📦
           </button>
           <button
             onClick={() => setActiveTab('developer')}
-            className={`flex-1 py-2.5 rounded-xl transition-all text-center cursor-pointer ${
+            className={`flex-1 py-2 rounded-xl transition-all text-center cursor-pointer ${
               activeTab === 'developer'
                 ? 'bg-[#123B2A] text-[#C8A85B] shadow-sm'
                 : 'text-[#123B2A] opacity-70 hover:opacity-100'
             }`}
           >
-            مشروع Gradle 🛠️
+            المطورين ⚙️
           </button>
         </div>
 
@@ -179,7 +189,56 @@ export default function InstallAppModal({
           </div>
         )}
 
-        {/* Tab 2: Standalone APK */}
+        {/* Tab 2: QR Code (باركود التحميل السريع بالكاميرا) */}
+        {activeTab === 'qr' && (
+          <div className="space-y-4 text-center">
+            <div className="p-4 rounded-2xl bg-white border border-[#C8A85B]/30 shadow-xs space-y-1">
+              <h3 className="font-bold text-sm text-[#123B2A] flex items-center justify-center gap-2" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                <span>📷</span>
+                <span>امسح الباركود بكاميرا الجوال للتحميل المباشر</span>
+              </h3>
+              <p className="text-xs leading-relaxed opacity-80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                وجّه كاميرا أي جوال نحو هذا الباركود ليفتح لك صفحة التحميل ويبدأ تنزيل التطبيق فوراً.
+              </p>
+            </div>
+
+            {/* QR Code Container */}
+            <div className="bg-white p-4 rounded-3xl border-2 border-[#C8A85B] shadow-md inline-block mx-auto">
+              <img
+                src="/noor-download-qr.png"
+                alt="باركود تحميل تطبيق نور القرآن"
+                className="w-56 h-56 mx-auto object-contain rounded-xl"
+              />
+              <div className="mt-2 text-[11px] font-bold text-[#123B2A]">
+                نور القرآن • Noor-AlQuran.apk
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col gap-2">
+              <a
+                href="/noor-download-qr.png"
+                download="باركود_تطبيق_نور_القرآن.png"
+                className="w-full py-3 rounded-2xl font-bold text-xs bg-[#123B2A] text-[#C8A85B] hover:bg-[#184e38] transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              >
+                <span>💾</span>
+                <span>حفظ صورة الباركود في جهازك لمشاركتها</span>
+              </a>
+
+              <a
+                href="/download"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-2.5 rounded-2xl font-bold text-xs bg-white text-[#123B2A] border border-[#C8A85B]/50 hover:bg-[#C8A85B]/15 transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>🔗</span>
+                <span>فتح صفحة التحميل المباشرة</span>
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Standalone APK */}
         {activeTab === 'apk' && (
           <div className="space-y-4">
             <div className="p-4 rounded-2xl bg-white border border-[#C8A85B]/30 shadow-xs space-y-2">
