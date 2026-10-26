@@ -20,12 +20,15 @@ import AthkarToast from '@/components/common/AthkarToast';
 import AnimatedLogo from '@/components/common/AnimatedLogo';
 import EditReadingProgressModal from '@/components/home/EditReadingProgressModal';
 import { AccessibilityModal } from '@/components/common/AccessibilityModal';
+import PrayerTimesModal from '@/components/home/PrayerTimesModal';
+import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
 
 export default function HomePage() {
   const router = useRouter();
   const audio = useAudioPlayer();
   const autoAthkar = useAutoAthkar();
+  const prayerTimes = usePrayerTimes();
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [pagesRead, setPagesRead] = useState(0);
@@ -45,6 +48,7 @@ export default function HomePage() {
   const [showMultiSurahModal, setShowMultiSurahModal] = useState(false);
   const [showEditProgressModal, setShowEditProgressModal] = useState(false);
   const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
+  const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [homePageJumpInput, setHomePageJumpInput] = useState('');
 
   const handleHomeJumpToPage = (targetPage?: number) => {
@@ -339,7 +343,7 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* Row 2: Athkar Button & Blind Accessibility Button */}
+              {/* Row 2: Athkar Button, Prayer Times Button & Blind Accessibility Button */}
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -361,6 +365,27 @@ export default function HomePage() {
                     الأذكار الصوتية: {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
                   </span>
                   <span className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded-md">⚙️ ضبط</span>
+                </button>
+
+                {/* Prayer Times Button right beside Athkar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('tap');
+                    setShowPrayerModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-emerald-500/50 bg-[#0E3E2B]/85 text-[#F7EED8] hover:bg-[#124D36] active:scale-95 cursor-pointer shadow-xs"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title="مواقيت الصلاة حسب موقعك"
+                  aria-label={`مواقيت الصلاة، الصلاة القادمة ${prayerTimes.prayerData.nextPrayer.name} الساعة ${prayerTimes.prayerData.nextPrayer.time12}`}
+                >
+                  <span className="text-sm">🕌</span>
+                  <span>
+                    {prayerTimes.prayerData.nextPrayer.name}: {prayerTimes.prayerData.nextPrayer.time12}
+                  </span>
+                  <span className="text-[10px] opacity-90 bg-black/25 px-1.5 py-0.5 rounded-md font-mono text-[#C8A85B]" dir="ltr">
+                    {prayerTimes.prayerData.nextPrayer.remainingMinutes} د
+                  </span>
                 </button>
 
                 <button
@@ -1587,6 +1612,13 @@ export default function HomePage() {
       <AccessibilityModal
         isOpen={showAccessibilityModal}
         onClose={() => setShowAccessibilityModal(false)}
+      />
+
+      {/* Prayer Times Modal */}
+      <PrayerTimesModal
+        isOpen={showPrayerModal}
+        onClose={() => setShowPrayerModal(false)}
+        prayerHook={prayerTimes}
       />
     </div>
   );
