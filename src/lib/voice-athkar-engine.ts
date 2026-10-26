@@ -99,53 +99,86 @@ export function playSpiritualChime(volume = 0.5): Promise<void> {
 }
 
 /**
+ * Resolves clean, bulletproof candidate URLs for audio files across Web and Android WebView
+ */
+function resolveCleanAudioUrl(rawUrl: string): string[] {
+  const clean = rawUrl.split('?')[0].trim();
+  const candidates: string[] = [];
+
+  candidates.push(clean);
+
+  if (clean.startsWith('/')) {
+    candidates.push(clean.substring(1));
+  } else {
+    candidates.push(`/${clean}`);
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    const origin = window.location.origin.replace(/\/+$/, '');
+    const path = clean.startsWith('/') ? clean : `/${clean}`;
+    candidates.push(`${origin}${path}`);
+  }
+
+  return Array.from(new Set(candidates));
+}
+
+/**
  * Plays clear, natural pre-recorded Arabic audio with zero stuttering and natural pronunciation
  */
-export function playThikrAudio(audioUrl: string, volume = 0.85): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined') {
-      resolve(false);
-      return;
-    }
+export async function playThikrAudio(audioUrl: string, volume = 0.85): Promise<boolean> {
+  if (typeof window === 'undefined') {
+    return false;
+  }
 
-    try {
-      stopThikrPlayback();
+  const candidateUrls = resolveCleanAudioUrl(audioUrl);
 
-      const audio = new Audio();
-      currentAudio = audio;
-      audio.preload = 'auto';
-      audio.src = audioUrl;
-      audio.volume = Math.max(0.1, Math.min(1.0, volume));
+  for (const url of candidateUrls) {
+    const success = await new Promise<boolean>((resolve) => {
+      try {
+        stopThikrPlayback();
 
-      let hasSettled = false;
-      const cleanup = (success: boolean) => {
-        if (hasSettled) return;
-        hasSettled = true;
-        if (currentAudio === audio) {
-          currentAudio = null;
+        const audio = new Audio();
+        currentAudio = audio;
+        audio.preload = 'auto';
+        audio.src = url;
+        audio.volume = Math.max(0.1, Math.min(1.0, volume));
+
+        let hasSettled = false;
+        const cleanup = (res: boolean) => {
+          if (hasSettled) return;
+          hasSettled = true;
+          if (currentAudio === audio) {
+            currentAudio = null;
+          }
+          resolve(res);
+        };
+
+        audio.onended = () => cleanup(true);
+        audio.onerror = () => cleanup(false);
+
+        // Safety timeout in case audio hangs or fails silently
+        const timeout = setTimeout(() => {
+          cleanup(true);
+        }, 12000);
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            clearTimeout(timeout);
+            cleanup(false);
+          });
         }
-        resolve(success);
-      };
-
-      audio.onended = () => cleanup(true);
-      audio.onerror = () => cleanup(false);
-
-      // Safety timeout in case audio hangs or fails silently
-      const timeout = setTimeout(() => {
-        cleanup(true);
-      }, 12000);
-
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          clearTimeout(timeout);
-          cleanup(false);
-        });
+      } catch {
+        resolve(false);
       }
-    } catch {
-      resolve(false);
+    });
+
+    if (success) {
+      return true;
     }
-  });
+  }
+
+  return false;
 }
 
 /**
@@ -249,7 +282,8 @@ export function speakThikr(textTashkeel: string, volume = 0.85): Promise<boolean
 }
 
 /**
- * High-level player: Tries clear studio MP3 audio first, falls back gracefully to SpeechSynthesis
+ * High-level player: Plays authentic original uploaded studio MP3 audio.
+ * Never plays synthetic TTS or female voice!
  */
 export async function playThikrVoice(
   audioUrl?: string,
@@ -263,10 +297,7 @@ export async function playThikrVoice(
     }
   }
 
-  if (textTashkeel) {
-    return speakThikr(textTashkeel, volume);
-  }
-
+  // Never fall back to female or synthetic TTS voice
   return false;
 }
 
@@ -275,5 +306,5 @@ export async function playThikrVoice(
  */
 export function isVoiceThikrSupported(): boolean {
   if (typeof window === 'undefined') return false;
-  return typeof Audio !== 'undefined' || 'speechSynthesis' in window;
+  return typeof Audio !== 'undefined';
 }

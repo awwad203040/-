@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useId, useCallback } from 'react';
+import { useState, useEffect, useMemo, useId, useCallback, useRef } from 'react';
 import { POPULAR_RECITERS, SURAH_METADATA } from '@/lib/quran-meta';
 import {
   isAudioDownloaded,
@@ -33,6 +33,7 @@ export default function OfflineAudioModal({
   const [batchStatus, setBatchStatus] = useState<string>('');
   const [totalSizeMB, setTotalSizeMB] = useState<string>('0');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const cancelBatchRef = useRef<boolean>(false);
   const titleId = useId();
 
   const allSurahs = useMemo(() => Object.values(SURAH_METADATA), []);
@@ -93,17 +94,32 @@ export default function OfflineAudioModal({
       return;
     }
 
+    cancelBatchRef.current = false;
     setBatchDownloading(true);
     let done = 0;
     for (const num of toDownload) {
-      setBatchStatus(`جاري تنزيل (${done + 1}/${toDownload.length}): سورة ${SURAH_METADATA[num]?.name || num}`);
+      if (cancelBatchRef.current) {
+        break;
+      }
+      const pct = Math.round((done / toDownload.length) * 100);
+      setBatchStatus(`جاري تنزيل (${done + 1}/${toDownload.length} - ${pct}%): سورة ${SURAH_METADATA[num]?.name || num}`);
       await downloadSurahAudio(activeReciterId, num);
       done++;
       await refreshDownloadedList();
     }
+    const wasCancelled = cancelBatchRef.current;
     setBatchDownloading(false);
     setBatchStatus('');
-    alert(`تم بنجاح تنزيل ${label} بصوت الشيخ ${currentReciter.name}!`);
+    if (wasCancelled) {
+      alert(`تم إيقاف التنزيل. تم حفظ ${done} سورة بنجاح في الذاكرة.`);
+    } else {
+      alert(`تم بنجاح تنزيل ${label} بصوت الشيخ ${currentReciter.name}!`);
+    }
+  };
+
+  const handleCancelBatch = () => {
+    cancelBatchRef.current = true;
+    setBatchStatus('جاري إيقاف التنزيل...');
   };
 
   if (!isOpen) return null;
@@ -192,18 +208,24 @@ export default function OfflineAudioModal({
               <span>السورة الحالية ({SURAH_METADATA[currentSurah]?.name || currentSurah})</span>
             </button>
 
-            {/* Short Surahs & Mu'awwidhat (93 to 114) */}
+            {/* Full Mushaf (114 Surahs) - مكان نافذة قصار السور */}
             <button
               type="button"
               disabled={batchDownloading}
               onClick={() => {
-                const arr = Array.from({ length: 22 }, (_, i) => 93 + i);
-                handleDownloadBatch(arr, 'قصار السور والمعوذات');
+                const arr = Array.from({ length: 114 }, (_, i) => i + 1);
+                handleDownloadBatch(arr, 'المصحف كاملاً (114 سورة)');
               }}
-              className="py-1.5 px-2 rounded-xl font-bold transition text-[11px] bg-white/10 hover:bg-white/20 text-white border border-white/15 cursor-pointer flex items-center justify-center gap-1"
+              className={`py-1.5 px-2 rounded-xl font-bold transition text-[11px] flex items-center justify-center gap-1 border ${
+                downloadedSurahs.length === 114
+                  ? 'bg-emerald-600/40 text-emerald-200 border-emerald-500/40 cursor-default'
+                  : 'bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border-[#C8A85B]/50 cursor-pointer shadow-xs'
+              }`}
+              title="تنزيل جميع سور القرآن الكريم الـ 114 للشيخ المختار للاستماع بدون نت"
             >
-              <span>📚</span>
-              <span>قصار السور (93-114)</span>
+              <span>🕌</span>
+              <span>المصحف كاملاً (114 سورة)</span>
+              {downloadedSurahs.length === 114 && <span className="text-[10px]">✓</span>}
             </button>
 
             {/* Popular Surahs (Yaseen, Kahf, Waqiah, Mulk, Rahman) */}
@@ -234,11 +256,21 @@ export default function OfflineAudioModal({
             </button>
           </div>
 
-          {/* Batch Status Indicator */}
+          {/* Batch Status Indicator with Cancel Button */}
           {batchDownloading && (
-            <div className="mt-1 pt-1 border-t border-white/10 flex items-center gap-2 text-xs text-[#C8A85B] animate-pulse">
-              <span className="w-3.5 h-3.5 border-2 border-[#C8A85B] border-t-transparent rounded-full animate-spin" />
-              <span>{batchStatus}</span>
+            <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between gap-2 text-xs text-[#C8A85B]">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-3.5 h-3.5 border-2 border-[#C8A85B] border-t-transparent rounded-full animate-spin shrink-0" />
+                <span className="truncate">{batchStatus}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelBatch}
+                className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/40 text-[10px] font-bold cursor-pointer shrink-0 transition"
+                title="إيقاف التنزيل مؤقتاً"
+              >
+                إيقاف التنزيل
+              </button>
             </div>
           )}
         </div>
