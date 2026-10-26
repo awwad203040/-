@@ -286,37 +286,41 @@ export default function HomePage() {
             >
               رفيقك مع القرآن الكريم • المصحف الشريف
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <button
-                onClick={() => setShowInstallModal(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs"
-                style={{
-                  backgroundColor: 'rgba(200, 168, 91, 0.18)',
-                  color: '#C8A85B',
-                  fontFamily: "'Tajawal', sans-serif",
-                }}
-              >
-                <span>📲</span>
-                <span>تثبيت التطبيق (APK)</span>
-              </button>
+            <div className="flex flex-col items-center gap-2 mb-3 w-full">
+              {/* Row 1: Install APK & Download Mushaf */}
+              <div className="flex items-center justify-center gap-2 w-full max-w-sm">
+                <button
+                  onClick={() => setShowInstallModal(true)}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs"
+                  style={{
+                    backgroundColor: 'rgba(200, 168, 91, 0.18)',
+                    color: '#C8A85B',
+                    fontFamily: "'Tajawal', sans-serif",
+                  }}
+                >
+                  <span>📲</span>
+                  <span>تثبيت التطبيق (APK)</span>
+                </button>
 
-              <button
-                onClick={() => setShowOfflineModal(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs"
-                style={{
-                  backgroundColor: 'rgba(200, 168, 91, 0.18)',
-                  color: '#C8A85B',
-                  fontFamily: "'Tajawal', sans-serif",
-                }}
-                title="تحميل المصحف كاملاً للقراءة بدون إنترنت"
-              >
-                <span>📥</span>
-                <span>تحميل المصحف بدون نت</span>
-              </button>
+                <button
+                  onClick={() => setShowOfflineModal(true)}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs"
+                  style={{
+                    backgroundColor: 'rgba(200, 168, 91, 0.18)',
+                    color: '#C8A85B',
+                    fontFamily: "'Tajawal', sans-serif",
+                  }}
+                  title="تحميل المصحف كاملاً للقراءة بدون إنترنت"
+                >
+                  <span>📥</span>
+                  <span>تحميل المصحف بدون نت</span>
+                </button>
+              </div>
 
+              {/* Row 2: Athkar Button */}
               <button
                 onClick={() => setShowAthkarModal(true)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
+                className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
                   autoAthkar?.settings?.enabled
                     ? 'border-emerald-400/60 bg-emerald-700/40 text-emerald-200 hover:bg-emerald-700/60'
                     : 'border-white/20 bg-white/10 text-white/80 hover:bg-white/20'
@@ -431,34 +435,7 @@ export default function HomePage() {
 
             {/* Listening Icon & Sheikh Selection Field */}
             <div className="flex items-center gap-3">
-              {/* Play / Listening Icon Button */}
-              <button
-                type="button"
-                onClick={handleTogglePlay}
-                disabled={audio.isLoading}
-                className={`w-13 h-13 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-95 shadow-lg flex-shrink-0 cursor-pointer border ${
-                  audio.isPlaying
-                    ? 'bg-[#0B5B43] text-white border-emerald-400/50 ring-4 ring-emerald-500/25 animate-pulse'
-                    : 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] hover:bg-[#d4b66d]'
-                }`}
-                aria-label={audio.isPlaying ? 'إيقاف الاستماع' : 'استمع الآن للقرآن الكريم'}
-                title={audio.isPlaying ? 'إيقاف التلاوة' : `استمع الآن بصوت الشيخ ${currentReciter.name}`}
-              >
-                {audio.isLoading ? (
-                  <div className="w-5 h-5 border-2 border-[#123B2A] border-t-transparent rounded-full animate-spin" />
-                ) : audio.isPlaying ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="6" y="4" width="4" height="16" />
-                    <rect x="14" y="4" width="4" height="16" />
-                  </svg>
-                ) : (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5,3 19,12 5,21" />
-                  </svg>
-                )}
-              </button>
-
-              {/* Sheikh Names Field (حقل أسماء المشايخ) */}
+              {/* Sheikh Names Field (حقل أسماء المشايخ) on the Right */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1 gap-1">
                   <label className="text-[11px] font-medium text-white/80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
@@ -504,6 +481,33 @@ export default function HomePage() {
                   </span>
                 </div>
               </div>
+
+              {/* Play / Listening Icon Button on the Left */}
+              <button
+                type="button"
+                onClick={handleTogglePlay}
+                disabled={audio.isLoading}
+                className={`w-13 h-13 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-95 shadow-lg flex-shrink-0 cursor-pointer border ${
+                  audio.isPlaying
+                    ? 'bg-[#0B5B43] text-white border-emerald-400/50 ring-4 ring-emerald-500/25 animate-pulse'
+                    : 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] hover:bg-[#d4b66d]'
+                }`}
+                aria-label={audio.isPlaying ? 'إيقاف الاستماع' : 'استمع الآن للقرآن الكريم'}
+                title={audio.isPlaying ? 'إيقاف التلاوة' : `استمع الآن بصوت الشيخ ${currentReciter.name}`}
+              >
+                {audio.isLoading ? (
+                  <div className="w-5 h-5 border-2 border-[#123B2A] border-t-transparent rounded-full animate-spin" />
+                ) : audio.isPlaying ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4" height="16" />
+                    <rect x="14" y="4" width="4" height="16" />
+                  </svg>
+                ) : (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5,3 19,12 5,21" />
+                  </svg>
+                )}
+              </button>
             </div>
 
             {/* Quick Surah selection for audio with Prev/Next buttons */}
@@ -514,19 +518,19 @@ export default function HomePage() {
               </span>
 
               <div className="flex items-center gap-1.5 flex-1 max-w-[240px] justify-end">
-                {/* Previous Surah button */}
+                {/* Next Surah button on the right */}
                 <button
                   type="button"
                   onClick={() => {
-                    const prev = Math.max(1, selectedSurahForAudio - 1);
-                    handlePlaySurah(prev);
+                    const next = Math.min(114, selectedSurahForAudio + 1);
+                    handlePlaySurah(next);
                   }}
-                  disabled={selectedSurahForAudio <= 1}
+                  disabled={selectedSurahForAudio >= 114}
                   className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-white/10"
-                  title="السورة السابقة"
-                  aria-label="السورة السابقة"
+                  title="السورة التالية"
+                  aria-label="السورة التالية"
                 >
-                  ⏮
+                  ⏭
                 </button>
 
                 <select
@@ -545,19 +549,19 @@ export default function HomePage() {
                   ))}
                 </select>
 
-                {/* Next Surah button */}
+                {/* Previous Surah button on the left */}
                 <button
                   type="button"
                   onClick={() => {
-                    const next = Math.min(114, selectedSurahForAudio + 1);
-                    handlePlaySurah(next);
+                    const prev = Math.max(1, selectedSurahForAudio - 1);
+                    handlePlaySurah(prev);
                   }}
-                  disabled={selectedSurahForAudio >= 114}
+                  disabled={selectedSurahForAudio <= 1}
                   className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-white/10"
-                  title="السورة التالية"
-                  aria-label="السورة التالية"
+                  title="السورة السابقة"
+                  aria-label="السورة السابقة"
                 >
-                  ⏭
+                  ⏮
                 </button>
               </div>
             </div>
