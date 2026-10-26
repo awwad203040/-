@@ -37,7 +37,7 @@ export default function HomePage() {
   const [showAthkarModal, setShowAthkarModal] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [ayahRangeStart, setAyahRangeStart] = useState<number>(1);
-  const [ayahRangeEnd, setAyahRangeEnd] = useState<number>(5);
+  const [ayahRangeEnd, setAyahRangeEnd] = useState<number>(1);
   const [rangeRepeatCount, setRangeRepeatCount] = useState<number>(3);
   const [repeatTab, setRepeatTab] = useState<'ayahs' | 'surah' | 'multi'>('ayahs');
   const [showMultiSurahModal, setShowMultiSurahModal] = useState(false);
@@ -107,12 +107,10 @@ export default function HomePage() {
     }
   }, [audio.currentSurah, selectedSurahForAudio]);
 
-  // Adjust Ayah range limits when selectedSurahForAudio changes
+  // Reset Ayah range limits to Ayah 1 when selectedSurahForAudio changes
   useEffect(() => {
-    const meta = SURAH_METADATA[selectedSurahForAudio];
-    const total = meta?.versesCount || 7;
     setAyahRangeStart(1);
-    setAyahRangeEnd(Math.min(5, total));
+    setAyahRangeEnd(1);
   }, [selectedSurahForAudio]);
 
   const currentReciter = POPULAR_RECITERS.find((r) => r.id === selectedReciterId) || POPULAR_RECITERS[0];
@@ -748,88 +746,102 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {/* Quick Preset Buttons */}
-                  <div className="flex flex-wrap items-center gap-1 pt-1 text-[10px]">
-                    <span className="text-white/60 ml-1">تحديد سريع:</span>
-                    <button
-                      type="button"
-                      onClick={() => setAyahRangeEnd(ayahRangeStart)}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[#C8A85B] border border-white/10 cursor-pointer"
-                    >
-                      آية {ayahRangeStart} فقط
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAyahRangeStart(1);
-                        setAyahRangeEnd(Math.min(totalVerses, 3));
-                      }}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 border border-white/10 cursor-pointer"
-                    >
-                      أول 3 آيات
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAyahRangeStart(1);
-                        setAyahRangeEnd(Math.min(totalVerses, 5));
-                      }}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 border border-white/10 cursor-pointer"
-                    >
-                      أول 5 آيات
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAyahRangeStart(1);
-                        setAyahRangeEnd(Math.min(totalVerses, 10));
-                      }}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 border border-white/10 cursor-pointer"
-                    >
-                      أول 10 آيات
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAyahRangeStart(1);
-                        setAyahRangeEnd(totalVerses);
-                      }}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 border border-white/10 cursor-pointer"
-                    >
-                      السورة كاملة
-                    </button>
-                  </div>
-
-                  {/* Repeats Count Preset for Ayah Range */}
+                  {/* Custom Repetition Count Defined by the User */}
                   <div className="pt-2 border-t border-white/10">
-                    <div className="text-[10px] text-white/80 mb-1.5 flex items-center justify-between">
-                      <span>اختر عدد مرات التكرار:</span>
-                      <span className="text-[#C8A85B] font-bold">
+                    <div className="text-xs text-white/90 mb-2 flex items-center justify-between">
+                      <span className="font-bold flex items-center gap-1.5 text-[#C8A85B]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                        <span>🔢</span>
+                        <span>حدد عدد مرات التكرار بنفسك:</span>
+                      </span>
+                      <span className="text-[11px] font-bold text-[#F7EED8] bg-black/40 px-2.5 py-0.5 rounded-lg border border-[#C8A85B]/30">
                         {rangeRepeatCount === 999 ? 'مستمر بلا توقف ∞' : `${rangeRepeatCount} مرات`}
                       </span>
                     </div>
+
+                    {/* Stepper & Direct Custom Number Input */}
+                    <div className="flex items-center gap-2 mb-2 bg-[#0D281C] p-2 rounded-xl border border-[#C8A85B]/40">
+                      <span className="text-[11px] text-white/80 font-bold shrink-0">مرات التكرار:</span>
+                      
+                      {/* Decrease button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (rangeRepeatCount === 999) {
+                            setRangeRepeatCount(10);
+                          } else {
+                            setRangeRepeatCount(Math.max(1, rangeRepeatCount - 1));
+                          }
+                        }}
+                        className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
+                        title="إنقاص مرة واحدة"
+                      >
+                        -
+                      </button>
+
+                      {/* Direct Numeric Input Box */}
+                      <input
+                        type="number"
+                        min="1"
+                        max="500"
+                        value={rangeRepeatCount === 999 ? '' : rangeRepeatCount}
+                        placeholder={rangeRepeatCount === 999 ? '∞ مستمر' : '1'}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val) && val >= 1) {
+                            setRangeRepeatCount(Math.min(500, val));
+                          } else if (e.target.value === '') {
+                            setRangeRepeatCount(1);
+                          }
+                        }}
+                        className="flex-1 bg-black/40 text-[#C8A85B] text-center font-bold text-base py-1 px-2 rounded-lg border border-[#C8A85B]/60 focus:outline-none focus:ring-1 focus:ring-[#C8A85B]"
+                      />
+
+                      {/* Increase button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (rangeRepeatCount === 999) {
+                            setRangeRepeatCount(1);
+                          } else {
+                            setRangeRepeatCount(Math.min(500, rangeRepeatCount + 1));
+                          }
+                        }}
+                        className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
+                        title="زيادة مرة واحدة"
+                      >
+                        +
+                      </button>
+
+                      {/* Infinite Loop Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setRangeRepeatCount(rangeRepeatCount === 999 ? 3 : 999)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border shrink-0 ${
+                          rangeRepeatCount === 999
+                            ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-xs'
+                            : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
+                        }`}
+                      >
+                        مستمر ∞
+                      </button>
+                    </div>
+
+                    {/* Quick values for quick convenience */}
                     <div className="flex flex-wrap items-center gap-1.5">
-                      {[
-                        { count: 1, label: 'مرة واحدة' },
-                        { count: 3, label: '3 مرات (للحفظ)' },
-                        { count: 5, label: '5 مرات' },
-                        { count: 7, label: '7 مرات' },
-                        { count: 10, label: '10 مرات' },
-                        { count: 999, label: 'مستمر ∞' },
-                      ].map((item) => {
-                        const isSelected = rangeRepeatCount === item.count;
+                      {[1, 2, 3, 5, 7, 10, 20, 33, 50, 100].map((num) => {
+                        const isSelected = rangeRepeatCount === num;
                         return (
                           <button
-                            key={item.count}
+                            key={num}
                             type="button"
-                            onClick={() => setRangeRepeatCount(item.count)}
+                            onClick={() => setRangeRepeatCount(num)}
                             className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer border ${
                               isSelected
-                                ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-2 ring-[#C8A85B]/40'
-                                : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'
+                                ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-1 ring-[#C8A85B]'
+                                : 'bg-white/10 text-white/80 border-white/15 hover:bg-white/20'
                             }`}
                           >
-                            {item.label}
+                            {num}
                           </button>
                         );
                       })}
@@ -862,7 +874,9 @@ export default function HomePage() {
               {repeatTab === 'surah' && (
                 <div className="bg-[#123B2A]/90 rounded-2xl p-3 border border-[#C8A85B]/40 flex flex-col gap-2.5 shadow-md">
                   <div className="flex items-center justify-between text-xs text-white/90">
-                    <span className="font-bold text-[#C8A85B]">تكرار سورة {currentSurahMeta.name} بالكامل:</span>
+                    <span className="font-bold text-[#C8A85B]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                      تكرار سورة {currentSurahMeta.name} بالكامل:
+                    </span>
                     {audio.repeatCount > 1 && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C8A85B] text-[#123B2A] font-bold">
                         {audio.repeatCount === 999
@@ -871,28 +885,82 @@ export default function HomePage() {
                       </span>
                     )}
                   </div>
+
+                  {/* Stepper & Direct Custom Number Input for Surah */}
+                  <div className="flex items-center gap-2 bg-[#0D281C] p-2 rounded-xl border border-[#C8A85B]/40">
+                    <span className="text-[11px] text-white/80 font-bold shrink-0">مرات التكرار:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (audio.repeatCount === 999) {
+                          audio.setRepeatCount(10);
+                        } else {
+                          audio.setRepeatCount(Math.max(1, audio.repeatCount - 1));
+                        }
+                      }}
+                      className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
+                      title="إنقاص مرة واحدة"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      value={audio.repeatCount === 999 ? '' : audio.repeatCount}
+                      placeholder={audio.repeatCount === 999 ? '∞ مستمر' : '1'}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val) && val >= 1) {
+                          audio.setRepeatCount(Math.min(500, val));
+                        } else if (e.target.value === '') {
+                          audio.setRepeatCount(1);
+                        }
+                      }}
+                      className="flex-1 bg-black/40 text-[#C8A85B] text-center font-bold text-base py-1 px-2 rounded-lg border border-[#C8A85B]/60 focus:outline-none focus:ring-1 focus:ring-[#C8A85B]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (audio.repeatCount === 999) {
+                          audio.setRepeatCount(1);
+                        } else {
+                          audio.setRepeatCount(Math.min(500, audio.repeatCount + 1));
+                        }
+                      }}
+                      className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
+                      title="زيادة مرة واحدة"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => audio.setRepeatCount(audio.repeatCount === 999 ? 3 : 999)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border shrink-0 ${
+                        audio.repeatCount === 999
+                          ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-xs'
+                          : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
+                      }`}
+                    >
+                      مستمر ∞
+                    </button>
+                  </div>
+
                   <div className="flex flex-wrap items-center gap-1.5">
-                    {[
-                      { count: 1, label: 'مرة واحدة' },
-                      { count: 3, label: '3 مرات (للحفظ)' },
-                      { count: 5, label: '5 مرات' },
-                      { count: 7, label: '7 مرات' },
-                      { count: 10, label: '10 مرات' },
-                      { count: 999, label: 'مستمر ∞' },
-                    ].map((item) => {
-                      const isSelected = audio.repeatCount === item.count;
+                    {[1, 2, 3, 5, 7, 10, 20, 33, 50, 100].map((num) => {
+                      const isSelected = audio.repeatCount === num;
                       return (
                         <button
-                          key={item.count}
+                          key={num}
                           type="button"
-                          onClick={() => audio.setRepeatCount(item.count)}
+                          onClick={() => audio.setRepeatCount(num)}
                           className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer border ${
                             isSelected
-                              ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-2 ring-[#C8A85B]/40'
+                              ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-1 ring-[#C8A85B]'
                               : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'
                           }`}
                         >
-                          {item.label}
+                          {num}
                         </button>
                       );
                     })}
