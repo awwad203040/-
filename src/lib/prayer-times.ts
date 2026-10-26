@@ -417,7 +417,9 @@ export function getFullPrayerTimes(
   const remSec = remainingSec % 60;
 
   const formattedRem =
-    remHours > 0
+    remainingSec <= 0
+      ? 'حان الآن'
+      : remHours > 0
       ? `${remHours} س و ${remMinutes} د`
       : `${remMinutes} د و ${remSec} ث`;
 

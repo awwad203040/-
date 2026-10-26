@@ -374,17 +374,20 @@ export default function HomePage() {
                     triggerHaptic('tap');
                     setShowPrayerModal(true);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-emerald-500/50 bg-[#0E3E2B]/85 text-[#F7EED8] hover:bg-[#124D36] active:scale-95 cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-emerald-500/50 bg-[#0E3E2B]/85 text-[#F7EED8] hover:bg-[#124D36] active:scale-95 cursor-pointer shadow-xs"
                   style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title="مواقيت الصلاة حسب موقعك"
-                  aria-label={`مواقيت الصلاة، الصلاة القادمة ${prayerTimes.prayerData.nextPrayer.name} الساعة ${prayerTimes.prayerData.nextPrayer.time12}`}
+                  title="مواقيت الصلاة وموعد الأذان"
+                  aria-label={`مواقيت الصلاة، موعد أذان ${prayerTimes.prayerData.nextPrayer.name} الساعة ${prayerTimes.prayerData.nextPrayer.time12}، متبقي على الأذان ${prayerTimes.prayerData.nextPrayer.remainingFormatted}`}
                 >
                   <span className="text-sm">🕌</span>
                   <span>
-                    {prayerTimes.prayerData.nextPrayer.name}: {prayerTimes.prayerData.nextPrayer.time12}
+                    أذان {prayerTimes.prayerData.nextPrayer.name}: {prayerTimes.prayerData.nextPrayer.time12}
                   </span>
-                  <span className="text-[10px] opacity-90 bg-black/25 px-1.5 py-0.5 rounded-md font-mono text-[#C8A85B]" dir="ltr">
-                    {prayerTimes.prayerData.nextPrayer.remainingMinutes} د
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-black/35 border border-[#C8A85B]/40 px-2 py-0.5 rounded-full text-[#F5D88A] shadow-xs">
+                    <span className="opacity-75">متبقي:</span>
+                    <span className="font-bold text-[#FFD700]" dir="rtl">
+                      {prayerTimes.prayerData.nextPrayer.remainingFormatted}
+                    </span>
                   </span>
                 </button>
 
