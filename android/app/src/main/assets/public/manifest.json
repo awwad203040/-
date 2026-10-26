@@ -1,14 +1,28 @@
 {
   "name": "نور القرآن",
   "short_name": "نور القرآن",
-  "description": "رفيقك مع القرآن",
+  "description": "رفيقك مع القرآن الكريم - المصحف الشريف والقراءات الصوتية",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#123B2A",
-  "background_color": "#FBF8EF",
+  "background_color": "#123B2A",
+  "lang": "ar",
+  "dir": "rtl",
+  "id": "org.noor.alquran",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
