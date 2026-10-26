@@ -848,24 +848,21 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {/* Big Play / Repeat Button */}
+                  {/* Compact Yellow Button: تشغيل وتكرار من آية إلى آية */}
                   <button
                     type="button"
                     onClick={handleStartAyahRangeLoop}
                     disabled={audio.isLoading}
-                    className="w-full mt-2 py-3 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-lg cursor-pointer flex flex-col items-center justify-center gap-0.5 border border-[#C8A85B]"
+                    className="w-full mt-2 py-1.5 px-3 rounded-lg font-bold text-xs bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-md cursor-pointer flex items-center justify-center gap-1.5 border border-[#C8A85B]"
                     style={{ fontFamily: "'Tajawal', sans-serif" }}
                   >
-                    <div className="flex items-center gap-2 text-base font-extrabold">
-                      <span>🔁</span>
-                      <span>
-                        تشغيل وتكرار من آية {ayahRangeStart} إلى {ayahRangeEnd}
-                      </span>
-                      <span>({rangeRepeatCount === 999 ? 'مستمر ∞' : `${rangeRepeatCount} مرات`})</span>
-                    </div>
-                    <div className="text-[11px] font-normal text-[#123B2A]/80">
-                      بصوت الشيخ {currentReciter.name} • سورة {currentSurahMeta.name}
-                    </div>
+                    <span className="text-xs">🔁</span>
+                    <span className="font-extrabold text-xs">
+                      تشغيل وتكرار من آية {ayahRangeStart} إلى {ayahRangeEnd}
+                    </span>
+                    <span className="bg-[#123B2A]/15 px-1.5 py-0.5 rounded text-[10px] font-black">
+                      ({rangeRepeatCount === 999 ? 'مستمر ∞' : `${rangeRepeatCount} مرات`})
+                    </span>
                   </button>
                 </div>
               )}
@@ -968,7 +965,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={handleTogglePlay}
-                    className="w-full mt-1 py-2.5 rounded-xl font-bold text-xs bg-[#C8A85B] text-[#123B2A] hover:bg-[#d4b66d] transition cursor-pointer"
+                    className="w-full mt-1.5 py-1.5 px-3 rounded-lg font-bold text-xs bg-[#C8A85B] text-[#123B2A] hover:bg-[#d4b66d] transition cursor-pointer shadow-md"
                   >
                     {audio.isPlaying ? '⏸ إيقاف مؤقت' : `▶ تشغيل سورة ${currentSurahMeta.name}`}
                   </button>
