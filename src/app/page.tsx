@@ -825,27 +825,6 @@ export default function HomePage() {
                         مستمر ∞
                       </button>
                     </div>
-
-                    {/* Quick values for quick convenience */}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {[1, 2, 3, 5, 7, 10, 20, 33, 50, 100].map((num) => {
-                        const isSelected = rangeRepeatCount === num;
-                        return (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => setRangeRepeatCount(num)}
-                            className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer border ${
-                              isSelected
-                                ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-1 ring-[#C8A85B]'
-                                : 'bg-white/10 text-white/80 border-white/15 hover:bg-white/20'
-                            }`}
-                          >
-                            {num}
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
 
                   {/* Compact Yellow Button: تشغيل وتكرار من آية إلى آية */}
@@ -943,25 +922,6 @@ export default function HomePage() {
                     </button>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {[1, 2, 3, 5, 7, 10, 20, 33, 50, 100].map((num) => {
-                      const isSelected = audio.repeatCount === num;
-                      return (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={() => audio.setRepeatCount(num)}
-                          className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer border ${
-                            isSelected
-                              ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm ring-1 ring-[#C8A85B]'
-                              : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'
-                          }`}
-                        >
-                          {num}
-                        </button>
-                      );
-                    })}
-                  </div>
                   <button
                     type="button"
                     onClick={handleTogglePlay}
