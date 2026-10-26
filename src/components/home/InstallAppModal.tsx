@@ -31,17 +31,9 @@ export default function InstallAppModal({
           await registration.update();
         }
       }
-      if (typeof window !== 'undefined' && 'caches' in window) {
-        const cacheKeys = await caches.keys();
-        for (const key of cacheKeys) {
-          if (!key.includes('offline-audio') && !key.includes('mushaf-pages')) {
-            await caches.delete(key);
-          }
-        }
-      }
       setUpdateSuccess(true);
       setTimeout(() => {
-        window.location.href = window.location.origin + '?v=' + Date.now();
+        window.location.reload();
       }, 700);
     } catch {
       window.location.reload();

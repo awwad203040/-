@@ -72,7 +72,7 @@ export async function playTestAdhanSound() {
           webAdhanAudio.pause();
           webAdhanAudio.currentTime = 0;
         }
-        webAdhanAudio = new Audio('/audio/adhan.ogg');
+        webAdhanAudio = new Audio('/audio/adhan.ogg?v=mohamed-jazi-v2');
         webAdhanAudio.volume = 1.0;
         await webAdhanAudio.play();
       } catch (e) {
