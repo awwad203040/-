@@ -12,10 +12,14 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(AthkarNativePlugin.class);
         super.onCreate(savedInstanceState);
 
         // Ensure background alarms and Athkar notifications fire during sleep/Doze mode
         requestBatteryOptimizationExemption();
+
+        // Ensure background alarm chain is immediately scheduled even if app is closed quickly
+        AthkarAlarmReceiver.ensureScheduledOnStartup(this);
     }
 
     private void requestBatteryOptimizationExemption() {

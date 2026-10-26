@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { AutoAthkarSettings, VoiceThikr, ThikrCategory } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST, ATHKAR_CATEGORIES, ATHKAR_INTERVALS } from '@/lib/athkar-data';
 import { requestNotificationPermission, showSingleThikrNotification } from '@/lib/athkar-notifications';
+import { testNativeAthkar } from '@/lib/athkar-native-bridge';
 
 interface AutoAthkarModalProps {
   isOpen: boolean;
@@ -190,12 +191,13 @@ export default function AutoAthkarModal({
                   type="button"
                   onClick={async () => {
                     await requestNotificationPermission();
+                    testNativeAthkar(5).catch(() => {});
                     const testThikr = VOICE_ATHKAR_LIST[0];
-                    showSingleThikrNotification(testThikr, 3);
+                    showSingleThikrNotification(testThikr, 5).catch(() => {});
                   }}
                   className="w-full py-1.5 px-3 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-[#0B5B43] text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-emerald-500/30 cursor-pointer"
                 >
-                  <span>🔔 تجربة تنبيه فوري بالصوت (خلال 3 ثوانٍ - جرب قفل الهاتف)</span>
+                  <span>🔔 تجربة تنبيه فوري بالصوت (خلال 5 ثوانٍ - جرب إغلاق التطبيق وقفل الشاشة)</span>
                 </button>
               </div>
             )}

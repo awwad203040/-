@@ -1,0 +1,81 @@
+'use client';
+
+import { Capacitor, registerPlugin } from '@capacitor/core';
+import type { AutoAthkarSettings } from '@/types/athkar';
+import { VOICE_ATHKAR_LIST } from '@/lib/athkar-data';
+
+interface NativeThikrPayload {
+  id: string;
+  sound: string;
+  title: string;
+  body: string;
+}
+
+interface AthkarNativePlugin {
+  syncAthkar(options: {
+    enabled: boolean;
+    intervalMinutes: number;
+    volume: number;
+    activeAthkar: NativeThikrPayload[];
+  }): Promise<{ success: boolean }>;
+
+  testTrigger(options: { delaySeconds: number }): Promise<{ success: boolean }>;
+}
+
+const AthkarNative = registerPlugin<AthkarNativePlugin>('AthkarNative');
+
+/**
+ * Synchronize user athkar preferences directly into native Android AlarmManager and SharedPreferences.
+ * Ensures the alarm chain continues running even when the app is completely closed or phone sleeps.
+ */
+export async function syncNativeAthkar(settings: AutoAthkarSettings): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+
+  try {
+    const activeIds = Array.isArray(settings?.activeThikrIds) && settings.activeThikrIds.length > 0
+      ? settings.activeThikrIds
+      : null;
+
+    const activeList = activeIds
+      ? VOICE_ATHKAR_LIST.filter((t) => activeIds.includes(t.id))
+      : VOICE_ATHKAR_LIST.filter((t) =>
+          (settings?.activeCategories || ['istighfar', 'tasbeeh', 'hawqala', 'tahmeed', 'salawat']).includes(t.category)
+        );
+
+    const pool = activeList.length > 0 ? activeList : VOICE_ATHKAR_LIST;
+
+    const payload: NativeThikrPayload[] = pool.map((t) => ({
+      id: t.id,
+      sound: t.rawSound ? t.rawSound.replace(/\.[^/.]+$/, '') : 'tasbeeh_azeem',
+      title: t.categoryName,
+      body: t.textDisplay,
+    }));
+
+    const res = await AthkarNative.syncAthkar({
+      enabled: Boolean(settings.enabled),
+      intervalMinutes: Math.max(1, settings.intervalMinutes || 10),
+      volume: typeof settings.volume === 'number' ? settings.volume : 0.85,
+      activeAthkar: payload,
+    });
+
+    return res?.success ?? true;
+  } catch (err) {
+    console.warn('Native athkar sync skipped or failed:', err);
+    return false;
+  }
+}
+
+/**
+ * Schedule a quick test thikr in a few seconds to verify closed-app playback
+ */
+export async function testNativeAthkar(delaySeconds = 3): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+
+  try {
+    const res = await AthkarNative.testTrigger({ delaySeconds });
+    return res?.success ?? true;
+  } catch (err) {
+    console.warn('Native athkar test trigger failed:', err);
+    return false;
+  }
+}

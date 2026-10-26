@@ -4,15 +4,15 @@ import { Capacitor } from '@capacitor/core';
 import type { AutoAthkarSettings, VoiceThikr } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST } from '@/lib/athkar-data';
 
-const DEFAULT_ATHKAR_CHANNEL_ID = 'noor_athkar_v8_general';
+const DEFAULT_ATHKAR_CHANNEL_ID = 'noor_athkar_v9_general';
 
 /**
- * Get the channel ID for a specific thikr (version 8 ensures fresh high-importance channel with audio & sleep wakeup)
+ * Get the channel ID for a specific thikr (version 9 ensures fresh high-importance channel with audio & sleep wakeup)
  */
 export function getThikrChannelId(thikr: VoiceThikr): string {
   if (thikr.rawSound) {
     const base = thikr.rawSound.replace(/\.[^/.]+$/, '');
-    return `noor_athkar_v8_${base}`;
+    return `noor_athkar_v9_${base}`;
   }
   return DEFAULT_ATHKAR_CHANNEL_ID;
 }

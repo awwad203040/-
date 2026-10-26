@@ -15,6 +15,8 @@ import {
   syncBackgroundAthkarNotifications,
   showSingleThikrNotification,
 } from '@/lib/athkar-notifications';
+import { syncNativeAthkar } from '@/lib/athkar-native-bridge';
+import { Capacitor } from '@capacitor/core';
 
 export function useAutoAthkar() {
   const [settings, setSettings] = useState<AutoAthkarSettings>(DEFAULT_ATHKAR_SETTINGS);
@@ -29,12 +31,14 @@ export function useAutoAthkar() {
     setIsSupported(isVoiceThikrSupported());
     const stored = getAutoAthkarSettings();
     setSettings(stored);
+    syncNativeAthkar(stored).catch(() => {});
     syncBackgroundAthkarNotifications(stored).catch(() => {});
 
     // Sync notifications whenever app is minimized or closed
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         const current = getAutoAthkarSettings();
+        syncNativeAthkar(current).catch(() => {});
         syncBackgroundAthkarNotifications(current).catch(() => {});
       }
     };
@@ -52,6 +56,7 @@ export function useAutoAthkar() {
     setSettings((prev) => {
       const updated = { ...prev, ...newSettings };
       saveAutoAthkarSettings(updated);
+      syncNativeAthkar(updated).catch(() => {});
       syncBackgroundAthkarNotifications(updated).catch(() => {});
       return updated;
     });
@@ -114,8 +119,12 @@ export function useAutoAthkar() {
     [settings.activeCategories, settings.playChime, settings.volume]
   );
 
-  // Recurring background timer for automatic Athkar
+  // Recurring background timer for automatic Athkar (web / PWA only; native Android uses Native AlarmManager)
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      return;
+    }
+
     if (!settings.enabled || settings.intervalMinutes <= 0) {
       return;
     }
