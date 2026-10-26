@@ -10,6 +10,7 @@ import RecitationPracticeHub from '@/components/home/RecitationPracticeHub';
 import InstallAppModal from '@/components/home/InstallAppModal';
 import AudioPlayerComponent from '@/components/mushaf/AudioPlayer';
 import ReciterModal from '@/components/mushaf/ReciterModal';
+import OfflineAudioModal from '@/components/mushaf/OfflineAudioModal';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAutoAthkar } from '@/hooks/useAutoAthkar';
 import AutoAthkarModal from '@/components/home/AutoAthkarModal';
@@ -32,6 +33,7 @@ export default function HomePage() {
   const [selectedReciterId, setSelectedReciterId] = useState<number>(7);
   const [selectedSurahForAudio, setSelectedSurahForAudio] = useState<number>(1);
   const [showReciterModal, setShowReciterModal] = useState(false);
+  const [showOfflineAudioModal, setShowOfflineAudioModal] = useState(false);
   const [showAthkarModal, setShowAthkarModal] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [ayahRangeStart, setAyahRangeStart] = useState<number>(1);
@@ -458,17 +460,28 @@ export default function HomePage() {
 
               {/* Sheikh Names Field (حقل أسماء المشايخ) */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-1 gap-1">
                   <label className="text-[11px] font-medium text-white/80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                     اختر الشيخ / القارئ:
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowReciterModal(true)}
-                    className="text-[10px] text-[#C8A85B] hover:underline cursor-pointer"
-                  >
-                    عرض جميع القراء 🔍
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowOfflineAudioModal(true)}
+                      className="text-[10px] text-emerald-300 hover:text-emerald-200 bg-emerald-950/70 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer font-bold transition-all hover:bg-emerald-900 shadow-xs"
+                      title="تنزيل صوت الشيخ للاستماع بدون نت"
+                    >
+                      <span>📥</span>
+                      <span>تنزيل بدون نت</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowReciterModal(true)}
+                      className="text-[10px] text-[#C8A85B] hover:underline cursor-pointer"
+                    >
+                      عرض القراء 🔍
+                    </button>
+                  </div>
                 </div>
                 <div className="relative">
                   <select
@@ -1355,6 +1368,7 @@ export default function HomePage() {
           onToggleAutoPlayNext={audio.toggleAutoPlayNext}
           onClose={audio.stop}
           onOpenReciterSelect={() => setShowReciterModal(true)}
+          onOpenOfflineAudio={() => setShowOfflineAudioModal(true)}
         />
       )}
 
@@ -1365,6 +1379,21 @@ export default function HomePage() {
           selectedReciterId={selectedReciterId}
           onSelectReciter={handleSelectReciterFromModal}
           onClose={() => setShowReciterModal(false)}
+          onOpenOfflineAudio={() => setShowOfflineAudioModal(true)}
+        />
+      )}
+
+      {/* Offline Audio Recitations Download Modal */}
+      {showOfflineAudioModal && (
+        <OfflineAudioModal
+          isOpen={showOfflineAudioModal}
+          selectedReciterId={selectedReciterId}
+          currentSurah={audio.currentSurah || selectedSurahForAudio || 1}
+          onClose={() => setShowOfflineAudioModal(false)}
+          onSelectReciter={(id) => {
+            const found = POPULAR_RECITERS.find((r) => r.id === id);
+            handleSelectReciterFromModal(id, found?.name || `القارئ ${id}`);
+          }}
         />
       )}
 

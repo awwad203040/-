@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { getSurahName } from '@/lib/quran-meta';
+import { getSurahName, getDirectReciterAudioUrl } from '@/lib/quran-meta';
+import { getOfflineAudioBlob, isAudioDownloaded } from '@/lib/offline-audio-manager';
 
 export interface AudioPlayerState {
   isPlaying: boolean;
@@ -30,6 +31,8 @@ export interface AudioPlayerState {
   // Multi-Surah Group Loop (تكرار مجموعة سور محددة)
   isMultiSurahLoop: boolean;
   selectedSurahsToLoop: number[];
+  // Offline Audio State
+  isCurrentSurahOffline: boolean;
 }
 
 export function useAudioPlayer() {
@@ -81,6 +84,7 @@ export function useAudioPlayer() {
       currentAyahNumber: null,
       isMultiSurahLoop: initialMultiLoop,
       selectedSurahsToLoop: initialSurahs,
+      isCurrentSurahOffline: false,
     };
   });
 
@@ -371,39 +375,75 @@ export function useAudioPlayer() {
       }
 
       try {
-        let url = `/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}`;
-        if (verseKey) {
-          url += `&verse=${verseKey}`;
+        let playableAudioSrc: string | null = null;
+        let isOffline = false;
+
+        // 1. Check if whole Surah audio is already stored offline in IndexedDB
+        if (!verseKey && typeof window !== 'undefined') {
+          try {
+            const offlineBlob = await getOfflineAudioBlob(reciterId, surahNumber);
+            if (offlineBlob && offlineBlob.size > 0) {
+              playableAudioSrc = URL.createObjectURL(offlineBlob);
+              isOffline = true;
+            }
+          } catch {
+            // Non-critical fallback
+          }
         }
 
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('فشل تحميل الملف الصوتي');
-        const data = await res.json();
-
-        if (data.audioUrl) {
-          if (!audioRef.current) {
-            audioRef.current = new Audio();
+        // 2. If not offline, resolve online URL
+        if (!playableAudioSrc) {
+          let url = `/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}`;
+          if (verseKey) {
+            url += `&verse=${verseKey}`;
           }
-          const audio = audioRef.current;
-          audio.src = data.audioUrl;
-          audio.playbackRate = state.playbackRate;
 
           try {
-            await audio.play();
-            setState((prev) => ({
-              ...prev,
-              isPlaying: true,
-              isLoading: false,
-            }));
+            const res = await fetch(url);
+            if (res.ok) {
+              const data = await res.json();
+              playableAudioSrc =
+                data.audioUrl ||
+                data.audio_file?.audio_url ||
+                data.audio_file?.url ||
+                (typeof data.audio_file === 'string' ? data.audio_file : null);
+            }
           } catch {
-            setState((prev) => ({
-              ...prev,
-              isPlaying: false,
-              isLoading: false,
-            }));
+            // Network fallback
           }
-        } else {
+
+          // Fallback directly to verified fast CDN
+          if (!playableAudioSrc && !verseKey) {
+            playableAudioSrc = getDirectReciterAudioUrl(reciterId, surahNumber);
+          }
+        }
+
+        if (!playableAudioSrc) {
           throw new Error('رابط الصوت غير متوفر');
+        }
+
+        if (!audioRef.current) {
+          audioRef.current = new Audio();
+        }
+        const audio = audioRef.current;
+        audio.src = playableAudioSrc;
+        audio.playbackRate = state.playbackRate;
+
+        try {
+          await audio.play();
+          setState((prev) => ({
+            ...prev,
+            isPlaying: true,
+            isLoading: false,
+            isCurrentSurahOffline: isOffline,
+          }));
+        } catch {
+          setState((prev) => ({
+            ...prev,
+            isPlaying: false,
+            isLoading: false,
+            isCurrentSurahOffline: isOffline,
+          }));
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'خطأ غير معروف';

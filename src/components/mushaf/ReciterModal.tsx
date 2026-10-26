@@ -9,6 +9,7 @@ interface ReciterModalProps {
   onSelectReciter: (id: number, name: string) => void;
   onClose: () => void;
   nightMode?: boolean;
+  onOpenOfflineAudio?: () => void;
 }
 
 export default function ReciterModal({
@@ -17,6 +18,7 @@ export default function ReciterModal({
   onSelectReciter,
   onClose,
   nightMode = false,
+  onOpenOfflineAudio,
 }: ReciterModalProps) {
   const [reciters, setReciters] = useState<ReciterInfo[]>(POPULAR_RECITERS);
   const [search, setSearch] = useState('');
@@ -125,6 +127,30 @@ export default function ReciterModal({
             }}
           />
         </div>
+
+        {/* Offline Audio Banner */}
+        {onOpenOfflineAudio && (
+          <div className="px-3 pt-3">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenOfflineAudio();
+              }}
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-[#C8A85B]/15 hover:bg-[#C8A85B]/25 text-[#C8A85B] border border-[#C8A85B]/40 font-bold text-xs transition-all cursor-pointer shadow-xs"
+              style={{ fontFamily: "'Tajawal', sans-serif" }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">📥</span>
+                <div className="text-right">
+                  <div className="font-extrabold text-[#C8A85B]">تنزيل صوت الشيخ بدون نت</div>
+                  <div className="text-[10px] text-white/70">تحميل السور والاستماع إليها في أي وقت دون اتصال بالإنترنت</div>
+                </div>
+              </div>
+              <span className="text-sm font-bold bg-[#C8A85B] text-[#123B2A] px-2 py-0.5 rounded-lg">فتح</span>
+            </button>
+          </div>
+        )}
 
         {/* Reciters List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">

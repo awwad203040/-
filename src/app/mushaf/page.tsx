@@ -33,6 +33,7 @@ import ReadingProgressComponent from '@/components/mushaf/ReadingProgress';
 import SettingsPanel from '@/components/mushaf/SettingsPanel';
 import SearchModal from '@/components/mushaf/SearchModal';
 import ReciterModal from '@/components/mushaf/ReciterModal';
+import OfflineAudioModal from '@/components/mushaf/OfflineAudioModal';
 import RecitationCorrectionModal from '@/components/mushaf/RecitationCorrectionModal';
 import OfflineDownloadModal from '@/components/mushaf/OfflineDownloadModal';
 import MushafSkeleton from '@/components/mushaf/MushafSkeleton';
@@ -132,6 +133,7 @@ function MushafReaderInner() {
   const [showSearch, setShowSearch] = useState(false);
   const [showPageJumpModal, setShowPageJumpModal] = useState(false);
   const [showReciterSelect, setShowReciterSelect] = useState(false);
+  const [showOfflineAudioModal, setShowOfflineAudioModal] = useState(false);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [noteInput, setNoteInput] = useState('');
   const [showNoteModal, setShowNoteModal] = useState(false);
@@ -1015,6 +1017,7 @@ function MushafReaderInner() {
           onToggleAutoPlayNext={audio.toggleAutoPlayNext}
           onClose={audio.stop}
           onOpenReciterSelect={() => setShowReciterSelect(true)}
+          onOpenOfflineAudio={() => setShowOfflineAudioModal(true)}
           isMultiSurahLoop={audio.isMultiSurahLoop}
           selectedSurahsToLoop={audio.selectedSurahsToLoop}
           currentSurah={audio.currentSurah}
@@ -1101,7 +1104,22 @@ function MushafReaderInner() {
         onSelectReciter={handleSelectReciter}
         onClose={() => setShowReciterSelect(false)}
         nightMode={settings.nightMode}
+        onOpenOfflineAudio={() => setShowOfflineAudioModal(true)}
       />
+
+      {/* Offline Audio Modal */}
+      {showOfflineAudioModal && (
+        <OfflineAudioModal
+          isOpen={showOfflineAudioModal}
+          selectedReciterId={settings.selectedReciterId || 7}
+          currentSurah={audio.currentSurah || getSurahMeta(currentPage)?.number || 1}
+          onClose={() => setShowOfflineAudioModal(false)}
+          onSelectReciter={(id) => {
+            const found = POPULAR_RECITERS.find((r) => r.id === id);
+            handleSelectReciter(id, found?.name || `القارئ ${id}`);
+          }}
+        />
+      )}
 
       {/* Note Modal */}
       {showNoteModal && noteVerse && (

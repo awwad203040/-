@@ -195,6 +195,26 @@ export const POPULAR_RECITERS: ReciterInfo[] = [
   { id: 12, name: 'سعد الغامدي', englishName: 'Saad Al-Ghamdi' },
 ];
 
+export const RECITER_AUDIO_SERVERS: Record<number, string> = {
+  7: 'https://server8.mp3quran.net/afs', // Mishari Rashid Alafasy
+  1: 'https://server7.mp3quran.net/basit', // AbdulBaset Murattal
+  2: 'https://server7.mp3quran.net/basit/Almusshaf-Al-Mojawwad', // AbdulBaset Mujawwad
+  3: 'https://server11.mp3quran.net/sds', // Abdur-Rahman as-Sudais
+  4: 'https://server11.mp3quran.net/shatri', // Abu Bakr al-Shatri
+  5: 'https://server8.mp3quran.net/rifai', // Hani ar-Rifai
+  6: 'https://server13.mp3quran.net/husr', // Mahmoud Khalil Al-Husary
+  8: 'https://server12.mp3quran.net/maher', // Maher al-Muaiqly
+  9: 'https://server10.mp3quran.net/minsh', // Mohamed Siddiq al-Minshawi
+  10: 'https://server7.mp3quran.net/shur', // Saud ash-Shuraym
+  12: 'https://server7.mp3quran.net/s_gmd', // Saad Al-Ghamdi
+};
+
+export function getDirectReciterAudioUrl(reciterId: number, surahNumber: number): string {
+  const pad3 = surahNumber.toString().padStart(3, '0');
+  const server = RECITER_AUDIO_SERVERS[reciterId] || RECITER_AUDIO_SERVERS[7];
+  return `${server}/${pad3}.mp3`;
+}
+
 export function getSurahMeta(surahNumber: number): SurahMeta | undefined {
   return SURAH_METADATA[surahNumber];
 }

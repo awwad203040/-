@@ -30,6 +30,21 @@ export function useAutoAthkar() {
     const stored = getAutoAthkarSettings();
     setSettings(stored);
     syncBackgroundAthkarNotifications(stored).catch(() => {});
+
+    // Sync notifications whenever app is minimized or closed
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        const current = getAutoAthkarSettings();
+        syncBackgroundAthkarNotifications(current).catch(() => {});
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleVisibilityChange);
+    };
   }, []);
 
   // Update settings handler and sync background notifications

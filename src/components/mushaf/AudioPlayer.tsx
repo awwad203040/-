@@ -45,6 +45,7 @@ interface AudioPlayerProps {
   onToggleAutoPlayNext?: () => void;
   onClose: () => void;
   onOpenReciterSelect?: () => void;
+  onOpenOfflineAudio?: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -88,6 +89,7 @@ export default function AudioPlayer({
   onToggleAutoPlayNext,
   onClose,
   onOpenReciterSelect,
+  onOpenOfflineAudio,
 }: AudioPlayerProps) {
   const [showRepeatMenu, setShowRepeatMenu] = useState(false);
   const [showMultiSurahModal, setShowMultiSurahModal] = useState(false);
@@ -406,6 +408,24 @@ export default function AudioPlayer({
           >
             {playbackRate}x
           </button>
+
+          {/* Offline Audio Download Button */}
+          {onOpenOfflineAudio && (
+            <button
+              type="button"
+              onClick={onOpenOfflineAudio}
+              className="p-1.5 md:p-2 rounded-xl bg-white/5 hover:bg-[#C8A85B]/20 text-[#C8A85B] border border-[#C8A85B]/40 hover:border-[#C8A85B] transition-all text-xs font-bold flex items-center gap-1 cursor-pointer"
+              title="تنزيل تلاوات المشايخ للاستماع بدون إنترنت"
+              aria-label="تنزيل تلاوات المشايخ للاستماع بدون إنترنت"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span className="text-[10px] hidden sm:inline">بدون نت</span>
+            </button>
+          )}
         </div>
 
         {/* Progress Bar & Timing */}
