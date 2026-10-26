@@ -250,7 +250,7 @@ export default function HomePage() {
         style={{ backgroundColor: '#123B2A', color: 'white' }}
       >
         <div className="max-w-2xl mx-auto">
-          {/* Dedication Banner: صدقة جارية لوالديا */}
+          {/* Dedication Banner: صدقة جارية لوالديَّ */}
           <div
             className="mb-5 mx-auto max-w-fit flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-2xl border border-[#C8A85B]/60 shadow-md transition-all"
             style={{
@@ -263,7 +263,7 @@ export default function HomePage() {
               className="text-xs sm:text-sm font-bold text-[#F7EED8] text-center tracking-wide leading-relaxed"
               style={{ fontFamily: "'Tajawal', 'Amiri', serif" }}
             >
-              صدقة جارية لوالديا أرجو الدعاء لهما بالرحمة
+              صدقة جارية لوالديَّ أرجو الدعاء لهما بالرحمة
             </p>
             <span className="text-[#C8A85B] text-base select-none">🤲</span>
           </div>
@@ -331,95 +331,80 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Real Reading Progress Card linked to the mobile user */}
-          <div className="w-full text-right rounded-3xl p-4 sm:p-5 mb-4 border border-[#C8A85B]/50 bg-gradient-to-br from-white/12 via-white/18 to-[#123B2A]/40 shadow-xl backdrop-blur-md transition-all">
-            {/* Top Bar: Title & Edit Button & Device Owner Badge */}
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">📖</span>
+          {/* Compact Reading Progress Card linked to the mobile user */}
+          <div className="w-full text-right rounded-2xl p-3 sm:p-3.5 mb-3 border border-[#C8A85B]/40 bg-gradient-to-r from-white/12 via-white/16 to-[#123B2A]/35 shadow-md backdrop-blur-md transition-all">
+            {/* Header: Title, Owner Badge, Percentage & Edit */}
+            <div className="flex justify-between items-center mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">📖</span>
                 <span
-                  className="text-base font-bold text-white flex items-center gap-2"
+                  className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5"
                   style={{ fontFamily: "'Tajawal', sans-serif" }}
                 >
                   <span>تقدمك في القراءة</span>
-                  <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     صاحب الجوال
                   </span>
                 </span>
               </div>
 
-              {/* Edit Stopped Page Button */}
-              <button
-                type="button"
-                onClick={() => setShowEditProgressModal(true)}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border border-[#C8A85B]/40 active:scale-95 transition cursor-pointer shadow-xs"
-                title="تعديل صفحة التوقف وعدد الصفحات المقروءة"
-              >
-                <span>✏️</span>
-                <span>تعديل الموضع</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-[#C8A85B]" dir="ltr">
+                  {percentage}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowEditProgressModal(true)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border border-[#C8A85B]/30 active:scale-95 transition cursor-pointer"
+                  title="تعديل صفحة التوقف وعدد الصفحات المقروءة"
+                >
+                  <span>✏️</span>
+                  <span>تعديل</span>
+                </button>
+              </div>
             </div>
 
-            {/* Info Grid: Stopped Page & Pages Read & Last Read */}
-            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
-              {/* Stopped Page Box */}
-              <div className="bg-black/25 rounded-2xl p-3 border border-[#C8A85B]/30 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-[11px] text-white/70 mb-1">
-                  <span>الصفحة المتوقف عندها:</span>
-                  <span className="text-[#C8A85B]">📌 موضعك</span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl sm:text-2xl font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
-                    صفحة {currentStoppedPage}
-                  </span>
-                </div>
+            {/* Quick Stats Line */}
+            <div className="flex items-center justify-between text-xs mb-1.5 bg-black/20 rounded-xl px-2.5 py-1.5 border border-white/10">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[#C8A85B] font-bold text-sm" style={{ fontFamily: "'Amiri', serif" }}>
+                  صفحة {currentStoppedPage}
+                </span>
                 {stoppedSurahMeta && (
-                  <span className="text-[11px] text-[#C8A85B] font-bold truncate mt-0.5">
-                    سورة {stoppedSurahMeta.name} • الجزء {stoppedSurahMeta.startPage}
+                  <span className="text-[11px] text-white/80 truncate">
+                    ({stoppedSurahMeta.name} • ج {stoppedSurahMeta.startPage})
                   </span>
                 )}
               </div>
-
-              {/* Pages Read & Khatmah Box */}
-              <div className="bg-black/25 rounded-2xl p-3 border border-[#C8A85B]/30 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-[11px] text-white/70 mb-1">
-                  <span>الصفحات المقروءة:</span>
-                  <span className="text-[#C8A85B] font-mono font-bold" dir="ltr">{percentage}%</span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xl sm:text-2xl font-black text-white" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                    {actualPagesRead}
-                  </span>
-                  <span className="text-[11px] text-white/60 font-medium">صفحة من 604</span>
-                </div>
-                <div className="text-[10px] text-white/60 mt-0.5">
-                  <span>آخر قراءة: {formatLastReadTime(progress?.updatedAt)}</span>
-                </div>
+              <div className="text-[11px] text-white/70 flex items-center gap-1.5 flex-shrink-0">
+                <span>{actualPagesRead} من 604 ص</span>
+                <span className="text-white/40">•</span>
+                <span className="text-[10px] text-white/60">{formatLastReadTime(progress?.updatedAt)}</span>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="h-2.5 rounded-full overflow-hidden bg-white/15 mb-3.5 relative">
+            {/* Slim Progress Bar */}
+            <div className="h-1.5 rounded-full overflow-hidden bg-white/15 mb-2 relative">
               <div
-                className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#C8A85B] via-[#eed596] to-[#C8A85B] shadow-[0_0_10px_rgba(200,168,91,0.5)]"
+                className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#C8A85B] via-[#eed596] to-[#C8A85B]"
                 style={{ width: `${Math.max(2, percentage)}%` }}
               />
             </div>
 
-            {/* Big Action Button: Continue Reading */}
+            {/* Compact Action Button */}
             <button
               type="button"
               onClick={handleContinueReading}
-              className="w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.98] transition shadow-lg cursor-pointer flex items-center justify-between border border-[#C8A85B]"
+              className="w-full py-2 px-3 rounded-xl font-bold text-xs bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-xs cursor-pointer flex items-center justify-between border border-[#C8A85B]/70"
               style={{ fontFamily: "'Tajawal', sans-serif" }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 truncate">
                 <span>▶</span>
-                <span>
+                <span className="truncate">
                   متابعة القراءة من صفحة {currentStoppedPage} {stoppedSurahMeta ? `(سورة ${stoppedSurahMeta.name})` : ''}
                 </span>
               </div>
-              <span className="text-xs font-black">فتح المصحف ←</span>
+              <span className="text-[11px] font-extrabold flex-shrink-0 mr-2">فتح المصحف ←</span>
             </button>
           </div>
 
