@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useEffect } from 'react';
+import { triggerHaptic } from '@/lib/accessibility';
 
 type SwipeDirection = 'left' | 'right' | 'up' | 'down';
 
@@ -45,8 +46,10 @@ export function useSwipe(options: UseSwipeOptions) {
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
       const direction: SwipeDirection = dx > 0 ? 'left' : 'right';
       if (direction === 'left' && onSwipeLeft) {
+        triggerHaptic('next');
         onSwipeLeft();
       } else if (direction === 'right' && onSwipeRight) {
+        triggerHaptic('prev');
         onSwipeRight();
       }
     }

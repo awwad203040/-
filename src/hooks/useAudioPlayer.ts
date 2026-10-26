@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { getSurahName, getDirectReciterAudioUrl } from '@/lib/quran-meta';
 import { getOfflineAudioBlob, isAudioDownloaded } from '@/lib/offline-audio-manager';
+import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
 
 export interface AudioPlayerState {
   isPlaying: boolean;
@@ -194,6 +195,8 @@ export function useAudioPlayer() {
           const nextAyah = currentAyahNumber + 1;
           loopRef.current.currentAyahNumber = nextAyah;
           setState((prev) => ({ ...prev, currentAyahNumber: nextAyah }));
+          triggerHaptic('tap');
+          announceToScreenReader(`الآية ${nextAyah}`);
           const verseKey = `${currentSurah}:${nextAyah}`;
           const surahName = getSurahName(currentSurah);
           loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
@@ -203,6 +206,8 @@ export function useAudioPlayer() {
         if (repeatCount === 999) {
           loopRef.current.currentAyahNumber = ayahRangeStart;
           setState((prev) => ({ ...prev, currentAyahNumber: ayahRangeStart }));
+          triggerHaptic('repeat');
+          speakAccessibility('إعادة تكرار المقطع');
           const verseKey = `${currentSurah}:${ayahRangeStart}`;
           const surahName = getSurahName(currentSurah);
           loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
@@ -218,6 +223,8 @@ export function useAudioPlayer() {
             remainingRepeats: nextRemaining,
             currentAyahNumber: ayahRangeStart,
           }));
+          triggerHaptic('repeat');
+          speakAccessibility(`تكرار: متبقي ${nextRemaining} مرات`);
           const verseKey = `${currentSurah}:${ayahRangeStart}`;
           const surahName = getSurahName(currentSurah);
           loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
@@ -230,6 +237,8 @@ export function useAudioPlayer() {
         loopRef.current.currentAyahNumber = null;
         audio.pause();
         audio.currentTime = 0;
+        triggerHaptic('success');
+        speakAccessibility('اكتمل التكرار');
         setState((prev) => ({
           ...prev,
           isPlaying: false,

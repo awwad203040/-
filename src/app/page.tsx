@@ -19,6 +19,8 @@ import MultiSurahLoopModal from '@/components/mushaf/MultiSurahLoopModal';
 import AthkarToast from '@/components/common/AthkarToast';
 import AnimatedLogo from '@/components/common/AnimatedLogo';
 import EditReadingProgressModal from '@/components/home/EditReadingProgressModal';
+import { AccessibilityModal } from '@/components/common/AccessibilityModal';
+import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
 
 export default function HomePage() {
   const router = useRouter();
@@ -42,6 +44,7 @@ export default function HomePage() {
   const [repeatTab, setRepeatTab] = useState<'ayahs' | 'surah' | 'multi'>('ayahs');
   const [showMultiSurahModal, setShowMultiSurahModal] = useState(false);
   const [showEditProgressModal, setShowEditProgressModal] = useState(false);
+  const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
   const [homePageJumpInput, setHomePageJumpInput] = useState('');
 
   const handleHomeJumpToPage = (targetPage?: number) => {
@@ -121,6 +124,9 @@ export default function HomePage() {
     const total = meta?.versesCount || 7;
     const start = Math.max(1, Math.min(total, ayahRangeStart));
     const end = Math.max(start, Math.min(total, ayahRangeEnd));
+    triggerHaptic('repeat');
+    speakAccessibility(`بدء تكرار سورة ${meta?.name || ''} من آية ${start} إلى ${end}، ${rangeRepeatCount === 999 ? 'مستمر' : `${rangeRepeatCount} مرات`}`);
+    announceToScreenReader(`بدء تكرار سورة ${meta?.name || ''} من آية ${start} إلى ${end}`);
     audio.startAyahRangeLoop(
       selectedSurahForAudio,
       start,
@@ -141,12 +147,21 @@ export default function HomePage() {
 
   // Toggle audio playback
   const handleTogglePlay = useCallback(() => {
+    const sName = getSurahName(selectedSurahForAudio);
     if (audio.isPlaying) {
+      triggerHaptic('pause');
+      speakAccessibility('إيقاف مؤقت');
+      announceToScreenReader('تم إيقاف التلاوة مؤقتاً');
       audio.pause();
     } else if (audio.currentSurah === selectedSurahForAudio && audio.currentTime > 0) {
+      triggerHaptic('play');
+      speakAccessibility(`استئناف تلاوة سورة ${sName}`);
+      announceToScreenReader(`استئناف تلاوة سورة ${sName}`);
       audio.play();
     } else {
-      const sName = getSurahName(selectedSurahForAudio);
+      triggerHaptic('play');
+      speakAccessibility(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
+      announceToScreenReader(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
       audio.loadAndPlay(
         selectedSurahForAudio,
         selectedReciterId,
@@ -162,6 +177,9 @@ export default function HomePage() {
     setSelectedReciterId(newId);
     saveSettings({ selectedReciterId: newId });
     const newReciter = POPULAR_RECITERS.find((r) => r.id === newId) || POPULAR_RECITERS[0];
+    triggerHaptic('tap');
+    speakAccessibility(`تم اختيار القارئ الشيخ ${newReciter.name}`);
+    announceToScreenReader(`تم اختيار القارئ الشيخ ${newReciter.name}`);
     if (audio.isPlaying) {
       const targetSurah = audio.currentSurah || selectedSurahForAudio;
       audio.loadAndPlay(
@@ -178,8 +196,14 @@ export default function HomePage() {
     setSelectedSurahForAudio(surahNumber);
     const sName = getSurahName(surahNumber);
     if (audio.isPlaying && audio.currentSurah === surahNumber) {
+      triggerHaptic('pause');
+      speakAccessibility(`إيقاف الاستماع لسورة ${sName}`);
+      announceToScreenReader(`تم إيقاف تلاوة سورة ${sName}`);
       audio.pause();
     } else {
+      triggerHaptic('play');
+      speakAccessibility(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
+      announceToScreenReader(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
       audio.loadAndPlay(
         surahNumber,
         selectedReciterId,
@@ -315,23 +339,45 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* Row 2: Athkar Button */}
-              <button
-                onClick={() => setShowAthkarModal(true)}
-                className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
-                  autoAthkar?.settings?.enabled
-                    ? 'border-emerald-400/60 bg-emerald-700/40 text-emerald-200 hover:bg-emerald-700/60'
-                    : 'border-white/20 bg-white/10 text-white/80 hover:bg-white/20'
-                }`}
-                style={{ fontFamily: "'Tajawal', sans-serif" }}
-                title="إعداد الأذكار الصوتية التلقائية"
-              >
-                <span className={autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}>🔔</span>
-                <span>
-                  الأذكار الصوتية: {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
-                </span>
-                <span className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded-md">⚙️ ضبط</span>
-              </button>
+              {/* Row 2: Athkar Button & Blind Accessibility Button */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('tap');
+                    setShowAthkarModal(true);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
+                    autoAthkar?.settings?.enabled
+                      ? 'border-emerald-400/60 bg-emerald-700/40 text-emerald-200 hover:bg-emerald-700/60'
+                      : 'border-white/20 bg-white/10 text-white/80 hover:bg-white/20'
+                  }`}
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title="إعداد الأذكار الصوتية التلقائية"
+                  aria-label="إعداد الأذكار الصوتية التلقائية"
+                >
+                  <span className={autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}>🔔</span>
+                  <span>
+                    الأذكار الصوتية: {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
+                  </span>
+                  <span className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded-md">⚙️ ضبط</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('tap');
+                    setShowAccessibilityModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title="تسهيل الوصول وخدمة المكفوفين"
+                  aria-label="فتح إعدادات خدمة المكفوفين وتسهيل الوصول"
+                >
+                  <span className="text-sm">🦯</span>
+                  <span>خدمة المكفوفين</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -414,7 +460,9 @@ export default function HomePage() {
 
           {/* Audio Listening & Sheikh Selection Card */}
           <div
-            className="rounded-2xl p-4 border border-[#C8A85B]/40 bg-white/10 backdrop-blur-md shadow-md"
+            className="rounded-2xl p-4 border border-[#C8A85B]/40 bg-white/10 backdrop-blur-md shadow-md select-none"
+            onDoubleClick={handleTogglePlay}
+            title="انقر نقراً مزدوجاً في أي مكان هنا للتشغيل أو الإيقاف السريع"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -710,7 +758,10 @@ export default function HomePage() {
                           if (ayahRangeEnd < val) {
                             setAyahRangeEnd(val);
                           }
+                          triggerHaptic('tap');
+                          speakAccessibility(`بداية المقطع من الآية ${val}`);
                         }}
+                        aria-label="اختيار بداية المقطع من الآية"
                         className="w-full bg-[#0D281C] text-[#C8A85B] font-bold text-xs p-2 rounded-xl border border-[#C8A85B]/50 focus:outline-none cursor-pointer"
                         style={{ fontFamily: "'Tajawal', sans-serif" }}
                       >
@@ -732,8 +783,12 @@ export default function HomePage() {
                         value={ayahRangeEnd}
                         onChange={(e) => {
                           const val = parseInt(e.target.value, 10);
-                          setAyahRangeEnd(Math.max(ayahRangeStart, val));
+                          const finalEnd = Math.max(ayahRangeStart, val);
+                          setAyahRangeEnd(finalEnd);
+                          triggerHaptic('tap');
+                          speakAccessibility(`نهاية المقطع إلى الآية ${finalEnd}`);
                         }}
+                        aria-label="اختيار نهاية المقطع إلى الآية"
                         className="w-full bg-[#0D281C] text-[#C8A85B] font-bold text-xs p-2 rounded-xl border border-[#C8A85B]/50 focus:outline-none cursor-pointer"
                         style={{ fontFamily: "'Tajawal', sans-serif" }}
                       >
@@ -766,12 +821,17 @@ export default function HomePage() {
                       <button
                         type="button"
                         onClick={() => {
+                          triggerHaptic('tap');
                           if (rangeRepeatCount === 999) {
                             setRangeRepeatCount(10);
+                            speakAccessibility('عدد التكرار 10');
                           } else {
-                            setRangeRepeatCount(Math.max(1, rangeRepeatCount - 1));
+                            const nextVal = Math.max(1, rangeRepeatCount - 1);
+                            setRangeRepeatCount(nextVal);
+                            speakAccessibility(`عدد التكرار ${nextVal}`);
                           }
                         }}
+                        aria-label="إنقاص عدد مرات التكرار بمقدار واحد"
                         className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
                         title="إنقاص مرة واحدة"
                       >
@@ -785,10 +845,13 @@ export default function HomePage() {
                         max="500"
                         value={rangeRepeatCount === 999 ? '' : rangeRepeatCount}
                         placeholder={rangeRepeatCount === 999 ? '∞ مستمر' : '1'}
+                        aria-label="إدخال عدد مرات التكرار يدوياً"
                         onChange={(e) => {
                           const val = parseInt(e.target.value, 10);
                           if (!isNaN(val) && val >= 1) {
-                            setRangeRepeatCount(Math.min(500, val));
+                            const clamped = Math.min(500, val);
+                            setRangeRepeatCount(clamped);
+                            speakAccessibility(`عدد التكرار ${clamped}`);
                           } else if (e.target.value === '') {
                             setRangeRepeatCount(1);
                           }
@@ -800,12 +863,17 @@ export default function HomePage() {
                       <button
                         type="button"
                         onClick={() => {
+                          triggerHaptic('tap');
                           if (rangeRepeatCount === 999) {
                             setRangeRepeatCount(1);
+                            speakAccessibility('عدد التكرار 1');
                           } else {
-                            setRangeRepeatCount(Math.min(500, rangeRepeatCount + 1));
+                            const nextVal = Math.min(500, rangeRepeatCount + 1);
+                            setRangeRepeatCount(nextVal);
+                            speakAccessibility(`عدد التكرار ${nextVal}`);
                           }
                         }}
+                        aria-label="زيادة عدد مرات التكرار بمقدار واحد"
                         className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
                         title="زيادة مرة واحدة"
                       >
@@ -815,7 +883,13 @@ export default function HomePage() {
                       {/* Infinite Loop Toggle */}
                       <button
                         type="button"
-                        onClick={() => setRangeRepeatCount(rangeRepeatCount === 999 ? 3 : 999)}
+                        onClick={() => {
+                          triggerHaptic('tap');
+                          const nextVal = rangeRepeatCount === 999 ? 3 : 999;
+                          setRangeRepeatCount(nextVal);
+                          speakAccessibility(nextVal === 999 ? 'تكرار مستمر بلا توقف' : 'تكرار 3 مرات');
+                        }}
+                        aria-label="تفعيل أو إيقاف التكرار المستمر"
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border shrink-0 ${
                           rangeRepeatCount === 999
                             ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-xs'
@@ -868,12 +942,17 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={() => {
+                        triggerHaptic('tap');
                         if (audio.repeatCount === 999) {
                           audio.setRepeatCount(10);
+                          speakAccessibility('تكرار السورة 10 مرات');
                         } else {
-                          audio.setRepeatCount(Math.max(1, audio.repeatCount - 1));
+                          const nextVal = Math.max(1, audio.repeatCount - 1);
+                          audio.setRepeatCount(nextVal);
+                          speakAccessibility(`تكرار السورة ${nextVal} مرات`);
                         }
                       }}
+                      aria-label="إنقاص عدد تكرار السورة"
                       className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
                       title="إنقاص مرة واحدة"
                     >
@@ -885,10 +964,13 @@ export default function HomePage() {
                       max="500"
                       value={audio.repeatCount === 999 ? '' : audio.repeatCount}
                       placeholder={audio.repeatCount === 999 ? '∞ مستمر' : '1'}
+                      aria-label="إدخال عدد مرات تكرار السورة يدوياً"
                       onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
                         if (!isNaN(val) && val >= 1) {
-                          audio.setRepeatCount(Math.min(500, val));
+                          const clamped = Math.min(500, val);
+                          audio.setRepeatCount(clamped);
+                          speakAccessibility(`تكرار السورة ${clamped} مرات`);
                         } else if (e.target.value === '') {
                           audio.setRepeatCount(1);
                         }
@@ -898,12 +980,17 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={() => {
+                        triggerHaptic('tap');
                         if (audio.repeatCount === 999) {
                           audio.setRepeatCount(1);
+                          speakAccessibility('تكرار السورة مرة واحدة');
                         } else {
-                          audio.setRepeatCount(Math.min(500, audio.repeatCount + 1));
+                          const nextVal = Math.min(500, audio.repeatCount + 1);
+                          audio.setRepeatCount(nextVal);
+                          speakAccessibility(`تكرار السورة ${nextVal} مرات`);
                         }
                       }}
+                      aria-label="زيادة عدد تكرار السورة"
                       className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
                       title="زيادة مرة واحدة"
                     >
@@ -911,7 +998,13 @@ export default function HomePage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => audio.setRepeatCount(audio.repeatCount === 999 ? 3 : 999)}
+                      onClick={() => {
+                        triggerHaptic('tap');
+                        const nextVal = audio.repeatCount === 999 ? 3 : 999;
+                        audio.setRepeatCount(nextVal);
+                        speakAccessibility(nextVal === 999 ? 'تكرار السورة مستمر بلا توقف' : 'تكرار السورة 3 مرات');
+                      }}
+                      aria-label="تفعيل أو إلغاء تكرار السورة المستمر"
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border shrink-0 ${
                         audio.repeatCount === 999
                           ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-xs'
@@ -1168,8 +1261,13 @@ export default function HomePage() {
                   <div
                     key={meta.number}
                     onClick={() => {
+                      triggerHaptic('tap');
+                      speakAccessibility(`فتح سورة ${meta.name}، صفحة ${meta.startPage}`);
                       router.push(`/mushaf?page=${meta.startPage}`);
                     }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`سورة ${meta.name}، ${meta.revelationPlace === 'makkah' ? 'مكية' : 'مدنية'}، ${meta.versesCount} آية، تبدأ من صفحة ${meta.startPage}`}
                     className="w-full flex items-center justify-between px-5 py-3.5 text-right hover:bg-[#123B2A]/5 transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -1483,6 +1581,12 @@ export default function HomePage() {
         currentPage={currentStoppedPage}
         pagesRead={actualPagesRead}
         onProgressUpdated={refreshProgress}
+      />
+
+      {/* Accessibility & Blind Assistance Modal */}
+      <AccessibilityModal
+        isOpen={showAccessibilityModal}
+        onClose={() => setShowAccessibilityModal(false)}
       />
     </div>
   );
