@@ -4,15 +4,15 @@ import { Capacitor } from '@capacitor/core';
 import type { AutoAthkarSettings, VoiceThikr } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST } from '@/lib/athkar-data';
 
-const DEFAULT_ATHKAR_CHANNEL_ID = 'noor_athkar_v7_general';
+const DEFAULT_ATHKAR_CHANNEL_ID = 'noor_athkar_v8_general';
 
 /**
- * Get the channel ID for a specific thikr (version 7 ensures fresh high-importance channel with audio)
+ * Get the channel ID for a specific thikr (version 8 ensures fresh high-importance channel with audio & sleep wakeup)
  */
 export function getThikrChannelId(thikr: VoiceThikr): string {
   if (thikr.rawSound) {
     const base = thikr.rawSound.replace(/\.[^/.]+$/, '');
-    return `noor_athkar_v7_${base}`;
+    return `noor_athkar_v8_${base}`;
   }
   return DEFAULT_ATHKAR_CHANNEL_ID;
 }
@@ -143,8 +143,8 @@ export async function syncBackgroundAthkarNotifications(
       const intervalMs = Math.max(1, settings.intervalMinutes) * 60 * 1000;
       const notificationsToSchedule = [];
 
-      // Pre-schedule up to 72 upcoming notifications covering several days
-      const count = Math.min(72, Math.floor((72 * 60) / Math.max(1, settings.intervalMinutes)));
+      // Pre-schedule up to 120 upcoming notifications covering long periods in sleep mode
+      const count = Math.min(120, Math.floor((120 * 60) / Math.max(1, settings.intervalMinutes)));
       const now = Date.now();
 
       for (let i = 1; i <= count; i++) {
@@ -163,6 +163,10 @@ export async function syncBackgroundAthkarNotifications(
           smallIcon: 'ic_launcher',
           largeIcon: 'ic_launcher',
           iconColor: '#C8A85B',
+          foreground: true,
+          isExactNotification: true,
+          autoCancel: true,
+          ongoing: false,
           schedule: { at: triggerTime, allowWhileIdle: true },
           extra: {
             thikrId: thikr.id,
@@ -213,6 +217,9 @@ export async function showSingleThikrNotification(
             sound: soundBase,
             smallIcon: 'ic_launcher',
             iconColor: '#C8A85B',
+            foreground: true,
+            isExactNotification: true,
+            autoCancel: true,
             schedule: { at: new Date(Date.now() + delaySeconds * 1000), allowWhileIdle: true },
           },
         ],

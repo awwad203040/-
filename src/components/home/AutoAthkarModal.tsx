@@ -177,11 +177,14 @@ export default function AutoAthkarModal({
                 <div className="flex items-center justify-between text-[11px] text-[#0B5B43] font-bold">
                   <span className="flex items-center gap-1.5">
                     <span>🔔</span>
-                    <span>التنبيهات تعمل بالصوت في الخلفية حتى عند إغلاق التطبيق</span>
+                    <span>التنبيهات تعمل بالصوت في الخلفية ووضع السكون</span>
                   </span>
                   <span className="bg-emerald-600/15 text-[#0B5B43] px-2 py-0.5 rounded-full text-[10px] font-extrabold">
                     تعمل باستمرار ✓
                   </span>
+                </div>
+                <div className="text-[10px] text-emerald-800/80 bg-emerald-500/10 p-2 rounded-xl leading-relaxed">
+                  💡 <strong>لوضع السكون وقفل الشاشة:</strong> تم ضبط التنبيهات بأعلى دقة وتجاوز وضع السكون (Doze Mode). عند ظهور نافذة البطارية بالجوال اختر «سماح / غير مقيد» ليعمل الصوت دائماً والتطبيق مغلق.
                 </div>
                 <button
                   type="button"
