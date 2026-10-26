@@ -120,39 +120,49 @@ export interface UserPrayerSettings {
   customCityName: string;
   method: CalculationMethod;
   notificationEnabled: boolean;
+  adhanEnabled: boolean;
+  enabledPrayers: {
+    fajr: boolean;
+    dhuhr: boolean;
+    asr: boolean;
+    maghrib: boolean;
+    isha: boolean;
+  };
 }
+
+const DEFAULT_PRAYER_SETTINGS: UserPrayerSettings = {
+  useGps: true,
+  cityId: 'makkah',
+  customLat: 21.4225,
+  customLng: 39.8262,
+  customCityName: 'مكة المكرمة',
+  method: 'umm_al_qura',
+  notificationEnabled: true,
+  adhanEnabled: true,
+  enabledPrayers: {
+    fajr: true,
+    dhuhr: true,
+    asr: true,
+    maghrib: true,
+    isha: true,
+  },
+};
 
 const STORAGE_KEY = 'noor_prayer_settings';
 
 export function getPrayerSettings(): UserPrayerSettings {
   if (typeof window === 'undefined') {
-    return {
-      useGps: true,
-      cityId: 'makkah',
-      customLat: 21.4225,
-      customLng: 39.8262,
-      customCityName: 'مكة المكرمة',
-      method: 'umm_al_qura',
-      notificationEnabled: true,
-    };
+    return DEFAULT_PRAYER_SETTINGS;
   }
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      return { ...DEFAULT_PRAYER_SETTINGS, ...JSON.parse(raw) };
     }
   } catch {}
 
-  return {
-    useGps: true,
-    cityId: 'makkah',
-    customLat: 21.4225,
-    customLng: 39.8262,
-    customCityName: 'مكة المكرمة',
-    method: 'umm_al_qura',
-    notificationEnabled: true,
-  };
+  return DEFAULT_PRAYER_SETTINGS;
 }
 
 export function savePrayerSettings(settings: Partial<UserPrayerSettings>): UserPrayerSettings {

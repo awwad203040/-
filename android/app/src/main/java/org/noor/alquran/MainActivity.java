@@ -19,6 +19,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(AthkarNativePlugin.class);
+        registerPlugin(AdhanNativePlugin.class);
         super.onCreate(savedInstanceState);
 
         // 1. Automatically request Notification Permission on startup for Android 13+
@@ -29,6 +30,7 @@ public class MainActivity extends BridgeActivity {
 
         // 3. Pre-create high-importance sound channels and schedule alarm chain
         AthkarAlarmReceiver.ensureScheduledOnStartup(this);
+        AdhanAlarmReceiver.createNotificationChannel(this);
     }
 
     private void requestNotificationPermissionIfNeeded() {

@@ -11,6 +11,12 @@ import {
   CalculationMethod,
 } from '@/lib/prayer-times';
 import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
+import {
+  scheduleNativeAdhanAlarms,
+  cancelNativeAdhanAlarms,
+  playTestAdhanSound,
+  stopAdhanSound,
+} from '@/lib/adhan-native-bridge';
 
 const DEFAULT_PRAYER_RESULT: PrayerTimesResult = {
   fajr: '04:55',
@@ -44,6 +50,32 @@ export function usePrayerTimes() {
   const [prayerData, setPrayerData] = useState<PrayerTimesResult>(DEFAULT_PRAYER_RESULT);
   const [isGpsLoading, setIsGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [isTestAdhanPlaying, setIsTestAdhanPlaying] = useState(false);
+
+  // Synchronize scheduled native alarms whenever prayer times or settings change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && prayerData.fajr && prayerData.dhuhr) {
+      scheduleNativeAdhanAlarms({
+        fajr: prayerData.fajr,
+        dhuhr: prayerData.dhuhr,
+        asr: prayerData.asr,
+        maghrib: prayerData.maghrib,
+        isha: prayerData.isha,
+        cityName: prayerData.cityName,
+        masterEnabled: settings.adhanEnabled,
+        enabledPrayers: settings.enabledPrayers,
+      });
+    }
+  }, [
+    prayerData.fajr,
+    prayerData.dhuhr,
+    prayerData.asr,
+    prayerData.maghrib,
+    prayerData.isha,
+    prayerData.cityName,
+    settings.adhanEnabled,
+    settings.enabledPrayers,
+  ]);
 
   // Update prayer times every second for live countdown
   useEffect(() => {
@@ -143,6 +175,48 @@ export function usePrayerTimes() {
     triggerHaptic('tap');
   }, [settings.notificationEnabled]);
 
+  // Master Adhan Sound Toggle
+  const toggleMasterAdhan = useCallback(() => {
+    const newVal = !settings.adhanEnabled;
+    const updated = savePrayerSettings({ adhanEnabled: newVal });
+    setSettings(updated);
+    triggerHaptic('tap');
+    if (!newVal) {
+      cancelNativeAdhanAlarms();
+      stopAdhanSound();
+      setIsTestAdhanPlaying(false);
+    }
+  }, [settings.adhanEnabled]);
+
+  // Toggle individual prayer Adhan
+  const togglePrayerAdhan = useCallback(
+    (prayerKey: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha') => {
+      const current = settings.enabledPrayers;
+      const updatedPrayers = {
+        ...current,
+        [prayerKey]: !current[prayerKey],
+      };
+      const updated = savePrayerSettings({ enabledPrayers: updatedPrayers });
+      setSettings(updated);
+      triggerHaptic('tap');
+    },
+    [settings.enabledPrayers]
+  );
+
+  // Play Test Adhan Sound
+  const testAdhan = useCallback(async () => {
+    setIsTestAdhanPlaying(true);
+    triggerHaptic('tap');
+    await playTestAdhanSound();
+  }, []);
+
+  // Stop Adhan Sound
+  const stopTestAdhan = useCallback(async () => {
+    setIsTestAdhanPlaying(false);
+    triggerHaptic('tap');
+    await stopAdhanSound();
+  }, []);
+
   // Initial GPS check if useGps is true and default location
   const initialGpsDone = useRef(false);
   useEffect(() => {
@@ -182,9 +256,14 @@ export function usePrayerTimes() {
     settings,
     isGpsLoading,
     gpsError,
+    isTestAdhanPlaying,
     requestGpsLocation,
     selectCity,
     setMethod,
     toggleNotification,
+    toggleMasterAdhan,
+    togglePrayerAdhan,
+    testAdhan,
+    stopTestAdhan,
   };
 }

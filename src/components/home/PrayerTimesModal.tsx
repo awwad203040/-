@@ -27,19 +27,23 @@ export default function PrayerTimesModal({
     settings,
     isGpsLoading,
     gpsError,
+    isTestAdhanPlaying,
     requestGpsLocation,
     selectCity,
     setMethod,
-    toggleNotification,
+    toggleMasterAdhan,
+    togglePrayerAdhan,
+    testAdhan,
+    stopTestAdhan,
   } = prayerHook;
 
   const prayers = [
-    { key: 'fajr', name: 'الفجر', icon: '🌌', time: prayerData.fajr12 },
-    { key: 'sunrise', name: 'الشروق', icon: '🌅', time: prayerData.sunrise12 },
-    { key: 'dhuhr', name: 'الظهر', icon: '☀️', time: prayerData.dhuhr12 },
-    { key: 'asr', name: 'العصر', icon: '🌤️', time: prayerData.asr12 },
-    { key: 'maghrib', name: 'المغرب', icon: '🌇', time: prayerData.maghrib12 },
-    { key: 'isha', name: 'العشاء', icon: '🌙', time: prayerData.isha12 },
+    { key: 'fajr' as const, name: 'الفجر', icon: '🌌', time: prayerData.fajr12, hasAdhan: true },
+    { key: 'sunrise' as const, name: 'الشروق', icon: '🌅', time: prayerData.sunrise12, hasAdhan: false },
+    { key: 'dhuhr' as const, name: 'الظهر', icon: '☀️', time: prayerData.dhuhr12, hasAdhan: true },
+    { key: 'asr' as const, name: 'العصر', icon: '🌤️', time: prayerData.asr12, hasAdhan: true },
+    { key: 'maghrib' as const, name: 'المغرب', icon: '🌇', time: prayerData.maghrib12, hasAdhan: true },
+    { key: 'isha' as const, name: 'العشاء', icon: '🌙', time: prayerData.isha12, hasAdhan: true },
   ];
 
   return (
@@ -143,17 +147,37 @@ export default function PrayerTimesModal({
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {prayers.map((p) => {
             const isNext = prayerData.nextPrayer.key === p.key;
+            const isAdhanActive = p.hasAdhan && settings.adhanEnabled && settings.enabledPrayers[p.key as keyof typeof settings.enabledPrayers];
             return (
               <div
                 key={p.key}
-                className={`flex flex-col items-center p-2.5 rounded-2xl transition-all border text-center ${
+                className={`flex flex-col items-center p-2.5 rounded-2xl transition-all border text-center relative ${
                   isNext
                     ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-md ring-2 ring-[#C8A85B]/50 scale-102 font-bold'
                     : 'bg-black/25 text-white/90 border-white/10 hover:bg-black/35'
                 }`}
               >
-                <span className="text-lg mb-0.5">{p.icon}</span>
-                <span className="text-xs font-bold mb-1">{p.name}</span>
+                <div className="flex items-center justify-between w-full mb-0.5">
+                  <span className="text-base">{p.icon}</span>
+                  {p.hasAdhan ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePrayerAdhan(p.key as any);
+                      }}
+                      className="cursor-pointer text-[11px] p-0.5 hover:scale-110 transition active:scale-95"
+                      title={isAdhanActive ? `أذان ${p.name} مفعل` : `أذان ${p.name} معطل`}
+                      aria-label={`تبديل أذان ${p.name}`}
+                    >
+                      {isAdhanActive ? '🔔' : '🔕'}
+                    </button>
+                  ) : (
+                    <span className="text-[10px] opacity-40">─</span>
+                  )}
+                </div>
+
+                <span className="text-xs font-bold mb-0.5">{p.name}</span>
                 <span
                   className={`text-xs font-mono font-extrabold ${
                     isNext ? 'text-[#123B2A]' : 'text-[#C8A85B]'
@@ -162,6 +186,7 @@ export default function PrayerTimesModal({
                 >
                   {p.time}
                 </span>
+
                 {isNext && (
                   <span className="text-[9px] mt-1 bg-[#123B2A] text-[#C8A85B] px-1.5 py-0.2 rounded-full font-bold">
                     القادمة
@@ -170,6 +195,59 @@ export default function PrayerTimesModal({
               </div>
             );
           })}
+        </div>
+
+        {/* Adhan Sound Alert Card */}
+        <div className="bg-[#0D281C] p-3.5 rounded-2xl border-2 border-[#C8A85B]/50 flex flex-col gap-3 shadow-md">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">🕌</span>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-[#F7EED8]">
+                  تنبيه الأذان الصوتي التلقائي
+                </span>
+                <span className="text-[10px] text-white/75">
+                  يرتفع صوت الأذان تلقائياً حتى والتطبيق مغلق والجوال في السكون
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleMasterAdhan}
+              role="switch"
+              aria-checked={settings.adhanEnabled}
+              aria-label="تفعيل أو إيقاف صوت الأذان"
+              className={`w-13 h-7 rounded-full transition-colors p-0.5 cursor-pointer flex items-center ${
+                settings.adhanEnabled ? 'bg-emerald-500 justify-end' : 'bg-white/20 justify-start'
+              }`}
+            >
+              <div className="w-6 h-6 rounded-full bg-white shadow-md" />
+            </button>
+          </div>
+
+          {/* Test Adhan Sound Buttons */}
+          <div className="pt-2 border-t border-white/10 flex items-center gap-2">
+            {isTestAdhanPlaying ? (
+              <button
+                type="button"
+                onClick={stopTestAdhan}
+                className="flex-1 py-2 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm animate-pulse"
+              >
+                <span>⏹</span>
+                <span>إيقاف صوت الأذان</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={testAdhan}
+                className="flex-1 py-2 px-3 rounded-xl bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border border-[#C8A85B]/40 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+              >
+                <span>🔊</span>
+                <span>تجربة وسماع صوت الأذان للتأكد</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Manual City Selector */}
