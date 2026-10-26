@@ -5,12 +5,14 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -138,13 +140,23 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
             NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm == null) return;
 
+            String rawName = item.sound != null ? item.sound.replaceAll("\\.[^.]+$", "") : "tasbeeh_azeem";
+            if (rawName.contains("/")) rawName = rawName.substring(rawName.lastIndexOf('/') + 1);
+            String channelId = "noor_athkar_ch_" + rawName;
+
+            Uri soundUri = null;
+            int soundResId = context.getResources().getIdentifier(rawName, "raw", context.getPackageName());
+            if (soundResId != 0) {
+                soundUri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + context.getPackageName() + "/raw/" + rawName);
+            }
+
             // Create high-importance channel on Android 8.0+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                NotificationChannel channel = nm.getNotificationChannel(CHANNEL_ID);
+                NotificationChannel channel = nm.getNotificationChannel(channelId);
                 if (channel == null) {
                     channel = new NotificationChannel(
-                            CHANNEL_ID,
-                            "أذكار نور القرآن",
+                            channelId,
+                            "أذكار: " + (item.title != null ? item.title : "نور القرآن"),
                             NotificationManager.IMPORTANCE_HIGH
                     );
                     channel.setDescription("تنبيهات صوتية للأذكار اليومية حتى مع إغلاق التطبيق");
@@ -152,6 +164,13 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
                     channel.setLightColor(Color.parseColor("#C8A85B"));
                     channel.enableVibration(true);
                     channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+                    if (soundUri != null) {
+                        AudioAttributes aa = new AudioAttributes.Builder()
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .build();
+                        channel.setSound(soundUri, aa);
+                    }
                     nm.createNotificationChannel(channel);
                 }
             }
@@ -165,7 +184,7 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
                     .setSmallIcon(R.mipmap.ic_launcher)
                     .setContentTitle("نور القرآن 📿")
                     .setContentText(item.body != null && !item.body.isEmpty() ? item.body : item.title)
@@ -176,6 +195,10 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setCategory(NotificationCompat.CATEGORY_ALARM)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+            if (soundUri != null) {
+                builder.setSound(soundUri);
+            }
 
             nm.notify(NOTIFICATION_ID, builder.build());
         } catch (Exception e) {

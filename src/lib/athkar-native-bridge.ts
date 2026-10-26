@@ -20,6 +20,10 @@ interface AthkarNativePlugin {
   }): Promise<{ success: boolean }>;
 
   testTrigger(options: { delaySeconds: number }): Promise<{ success: boolean }>;
+
+  openAppSettings(): Promise<{ success: boolean }>;
+
+  openBatterySettings(): Promise<{ success: boolean }>;
 }
 
 const AthkarNative = registerPlugin<AthkarNativePlugin>('AthkarNative');
@@ -68,7 +72,7 @@ export async function syncNativeAthkar(settings: AutoAthkarSettings): Promise<bo
 /**
  * Schedule a quick test thikr in a few seconds to verify closed-app playback
  */
-export async function testNativeAthkar(delaySeconds = 3): Promise<boolean> {
+export async function testNativeAthkar(delaySeconds = 5): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
 
   try {
@@ -76,6 +80,34 @@ export async function testNativeAthkar(delaySeconds = 3): Promise<boolean> {
     return res?.success ?? true;
   } catch (err) {
     console.warn('Native athkar test trigger failed:', err);
+    return false;
+  }
+}
+
+/**
+ * Open the device App Info page for Noor AlQuran so the user can easily toggle Unrestricted Battery
+ */
+export async function openNativeAppSettings(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.openAppSettings();
+    return res?.success ?? true;
+  } catch (err) {
+    console.warn('Failed to open app settings:', err);
+    return false;
+  }
+}
+
+/**
+ * Open the device Battery Optimization page
+ */
+export async function openNativeBatterySettings(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.openBatterySettings();
+    return res?.success ?? true;
+  } catch (err) {
+    console.warn('Failed to open battery settings:', err);
     return false;
   }
 }

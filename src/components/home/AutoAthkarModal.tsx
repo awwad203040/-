@@ -4,7 +4,11 @@ import { useState } from 'react';
 import type { AutoAthkarSettings, VoiceThikr, ThikrCategory } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST, ATHKAR_CATEGORIES, ATHKAR_INTERVALS } from '@/lib/athkar-data';
 import { requestNotificationPermission, showSingleThikrNotification } from '@/lib/athkar-notifications';
-import { testNativeAthkar } from '@/lib/athkar-native-bridge';
+import {
+  testNativeAthkar,
+  openNativeAppSettings,
+  openNativeBatterySettings,
+} from '@/lib/athkar-native-bridge';
 
 interface AutoAthkarModalProps {
   isOpen: boolean;
@@ -24,6 +28,34 @@ export default function AutoAthkarModal({
   isSpeaking = false,
 }: AutoAthkarModalProps) {
   const [activeTab, setActiveTab] = useState<'settings' | 'list'>('settings');
+  const [testCountdown, setTestCountdown] = useState<number | null>(null);
+  const [testActive, setTestActive] = useState<boolean>(false);
+
+  const handleTriggerTest5Sec = async () => {
+    try {
+      await requestNotificationPermission();
+      setTestActive(true);
+      setTestCountdown(5);
+      testNativeAthkar(5).catch(() => {});
+      const testThikr = VOICE_ATHKAR_LIST[0];
+      showSingleThikrNotification(testThikr, 5).catch(() => {});
+
+      let remaining = 5;
+      const timer = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(timer);
+          setTestCountdown(null);
+          setTestActive(false);
+        } else {
+          setTestCountdown(remaining);
+        }
+      }, 1000);
+    } catch {
+      setTestActive(false);
+      setTestCountdown(null);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -184,21 +216,61 @@ export default function AutoAthkarModal({
                     تعمل باستمرار ✓
                   </span>
                 </div>
-                <div className="text-[10px] text-emerald-800/80 bg-emerald-500/10 p-2 rounded-xl leading-relaxed">
-                  💡 <strong>لوضع السكون وقفل الشاشة:</strong> تم ضبط التنبيهات بأعلى دقة وتجاوز وضع السكون (Doze Mode). عند ظهور نافذة البطارية بالجوال اختر «سماح / غير مقيد» ليعمل الصوت دائماً والتطبيق مغلق.
+                <div className="text-[10px] text-emerald-800/80 bg-emerald-500/10 p-2.5 rounded-xl leading-relaxed space-y-1">
+                  <div>💡 <strong>لضمان عمل الأذكار والتطبيق مغلق تماماً:</strong></div>
+                  <div>• تأكد من ضبط بطارية التطبيق على <strong>«غير مقيد / Unrestricted»</strong> في إعدادات الجوال.</div>
+                  <div>• تأكد من السماح بإذن <strong>«التنبيهات والتذكيرات / Alarms &amp; Reminders»</strong>.</div>
+                  <div>• تأكد من رفع مستوى صوت التنبيهات والوسائط.</div>
                 </div>
+
+                {/* Instant 5-sec Test Button with Countdown */}
                 <button
                   type="button"
-                  onClick={async () => {
-                    await requestNotificationPermission();
-                    testNativeAthkar(5).catch(() => {});
-                    const testThikr = VOICE_ATHKAR_LIST[0];
-                    showSingleThikrNotification(testThikr, 5).catch(() => {});
-                  }}
-                  className="w-full py-1.5 px-3 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-[#0B5B43] text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-emerald-500/30 cursor-pointer"
+                  onClick={handleTriggerTest5Sec}
+                  disabled={testActive}
+                  className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border cursor-pointer active:scale-98 ${
+                    testActive
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-md animate-pulse'
+                      : 'bg-emerald-600/15 hover:bg-emerald-600/25 text-[#0B5B43] border-emerald-500/40'
+                  }`}
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
                 >
-                  <span>🔔 تجربة تنبيه فوري بالصوت (خلال 5 ثوانٍ - جرب إغلاق التطبيق وقفل الشاشة)</span>
+                  {testActive ? (
+                    <span className="flex items-center gap-1.5">
+                      <span>⏳</span>
+                      <span>جاري العد: <strong>{testCountdown}</strong> ثوانٍ (أغلق التطبيق واقفل الشاشة الآن!)</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <span>🔔</span>
+                      <span>اضغط هنا لتجربة تنبيه فوري بعد 5 ثوانٍ (ثم أغلق التطبيق للتجربة)</span>
+                    </span>
+                  )}
                 </button>
+
+                {testActive && (
+                  <div className="p-3 rounded-xl bg-amber-100 border border-amber-400 text-amber-950 text-xs font-bold text-center leading-relaxed shadow-sm">
+                    ⚡ تم تفعيل التنبيه بنجاح! <strong>أغلق التطبيق الآن فوراً واقفل شاشة الجوال</strong>، وسيصدح صوت الذكر بعد {testCountdown} ثوانٍ بإذن الله.
+                  </div>
+                )}
+
+                {/* Quick Phone Settings Openers */}
+                <div className="pt-1 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openNativeAppSettings()}
+                    className="flex-1 py-1.5 px-2 rounded-xl bg-white hover:bg-gray-50 text-[#123B2A] text-[10px] font-bold border border-[#C8A85B]/40 flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                  >
+                    ⚙️ فتح إعدادات التطبيق بالجوال
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openNativeBatterySettings()}
+                    className="flex-1 py-1.5 px-2 rounded-xl bg-white hover:bg-gray-50 text-[#123B2A] text-[10px] font-bold border border-[#C8A85B]/40 flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                  >
+                    🔋 إعدادات البطارية بالجوال
+                  </button>
+                </div>
               </div>
             )}
           </div>

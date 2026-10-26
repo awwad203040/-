@@ -1,7 +1,11 @@
 package org.noor.alquran;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -54,7 +58,7 @@ public class AthkarNativePlugin extends Plugin {
     @PluginMethod
     public void testTrigger(PluginCall call) {
         try {
-            int delaySeconds = call.getInt("delaySeconds", 3);
+            int delaySeconds = call.getInt("delaySeconds", 5);
             Context context = getContext();
             AthkarAlarmReceiver.scheduleAlarmAfterSeconds(context, delaySeconds);
             Log.i(TAG, "Scheduled test Athkar alarm after " + delaySeconds + " seconds.");
@@ -65,6 +69,44 @@ public class AthkarNativePlugin extends Plugin {
         } catch (Exception e) {
             Log.e(TAG, "Error triggering test: " + e.getMessage(), e);
             call.reject("Error triggering test: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        try {
+            Context context = getContext();
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.parse("package:" + context.getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open app settings: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openBatterySettings(PluginCall call) {
+        try {
+            Context context = getContext();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            } else {
+                Intent intent = new Intent(Settings.ACTION_SETTINGS);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            }
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open battery settings: " + e.getMessage());
         }
     }
 }
