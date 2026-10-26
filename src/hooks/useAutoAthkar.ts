@@ -14,6 +14,7 @@ import {
 import {
   syncBackgroundAthkarNotifications,
   showSingleThikrNotification,
+  requestNotificationPermission,
 } from '@/lib/athkar-notifications';
 import { syncNativeAthkar } from '@/lib/athkar-native-bridge';
 import { Capacitor } from '@capacitor/core';
@@ -33,6 +34,14 @@ export function useAutoAthkar() {
     setSettings(stored);
     syncNativeAthkar(stored).catch(() => {});
     syncBackgroundAthkarNotifications(stored).catch(() => {});
+
+    // Automatically request notification permissions on first launch and sync
+    requestNotificationPermission().then((granted: boolean) => {
+      if (granted) {
+        syncNativeAthkar(stored).catch(() => {});
+        syncBackgroundAthkarNotifications(stored).catch(() => {});
+      }
+    }).catch(() => {});
 
     // Sync notifications whenever app is minimized or closed
     const handleVisibilityChange = () => {

@@ -337,11 +337,53 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
     }
 
     public static void ensureScheduledOnStartup(Context context) {
+        createAllNotificationChannels(context);
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         boolean enabled = prefs.getBoolean("enabled", true);
         if (enabled) {
             int intervalMinutes = prefs.getInt("interval_minutes", 10);
             scheduleNextAlarm(context, intervalMinutes);
+        }
+    }
+
+    public static void createAllNotificationChannels(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+        try {
+            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm == null) return;
+
+            List<ThikrItem> items = getDefaultThikrItems();
+            for (ThikrItem item : items) {
+                String rawName = item.sound;
+                String channelId = "noor_athkar_ch_" + rawName;
+                if (nm.getNotificationChannel(channelId) != null) continue;
+
+                int soundResId = context.getResources().getIdentifier(rawName, "raw", context.getPackageName());
+                Uri soundUri = soundResId != 0
+                        ? Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + context.getPackageName() + "/raw/" + rawName)
+                        : null;
+
+                NotificationChannel channel = new NotificationChannel(
+                        channelId,
+                        "أذكار: " + item.title,
+                        NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("تنبيهات صوتية للأذكار اليومية بصوت واضح");
+                channel.enableLights(true);
+                channel.setLightColor(Color.parseColor("#C8A85B"));
+                channel.enableVibration(true);
+                channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+                if (soundUri != null) {
+                    AudioAttributes aa = new AudioAttributes.Builder()
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .build();
+                    channel.setSound(soundUri, aa);
+                }
+                nm.createNotificationChannel(channel);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to create all notification channels: " + e.getMessage());
         }
     }
 

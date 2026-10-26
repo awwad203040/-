@@ -435,7 +435,34 @@ export default function HomePage() {
 
             {/* Listening Icon & Sheikh Selection Field */}
             <div className="flex items-center gap-3">
-              {/* Sheikh Names Field (حقل أسماء المشايخ) on the Right */}
+              {/* Play / Listening Icon Button on the Right */}
+              <button
+                type="button"
+                onClick={handleTogglePlay}
+                disabled={audio.isLoading}
+                className={`w-13 h-13 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-95 shadow-lg flex-shrink-0 cursor-pointer border ${
+                  audio.isPlaying
+                    ? 'bg-[#0B5B43] text-white border-emerald-400/50 ring-4 ring-emerald-500/25 animate-pulse'
+                    : 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] hover:bg-[#d4b66d]'
+                }`}
+                aria-label={audio.isPlaying ? 'إيقاف الاستماع' : 'استمع الآن للقرآن الكريم'}
+                title={audio.isPlaying ? 'إيقاف التلاوة' : `استمع الآن بصوت الشيخ ${currentReciter.name}`}
+              >
+                {audio.isLoading ? (
+                  <div className="w-5 h-5 border-2 border-[#123B2A] border-t-transparent rounded-full animate-spin" />
+                ) : audio.isPlaying ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4" height="16" />
+                    <rect x="14" y="4" width="4" height="16" />
+                  </svg>
+                ) : (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5,3 19,12 5,21" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Sheikh Names Field (حقل أسماء المشايخ) on the Left */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1 gap-1">
                   <label className="text-[11px] font-medium text-white/80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
@@ -481,33 +508,6 @@ export default function HomePage() {
                   </span>
                 </div>
               </div>
-
-              {/* Play / Listening Icon Button on the Left */}
-              <button
-                type="button"
-                onClick={handleTogglePlay}
-                disabled={audio.isLoading}
-                className={`w-13 h-13 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-95 shadow-lg flex-shrink-0 cursor-pointer border ${
-                  audio.isPlaying
-                    ? 'bg-[#0B5B43] text-white border-emerald-400/50 ring-4 ring-emerald-500/25 animate-pulse'
-                    : 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] hover:bg-[#d4b66d]'
-                }`}
-                aria-label={audio.isPlaying ? 'إيقاف الاستماع' : 'استمع الآن للقرآن الكريم'}
-                title={audio.isPlaying ? 'إيقاف التلاوة' : `استمع الآن بصوت الشيخ ${currentReciter.name}`}
-              >
-                {audio.isLoading ? (
-                  <div className="w-5 h-5 border-2 border-[#123B2A] border-t-transparent rounded-full animate-spin" />
-                ) : audio.isPlaying ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="6" y="4" width="4" height="16" />
-                    <rect x="14" y="4" width="4" height="16" />
-                  </svg>
-                ) : (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5,3 19,12 5,21" />
-                  </svg>
-                )}
-              </button>
             </div>
 
             {/* Quick Surah selection for audio with Prev/Next buttons */}
