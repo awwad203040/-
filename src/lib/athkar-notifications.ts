@@ -4,15 +4,15 @@ import { Capacitor } from '@capacitor/core';
 import type { AutoAthkarSettings, VoiceThikr } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST } from '@/lib/athkar-data';
 
-const DEFAULT_ATHKAR_CHANNEL_ID = 'noor_athkar_default_v2';
+const DEFAULT_ATHKAR_CHANNEL_ID = 'noor_athkar_v5_general';
 
 /**
- * Get the channel ID for a specific thikr
+ * Get the channel ID for a specific thikr (version 5 ensures fresh channel creation with sound on Android)
  */
 export function getThikrChannelId(thikr: VoiceThikr): string {
   if (thikr.rawSound) {
     const base = thikr.rawSound.replace(/\.[^/.]+$/, '');
-    return `noor_ch_${base}_v2`;
+    return `noor_athkar_v5_${base}`;
   }
   return DEFAULT_ATHKAR_CHANNEL_ID;
 }
@@ -66,25 +66,27 @@ async function ensureNotificationChannels(pool: VoiceThikr[]): Promise<void> {
     await LocalNotifications.createChannel({
       id: DEFAULT_ATHKAR_CHANNEL_ID,
       name: 'أذكار نور القرآن',
-      description: 'تنبيهات صوتية للأذكار',
-      importance: 5, // IMPORTANCE_HIGH (pops on screen and makes sound)
+      description: 'تنبيهات الأذكار اليومية بصوت واضح',
+      importance: 5, // IMPORTANCE_HIGH (displays heads-up and plays audio)
       visibility: 1, // VISIBILITY_PUBLIC
       vibration: true,
       lights: true,
       lightColor: '#C8A85B',
     });
 
-    // Create a high-priority channel for each thikr with its audio sound from res/raw
+    // Create a high-priority channel for each thikr with its custom audio sound from res/raw
     for (const thikr of pool) {
       if (!thikr.rawSound) continue;
       const chId = getThikrChannelId(thikr);
+      const soundBase = thikr.rawSound.replace(/\.[^/.]+$/, '');
+
       await LocalNotifications.createChannel({
         id: chId,
-        name: `أذكار: ${thikr.categoryName}`,
+        name: `أذكار: ${thikr.categoryName} (${thikr.textDisplay.slice(0, 20)})`,
         description: `تنبيه صوتي للذكر: ${thikr.textDisplay}`,
         importance: 5, // IMPORTANCE_HIGH
         visibility: 1, // VISIBILITY_PUBLIC
-        sound: thikr.rawSound, // Points to res/raw/<rawSound>
+        sound: soundBase, // Points to res/raw/<soundBase>.mp3
         vibration: true,
         lights: true,
         lightColor: '#C8A85B',
@@ -141,14 +143,15 @@ export async function syncBackgroundAthkarNotifications(
       const intervalMs = Math.max(1, settings.intervalMinutes) * 60 * 1000;
       const notificationsToSchedule = [];
 
-      // Pre-schedule up to 64 upcoming notifications covering several days
-      const count = Math.min(64, Math.floor((48 * 60) / Math.max(1, settings.intervalMinutes)));
+      // Pre-schedule up to 72 upcoming notifications covering several days
+      const count = Math.min(72, Math.floor((72 * 60) / Math.max(1, settings.intervalMinutes)));
       const now = Date.now();
 
       for (let i = 1; i <= count; i++) {
         const thikr = pool[(i - 1) % pool.length];
         const triggerTime = new Date(now + i * intervalMs);
         const channelId = getThikrChannelId(thikr);
+        const soundBase = thikr.rawSound ? thikr.rawSound.replace(/\.[^/.]+$/, '') : undefined;
 
         notificationsToSchedule.push({
           id: 1000 + i,
@@ -156,7 +159,7 @@ export async function syncBackgroundAthkarNotifications(
           body: thikr.textDisplay,
           summaryText: thikr.categoryName,
           channelId: channelId,
-          sound: thikr.rawSound || undefined,
+          sound: soundBase,
           smallIcon: 'ic_launcher',
           largeIcon: 'ic_launcher',
           iconColor: '#C8A85B',
@@ -185,9 +188,12 @@ export async function syncBackgroundAthkarNotifications(
 }
 
 /**
- * Display an immediate notification for a single Thikr (used for test or when in background)
+ * Display a test notification for a single Thikr after delay (used to test audio when closing app)
  */
-export async function showSingleThikrNotification(thikr: VoiceThikr): Promise<void> {
+export async function showSingleThikrNotification(
+  thikr: VoiceThikr,
+  delaySeconds = 3
+): Promise<void> {
   if (typeof window === 'undefined') return;
 
   try {
@@ -195,6 +201,7 @@ export async function showSingleThikrNotification(thikr: VoiceThikr): Promise<vo
       const { LocalNotifications } = await import('@capacitor/local-notifications');
       await ensureNotificationChannels([thikr]);
       const channelId = getThikrChannelId(thikr);
+      const soundBase = thikr.rawSound ? thikr.rawSound.replace(/\.[^/.]+$/, '') : undefined;
 
       await LocalNotifications.schedule({
         notifications: [
@@ -203,10 +210,10 @@ export async function showSingleThikrNotification(thikr: VoiceThikr): Promise<vo
             title: 'نور القرآن 📿',
             body: thikr.textDisplay,
             channelId: channelId,
-            sound: thikr.rawSound || undefined,
+            sound: soundBase,
             smallIcon: 'ic_launcher',
             iconColor: '#C8A85B',
-            schedule: { at: new Date(Date.now() + 200), allowWhileIdle: true },
+            schedule: { at: new Date(Date.now() + delaySeconds * 1000), allowWhileIdle: true },
           },
         ],
       });

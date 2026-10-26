@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { AutoAthkarSettings, VoiceThikr, ThikrCategory } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST, ATHKAR_CATEGORIES, ATHKAR_INTERVALS } from '@/lib/athkar-data';
-import { requestNotificationPermission } from '@/lib/athkar-notifications';
+import { requestNotificationPermission, showSingleThikrNotification } from '@/lib/athkar-notifications';
 
 interface AutoAthkarModalProps {
   isOpen: boolean;
@@ -173,14 +173,27 @@ export default function AutoAthkarModal({
 
             {/* Background Notification Status Banner */}
             {settings.enabled && (
-              <div className="mt-3 pt-2.5 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-[#0B5B43] font-bold">
-                <span className="flex items-center gap-1.5">
-                  <span>🔔</span>
-                  <span>التنبيهات تعمل في الخلفية حتى عند إغلاق التطبيق</span>
-                </span>
-                <span className="bg-emerald-600/15 text-[#0B5B43] px-2 py-0.5 rounded-full text-[10px] font-extrabold">
-                  تعمل باستمرار ✓
-                </span>
+              <div className="mt-3 pt-2.5 border-t border-emerald-500/20 space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-[#0B5B43] font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <span>🔔</span>
+                    <span>التنبيهات تعمل بالصوت في الخلفية حتى عند إغلاق التطبيق</span>
+                  </span>
+                  <span className="bg-emerald-600/15 text-[#0B5B43] px-2 py-0.5 rounded-full text-[10px] font-extrabold">
+                    تعمل باستمرار ✓
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await requestNotificationPermission();
+                    const testThikr = VOICE_ATHKAR_LIST[0];
+                    showSingleThikrNotification(testThikr, 3);
+                  }}
+                  className="w-full py-1.5 px-3 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-[#0B5B43] text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-emerald-500/30 cursor-pointer"
+                >
+                  <span>🔔 تجربة تنبيه فوري بالصوت (خلال 3 ثوانٍ - جرب قفل الهاتف)</span>
+                </button>
               </div>
             )}
           </div>

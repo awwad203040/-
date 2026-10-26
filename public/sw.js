@@ -132,6 +132,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 3b. API Quran Page Images: Cache-First from PAGES_CACHE_NAME for fast offline rendering
+  if (url.pathname.startsWith('/api/quran/page-image')) {
+    event.respondWith(
+      caches.open(PAGES_CACHE_NAME).then((cache) => {
+        return cache.match(event.request).then((cached) => {
+          if (cached) return cached;
+          return fetch(event.request).then((response) => {
+            if (response.ok) {
+              cache.put(event.request, response.clone());
+            }
+            return response;
+          });
+        });
+      })
+    );
+    return;
+  }
+
   // 4. External Fonts: Cache-First
   if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
     event.respondWith(

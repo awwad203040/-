@@ -1,7 +1,10 @@
 'use client';
 
-export const PAGES_CACHE_NAME = 'noor-mushaf-pages-v1';
+export const PAGES_CACHE_NAME = 'noor-mushaf-pages-v2';
 export const TOTAL_QURAN_PAGES = 604;
+const IDB_NAME = 'NoorQuranPagesDB';
+const IDB_VERSION = 1;
+const IDB_STORE_NAME = 'pages';
 
 export interface DownloadProgress {
   current: number;
@@ -18,24 +21,146 @@ export function getPageImageUrl(page: number): string {
   return `https://files.quran.app/hafs/madani/width_1024/page${pad}.png`;
 }
 
+export function getProxyPageImageUrl(page: number): string {
+  return `/api/quran/page-image?page=${page}`;
+}
+
 /**
- * Counts how many Quran pages are currently cached in device storage
+ * Open or initialize the IndexedDB database for offline Quran page blobs.
+ * Universal support across iOS Safari, Android Chrome, Samsung Internet, WebViews.
+ */
+function openPagesDB(): Promise<IDBDatabase | null> {
+  if (typeof window === 'undefined' || !('indexedDB' in window)) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(IDB_NAME, IDB_VERSION);
+
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(IDB_STORE_NAME)) {
+          db.createObjectStore(IDB_STORE_NAME);
+        }
+      };
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Stores a page Blob into IndexedDB
+ */
+export async function savePageToIDB(pageNum: number, blob: Blob): Promise<boolean> {
+  const db = await openPagesDB();
+  if (!db) return false;
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(IDB_STORE_NAME);
+      const req = store.put(blob, pageNum);
+
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+      tx.onabort = () => resolve(false);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+/**
+ * Retrieves a page Blob from IndexedDB
+ */
+export async function getPageFromIDB(pageNum: number): Promise<Blob | null> {
+  const db = await openPagesDB();
+  if (!db) return null;
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE_NAME, 'readonly');
+      const store = tx.objectStore(IDB_STORE_NAME);
+      const req = store.get(pageNum);
+
+      req.onsuccess = () => {
+        if (req.result instanceof Blob) {
+          resolve(req.result);
+        } else {
+          resolve(null);
+        }
+      };
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Get all cached page numbers from IndexedDB
+ */
+export async function getCachedPageNumbersFromIDB(): Promise<Set<number>> {
+  const db = await openPagesDB();
+  const set = new Set<number>();
+  if (!db) return set;
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE_NAME, 'readonly');
+      const store = tx.objectStore(IDB_STORE_NAME);
+      const req = store.getAllKeys();
+
+      req.onsuccess = () => {
+        if (Array.isArray(req.result)) {
+          req.result.forEach((key) => {
+            const num = typeof key === 'number' ? key : parseInt(String(key), 10);
+            if (!isNaN(num) && num >= 1 && num <= TOTAL_QURAN_PAGES) {
+              set.add(num);
+            }
+          });
+        }
+        resolve(set);
+      };
+      req.onerror = () => resolve(set);
+    } catch {
+      resolve(set);
+    }
+  });
+}
+
+/**
+ * Counts how many Quran pages are currently cached in device storage (IndexedDB + CacheStorage)
  */
 export async function checkOfflineProgress(): Promise<{
   cachedCount: number;
   totalCount: number;
   isComplete: boolean;
 }> {
-  if (typeof window === 'undefined' || !('caches' in window)) {
+  if (typeof window === 'undefined') {
     return { cachedCount: 0, totalCount: TOTAL_QURAN_PAGES, isComplete: false };
   }
 
   try {
-    const cache = await caches.open(PAGES_CACHE_NAME);
-    const keys = await cache.keys();
-    // Filter keys matching files.quran.app page images
-    const pageKeys = keys.filter((req) => req.url.includes('/width_1024/page'));
-    const cachedCount = Math.min(TOTAL_QURAN_PAGES, pageKeys.length);
+    const idbPages = await getCachedPageNumbersFromIDB();
+
+    // Also check CacheStorage if available
+    let cacheCount = 0;
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open(PAGES_CACHE_NAME);
+        const keys = await cache.keys();
+        const pageKeys = keys.filter((req) => req.url.includes('/width_1024/page') || req.url.includes('/api/quran/page-image'));
+        cacheCount = pageKeys.length;
+      } catch {}
+    }
+
+    const cachedCount = Math.min(TOTAL_QURAN_PAGES, Math.max(idbPages.size, cacheCount));
     return {
       cachedCount,
       totalCount: TOTAL_QURAN_PAGES,
@@ -61,51 +186,36 @@ export async function preCacheAppShell(): Promise<void> {
         if (res.ok) {
           await cache.put(url, res);
         }
-      } catch {
-        // Ignore single asset failure
-      }
+      } catch {}
     }
-  } catch {
-    // Ignore cache error
-  }
+  } catch {}
 }
 
 /**
- * Downloads and caches all 604 Madinah Mushaf pages with robust timeout protection.
- * - Every single request has a strict 6-second timeout so it never hangs or stalls.
- * - Paced concurrency prevents CDN throttling.
- * - Retries any failed page with progressive backoff.
- * - Automatically resumes from the exact number of pages previously downloaded.
+ * Universal download engine that works on ALL mobile systems (iOS, Android, Capacitor WebViews).
+ * - Saves each page as a compact PNG Blob (~35KB) in IndexedDB (Total: ~21 MB for all 604 pages).
+ * - Avoids the 7MB per opaque response padding penalty that exhausts storage quota on phones.
+ * - Also stores in CacheStorage for ServiceWorker acceleration where supported.
+ * - Paced concurrency prevents device freeze and network throttling.
  */
 export async function downloadAllPages(
   onProgress: (progress: DownloadProgress) => void,
   abortSignal?: AbortSignal
 ): Promise<boolean> {
-  if (typeof window === 'undefined' || !('caches' in window)) {
-    throw new Error('متصفحك أو جهازك لا يدعم خاصية التخزين دون اتصال.');
+  if (typeof window === 'undefined') {
+    throw new Error('بيئة غير صالحة للتحميل.');
   }
 
-  // Pre-cache app shell first so offline navigation to /mushaf works 100%
+  // Pre-cache app shell
   preCacheAppShell().catch(() => {});
 
-  const cache = await caches.open(PAGES_CACHE_NAME);
+  // 1. Identify which pages are already in IndexedDB
+  const cachedPages = await getCachedPageNumbersFromIDB();
+  let downloadedCount = cachedPages.size;
 
-  // Check which pages are already cached
-  const keys = await cache.keys();
-  const cachedUrls = new Set(keys.map((k) => k.url));
-
-  let downloadedCount = 0;
-  for (let p = 1; p <= TOTAL_QURAN_PAGES; p++) {
-    if (cachedUrls.has(getPageImageUrl(p))) {
-      downloadedCount++;
-    }
-  }
-
-  // Queue of pages that still need to be downloaded
   const pagesToDownload: number[] = [];
   for (let p = 1; p <= TOTAL_QURAN_PAGES; p++) {
-    const url = getPageImageUrl(p);
-    if (!cachedUrls.has(url)) {
+    if (!cachedPages.has(p)) {
       pagesToDownload.push(p);
     }
   }
@@ -123,29 +233,22 @@ export async function downloadAllPages(
     return true;
   }
 
-  const initialToDownload = pagesToDownload.length;
-  let successInThisRun = 0;
   let index = 0;
   const failedPages: number[] = [];
+  const CONCURRENCY = 3;
 
-  // 2 concurrent workers with paced interval prevents CDN throttling completely
-  const CONCURRENCY = 2;
+  async function fetchAndStoreSinglePage(pageNum: number): Promise<boolean> {
+    const proxyUrl = getProxyPageImageUrl(pageNum);
+    const directUrl = getPageImageUrl(pageNum);
+    const fallbackUrl = `https://android.quran.com/data/width_1024/page${pageNum.toString().padStart(3, '0')}.png`;
 
-  async function fetchSinglePage(pageNum: number): Promise<boolean> {
-    const url = getPageImageUrl(pageNum);
-    const retryDelays = [0, 300, 800];
+    const candidates = [proxyUrl, directUrl, fallbackUrl];
 
-    for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+    for (const url of candidates) {
       if (abortSignal?.aborted) return false;
 
-      if (retryDelays[attempt] > 0) {
-        await new Promise((res) => setTimeout(res, retryDelays[attempt]));
-        if (abortSignal?.aborted) return false;
-      }
-
-      // 6-second timeout per request prevents any stalled socket from hanging the worker
       const timeoutController = new AbortController();
-      const timeoutTimer = setTimeout(() => timeoutController.abort(), 6000);
+      const timeoutTimer = setTimeout(() => timeoutController.abort(), 7000);
 
       const abortHandler = () => timeoutController.abort();
       if (abortSignal) {
@@ -154,25 +257,42 @@ export async function downloadAllPages(
 
       try {
         const response = await fetch(url, {
-          mode: 'no-cors',
           signal: timeoutController.signal,
+          mode: url.startsWith('/') ? 'same-origin' : 'cors',
         });
         clearTimeout(timeoutTimer);
         if (abortSignal) {
           abortSignal.removeEventListener('abort', abortHandler);
         }
 
-        if (response && (response.type === 'opaque' || response.ok || response.status === 200)) {
-          await cache.put(url, response);
-          return true;
+        if (response.ok) {
+          const blob = await response.blob();
+          if (blob && blob.size > 1000) {
+            // 1. Save to IndexedDB (safe, permanent, ~35KB)
+            await savePageToIDB(pageNum, blob);
+
+            // 2. Also cache in CacheStorage if supported
+            if ('caches' in window) {
+              try {
+                const cache = await caches.open(PAGES_CACHE_NAME);
+                const cacheRes = new Response(blob, {
+                  headers: {
+                    'Content-Type': 'image/png',
+                    'Cache-Control': 'public, max-age=31536000, immutable',
+                  },
+                });
+                await cache.put(directUrl, cacheRes);
+              } catch {}
+            }
+
+            return true;
+          }
         }
-      } catch (err: unknown) {
+      } catch {
         clearTimeout(timeoutTimer);
         if (abortSignal) {
           abortSignal.removeEventListener('abort', abortHandler);
         }
-        if (abortSignal?.aborted) return false;
-        // Continue to next attempt
       }
     }
 
@@ -189,7 +309,6 @@ export async function downloadAllPages(
       const pageNum = pagesToDownload[currentIndex];
       if (!pageNum) return;
 
-      // Update progress immediately so user sees which page is actively being fetched
       onProgress({
         current: downloadedCount,
         total: TOTAL_QURAN_PAGES,
@@ -199,12 +318,10 @@ export async function downloadAllPages(
         isPaused: false,
       });
 
-      const success = await fetchSinglePage(pageNum);
+      const success = await fetchAndStoreSinglePage(pageNum);
 
       if (success) {
         downloadedCount++;
-        successInThisRun++;
-
         onProgress({
           current: downloadedCount,
           total: TOTAL_QURAN_PAGES,
@@ -217,8 +334,8 @@ export async function downloadAllPages(
         failedPages.push(pageNum);
       }
 
-      // Small 40ms pause between downloads
-      await new Promise((res) => setTimeout(res, 40));
+      // Small throttle to keep UI ultra responsive
+      await new Promise((res) => setTimeout(res, 25));
     }
   }
 
@@ -229,10 +346,8 @@ export async function downloadAllPages(
     return false;
   }
 
-  // Second Pass: If any pages failed, retry them gently
+  // Second pass for failed pages
   if (failedPages.length > 0 && !abortSignal?.aborted) {
-    await new Promise((res) => setTimeout(res, 600));
-
     for (const pageNum of failedPages) {
       if (abortSignal?.aborted) break;
 
@@ -245,11 +360,9 @@ export async function downloadAllPages(
         isPaused: false,
       });
 
-      const success = await fetchSinglePage(pageNum);
+      const success = await fetchAndStoreSinglePage(pageNum);
       if (success) {
         downloadedCount++;
-        successInThisRun++;
-
         onProgress({
           current: downloadedCount,
           total: TOTAL_QURAN_PAGES,
@@ -259,12 +372,8 @@ export async function downloadAllPages(
           isPaused: false,
         });
       }
-      await new Promise((res) => setTimeout(res, 60));
+      await new Promise((res) => setTimeout(res, 40));
     }
-  }
-
-  if (successInThisRun === 0 && initialToDownload > 0 && !abortSignal?.aborted) {
-    throw new Error('تعذر تنزيل صفحات المصحف. يرجى التأكد من اتصال الإنترنت ثم إعادة المحاولة.');
   }
 
   const finalCheck = await checkOfflineProgress();
@@ -272,13 +381,25 @@ export async function downloadAllPages(
 }
 
 /**
- * Removes all offline stored pages from cache to free up device storage
+ * Removes all offline stored pages from both IndexedDB and CacheStorage
  */
 export async function clearOfflinePages(): Promise<void> {
-  if (typeof window === 'undefined' || !('caches' in window)) return;
+  if (typeof window === 'undefined') return;
+
   try {
-    await caches.delete(PAGES_CACHE_NAME);
+    if ('indexedDB' in window) {
+      await new Promise<void>((resolve) => {
+        const req = indexedDB.deleteDatabase(IDB_NAME);
+        req.onsuccess = () => resolve();
+        req.onerror = () => resolve();
+        req.onblocked = () => resolve();
+      });
+    }
+
+    if ('caches' in window) {
+      await caches.delete(PAGES_CACHE_NAME);
+    }
   } catch (err) {
-    console.warn('Failed to delete offline pages cache:', err);
+    console.warn('Failed to clear offline pages:', err);
   }
 }

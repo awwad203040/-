@@ -14,6 +14,7 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAutoAthkar } from '@/hooks/useAutoAthkar';
 import AutoAthkarModal from '@/components/home/AutoAthkarModal';
 import OfflineDownloadModal from '@/components/mushaf/OfflineDownloadModal';
+import MultiSurahLoopModal from '@/components/mushaf/MultiSurahLoopModal';
 import AthkarToast from '@/components/common/AthkarToast';
 
 export default function HomePage() {
@@ -34,7 +35,8 @@ export default function HomePage() {
   const [ayahRangeStart, setAyahRangeStart] = useState<number>(1);
   const [ayahRangeEnd, setAyahRangeEnd] = useState<number>(5);
   const [rangeRepeatCount, setRangeRepeatCount] = useState<number>(3);
-  const [repeatTab, setRepeatTab] = useState<'ayahs' | 'surah' | 'time'>('ayahs');
+  const [repeatTab, setRepeatTab] = useState<'ayahs' | 'surah' | 'multi'>('ayahs');
+  const [showMultiSurahModal, setShowMultiSurahModal] = useState(false);
   const [homePageJumpInput, setHomePageJumpInput] = useState('');
 
   const handleHomeJumpToPage = (targetPage?: number) => {
@@ -609,14 +611,14 @@ export default function HomePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setRepeatTab('time')}
+                  onClick={() => setRepeatTab('multi')}
                   className={`py-1.5 px-2 rounded-lg font-bold transition text-center cursor-pointer ${
-                    repeatTab === 'time'
+                    repeatTab === 'multi'
                       ? 'bg-[#C8A85B] text-[#123B2A] shadow-sm'
                       : 'text-white/80 hover:text-white'
                   }`}
                 >
-                  ✂️ تكرار زمني
+                  📚 تكرار عدة سور
                 </button>
               </div>
 
@@ -844,106 +846,53 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* TAB 3: Time A-B Loop */}
-              {repeatTab === 'time' && (
-                <div className="bg-[#123B2A]/90 rounded-2xl p-2.5 border border-[#C8A85B]/30 flex flex-col gap-2">
-                  <div className="flex items-center justify-between text-[11px] text-white/90">
-                    <span className="font-bold flex items-center gap-1 text-[#C8A85B]">
-                      <span>✂️</span>
-                      <span>تكرار مقطع زمني (A-B):</span>
+              {/* TAB 3: Multi-Surah Loop */}
+              {repeatTab === 'multi' && (
+                <div className="bg-[#123B2A]/90 rounded-2xl p-3 border border-[#C8A85B]/40 flex flex-col gap-2.5 shadow-md">
+                  <div className="flex items-center justify-between text-xs text-white/90">
+                    <span className="font-bold flex items-center gap-1.5 text-[#C8A85B]">
+                      <span>📚</span>
+                      <span>تكرار قائمة سور مخصصة:</span>
                     </span>
-                    <div className="flex items-center gap-2 font-mono text-[10px] text-emerald-300">
-                      <span>
-                        [A]:{' '}
-                        {audio.segmentA !== null
-                          ? `${Math.floor(audio.segmentA / 60)}:${Math.floor(audio.segmentA % 60)
-                              .toString()
-                              .padStart(2, '0')}`
-                          : '--:--'}
+                    {audio.isMultiSurahLoop && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold animate-pulse">
+                        مفعّل ({audio.selectedSurahsToLoop.length} سور)
                       </span>
-                      <span>➜</span>
-                      <span>
-                        [B]:{' '}
-                        {audio.segmentB !== null
-                          ? `${Math.floor(audio.segmentB / 60)}:${Math.floor(audio.segmentB % 60)
-                              .toString()
-                              .padStart(2, '0')}`
-                          : '--:--'}
-                      </span>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <p className="text-[11px] text-white/80 leading-relaxed">
+                    اختر مجموعة سور محددة (مثل المعوذات، جزء عم، يس والواقعة والملك) ليقوم المشغل بتكرارها تتابعاً بلا توقف للحفظ والمراجعة.
+                  </p>
+
+                  <div className="flex items-center gap-2 pt-1">
                     <button
                       type="button"
-                      onClick={() => audio.setSegmentA()}
-                      className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 text-center transition cursor-pointer"
-                      title="تحديد موضع بداية المقطع"
+                      onClick={() => setShowMultiSurahModal(true)}
+                      className="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs bg-[#C8A85B] text-[#123B2A] hover:bg-[#d4b66d] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                     >
-                      📍 [A] بداية
+                      <span>⚙️</span>
+                      <span>
+                        {audio.selectedSurahsToLoop.length > 0
+                          ? `تعديل السور المحددة (${audio.selectedSurahsToLoop.length})`
+                          : 'تحديد السور للتكرار'}
+                      </span>
                     </button>
+
                     <button
                       type="button"
-                      onClick={() => audio.setSegmentB()}
-                      className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 text-center transition cursor-pointer"
-                      title="تحديد موضع نهاية المقطع"
-                    >
-                      🎯 [B] نهاية
-                    </button>
-                    <button
-                      type="button"
-                      onClick={audio.toggleSegmentLoop}
-                      disabled={audio.segmentA === null || audio.segmentB === null}
-                      className={`py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold text-center transition cursor-pointer border ${
-                        audio.isSegmentLooping
-                          ? 'bg-emerald-500 text-white border-emerald-400 font-extrabold shadow-sm animate-pulse'
-                          : audio.segmentA !== null && audio.segmentB !== null
-                          ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B]'
-                          : 'bg-white/5 text-white/40 border-white/10 cursor-not-allowed'
+                      onClick={() => audio.toggleMultiSurahLoop()}
+                      disabled={audio.selectedSurahsToLoop.length === 0}
+                      className={`py-2.5 px-4 rounded-xl font-bold text-xs transition cursor-pointer border ${
+                        audio.isMultiSurahLoop
+                          ? 'bg-emerald-600 text-white border-emerald-400'
+                          : audio.selectedSurahsToLoop.length > 0
+                          ? 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                          : 'bg-white/5 text-white/30 border-white/10 cursor-not-allowed'
                       }`}
-                      title="تفعيل أو إيقاف تكرار المقطع المحدد"
                     >
-                      {audio.isSegmentLooping ? '🔁 شغال' : '🔁 تكرار'}
+                      {audio.isMultiSurahLoop ? 'إيقاف التكرار' : 'بدء التكرار'}
                     </button>
-                    <button
-                      type="button"
-                      onClick={audio.clearSegment}
-                      disabled={audio.segmentA === null && audio.segmentB === null}
-                      className="py-1 px-1 rounded-lg text-[10px] md:text-[11px] font-bold bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 text-center transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      title="إلغاء تحديد المقطع"
-                    >
-                      ✕ مسح
-                    </button>
-                  </div>
-
-                  {/* Quick 15s Preset & Skip buttons */}
-                  <div className="flex items-center justify-between pt-1 border-t border-white/10 text-[10px]">
-                    <button
-                      type="button"
-                      onClick={() => audio.quickLoopLast(15)}
-                      className="px-2 py-1 rounded bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] font-bold transition cursor-pointer border border-[#C8A85B]/30"
-                      title="تكرار آخر 15 ثانية تلقائياً 3 مرات"
-                    >
-                      ↺ كرر آخر 15 ثانية (3x)
-                    </button>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => audio.skipTime(-5)}
-                        className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 cursor-pointer"
-                        title="ترجيع 5 ثواني"
-                      >
-                        ⟲ -5ث
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => audio.skipTime(5)}
-                        className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/90 cursor-pointer"
-                        title="تقديم 5 ثواني"
-                      >
-                        ⟳ +5ث
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
@@ -1419,6 +1368,28 @@ export default function HomePage() {
       <OfflineDownloadModal
         isOpen={showOfflineModal}
         onClose={() => setShowOfflineModal(false)}
+      />
+
+      {/* Multi-Surah Loop Modal */}
+      <MultiSurahLoopModal
+        isOpen={showMultiSurahModal}
+        onClose={() => setShowMultiSurahModal(false)}
+        selectedSurahs={audio.selectedSurahsToLoop}
+        isMultiSurahLoop={audio.isMultiSurahLoop}
+        currentPlayingSurah={audio.currentSurah || selectedSurahForAudio}
+        onSave={(surahs, enabled) => {
+          audio.setSelectedSurahsToLoop(surahs);
+          audio.toggleMultiSurahLoop(enabled);
+        }}
+        onStartPlayback={(surahNum) => {
+          setSelectedSurahForAudio(surahNum);
+          audio.loadAndPlay(
+            surahNum,
+            selectedReciterId,
+            getSurahName(surahNum),
+            currentReciter.name
+          );
+        }}
       />
     </div>
   );

@@ -13,8 +13,8 @@ export interface AudioPlayerState {
   isRepeat: boolean;
   repeatCount: number; // 1 (normal once), 3, 5, 7, 10, 999 (infinite loop)
   remainingRepeats: number;
-  segmentA: number | null; // Segment start time in seconds
-  segmentB: number | null; // Segment end time in seconds
+  segmentA: number | null;
+  segmentB: number | null;
   isSegmentLooping: boolean;
   autoPlayNext: boolean; // Automatically transition to next Surah when current Surah ends
   currentSurah: number;
@@ -27,6 +27,9 @@ export interface AudioPlayerState {
   ayahRangeStart: number | null;
   ayahRangeEnd: number | null;
   currentAyahNumber: number | null;
+  // Multi-Surah Group Loop (تكرار مجموعة سور محددة)
+  isMultiSurahLoop: boolean;
+  selectedSurahsToLoop: number[];
 }
 
 export function useAudioPlayer() {
@@ -43,29 +46,42 @@ export function useAudioPlayer() {
     | null
   >(null);
 
-  const [state, setState] = useState<AudioPlayerState>({
-    isPlaying: false,
-    currentTime: 0,
-    duration: 0,
-    isLoading: false,
-    error: null,
-    playbackRate: 1,
-    isRepeat: false,
-    repeatCount: 1,
-    remainingRepeats: 1,
-    segmentA: null,
-    segmentB: null,
-    isSegmentLooping: false,
-    autoPlayNext: true,
-    currentSurah: 0,
-    currentVerseKey: null,
-    currentReciter: 7,
-    surahName: '',
-    reciterName: '',
-    isAyahRangeLooping: false,
-    ayahRangeStart: null,
-    ayahRangeEnd: null,
-    currentAyahNumber: null,
+  const [state, setState] = useState<AudioPlayerState>(() => {
+    let initialMultiLoop = false;
+    let initialSurahs: number[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        initialMultiLoop = localStorage.getItem('noor_multi_surah_loop_enabled') === 'true';
+        const raw = localStorage.getItem('noor_multi_surah_loop_list');
+        if (raw) initialSurahs = JSON.parse(raw);
+      } catch {}
+    }
+    return {
+      isPlaying: false,
+      currentTime: 0,
+      duration: 0,
+      isLoading: false,
+      error: null,
+      playbackRate: 1,
+      isRepeat: false,
+      repeatCount: 1,
+      remainingRepeats: 1,
+      segmentA: null,
+      segmentB: null,
+      isSegmentLooping: false,
+      autoPlayNext: true,
+      currentSurah: 0,
+      currentVerseKey: null,
+      currentReciter: 7,
+      surahName: '',
+      reciterName: '',
+      isAyahRangeLooping: false,
+      ayahRangeStart: null,
+      ayahRangeEnd: null,
+      currentAyahNumber: null,
+      isMultiSurahLoop: initialMultiLoop,
+      selectedSurahsToLoop: initialSurahs,
+    };
   });
 
   // Reference for real-time loop logic inside audio event listeners
@@ -84,6 +100,8 @@ export function useAudioPlayer() {
     ayahRangeStart: null as number | null,
     ayahRangeEnd: null as number | null,
     currentAyahNumber: null as number | null,
+    isMultiSurahLoop: state.isMultiSurahLoop,
+    selectedSurahsToLoop: state.selectedSurahsToLoop,
   });
 
   // Keep ref synchronized with state
@@ -103,6 +121,8 @@ export function useAudioPlayer() {
       ayahRangeStart: state.ayahRangeStart,
       ayahRangeEnd: state.ayahRangeEnd,
       currentAyahNumber: state.currentAyahNumber,
+      isMultiSurahLoop: state.isMultiSurahLoop,
+      selectedSurahsToLoop: state.selectedSurahsToLoop,
     };
   }, [
     state.isSegmentLooping,
@@ -119,6 +139,8 @@ export function useAudioPlayer() {
     state.ayahRangeStart,
     state.ayahRangeEnd,
     state.currentAyahNumber,
+    state.isMultiSurahLoop,
+    state.selectedSurahsToLoop,
   ]);
 
   useEffect(() => {
@@ -132,38 +154,6 @@ export function useAudioPlayer() {
     const onTimeUpdate = () => {
       const curTime = audio.currentTime;
       setState((prev) => ({ ...prev, currentTime: curTime }));
-
-      // Handle Segment A-B Repeat Loop
-      const { isSegmentLooping, segmentA, segmentB, repeatCount, remainingRepeats } = loopRef.current;
-      if (isSegmentLooping && segmentB !== null && segmentB > (segmentA || 0)) {
-        if (curTime >= segmentB) {
-          if (repeatCount === 999) {
-            audio.currentTime = segmentA ?? 0;
-            audio.play().catch(() => {});
-          } else if (remainingRepeats > 1) {
-            const nextRemaining = remainingRepeats - 1;
-            loopRef.current.remainingRepeats = nextRemaining;
-            setState((prev) => ({ ...prev, remainingRepeats: nextRemaining }));
-            audio.currentTime = segmentA ?? 0;
-            audio.play().catch(() => {});
-          } else {
-            // Finished all repetitions of segment (stopped at target count like 3)
-            loopRef.current.isSegmentLooping = false;
-            loopRef.current.repeatCount = 1;
-            loopRef.current.remainingRepeats = 1;
-            loopRef.current.isRepeat = false;
-            audio.pause();
-            setState((prev) => ({
-              ...prev,
-              isPlaying: false,
-              isSegmentLooping: false,
-              remainingRepeats: 1,
-              repeatCount: 1,
-              isRepeat: false,
-            }));
-          }
-        }
-      }
     };
 
     const onLoadedMetadata = () => {
@@ -182,6 +172,8 @@ export function useAudioPlayer() {
         ayahRangeStart,
         ayahRangeEnd,
         currentAyahNumber,
+        isMultiSurahLoop,
+        selectedSurahsToLoop,
       } = loopRef.current;
 
       // =========================================================================
@@ -194,7 +186,6 @@ export function useAudioPlayer() {
         ayahRangeEnd !== null &&
         currentAyahNumber !== null
       ) {
-        // Did we finish an Ayah in the range that is not the end Ayah yet?
         if (currentAyahNumber < ayahRangeEnd) {
           const nextAyah = currentAyahNumber + 1;
           loopRef.current.currentAyahNumber = nextAyah;
@@ -205,9 +196,7 @@ export function useAudioPlayer() {
           return;
         }
 
-        // We reached the end Ayah of the range! 1 full repetition completed.
         if (repeatCount === 999) {
-          // Infinite loop: restart range from startAyah
           loopRef.current.currentAyahNumber = ayahRangeStart;
           setState((prev) => ({ ...prev, currentAyahNumber: ayahRangeStart }));
           const verseKey = `${currentSurah}:${ayahRangeStart}`;
@@ -217,7 +206,6 @@ export function useAudioPlayer() {
         }
 
         if (remainingRepeats > 1) {
-          // Finite repeats left: decrement and restart from startAyah
           const nextRemaining = remainingRepeats - 1;
           loopRef.current.remainingRepeats = nextRemaining;
           loopRef.current.currentAyahNumber = ayahRangeStart;
@@ -232,7 +220,6 @@ export function useAudioPlayer() {
           return;
         }
 
-        // Target repetitions reached! (e.g. Completed all 3 repetitions of the segment)
         loopRef.current.isAyahRangeLooping = false;
         loopRef.current.repeatCount = 1;
         loopRef.current.remainingRepeats = 1;
@@ -252,16 +239,14 @@ export function useAudioPlayer() {
       }
 
       // =========================================================================
-      // 1) Full Surah / Track Repetition
+      // 1) Single Surah Repeat Count (1x, 3x, 5x, 999x)
       // =========================================================================
-      // 1) Infinite loop (مستمر ∞)
       if (repeatCount === 999) {
         audio.currentTime = 0;
         audio.play().catch(() => {});
         return;
       }
 
-      // 2) Finite repetition (3 times, 5 times, 7 times, 10 times)
       if (remainingRepeats > 1) {
         const nextRemaining = remainingRepeats - 1;
         loopRef.current.remainingRepeats = nextRemaining;
@@ -271,26 +256,34 @@ export function useAudioPlayer() {
         return;
       }
 
-      // 3) All repetitions completed! (e.g. Finished exactly 3 times)
-      const wasRepetitionActive = repeatCount > 1;
-
-      // Reset repetition state back to single play
+      const wasSingleRepeatActive = repeatCount > 1;
       loopRef.current.repeatCount = 1;
       loopRef.current.remainingRepeats = 1;
       loopRef.current.isRepeat = false;
-      loopRef.current.isSegmentLooping = false;
-      loopRef.current.segmentA = null;
-      loopRef.current.segmentB = null;
 
-      // If it was normal playback without repetition and auto-play next is enabled
-      if (!wasRepetitionActive && autoPlayNext && currentSurah > 0 && currentSurah < 114) {
+      // =========================================================================
+      // 2) Multi-Surah Group Repetition (تكرار عدة سور محددة بالتتابع)
+      // =========================================================================
+      if (!wasSingleRepeatActive && isMultiSurahLoop && selectedSurahsToLoop.length > 0) {
+        const curIdx = selectedSurahsToLoop.indexOf(currentSurah);
+        const nextIdx = curIdx === -1 ? 0 : (curIdx + 1) % selectedSurahsToLoop.length;
+        const nextSurah = selectedSurahsToLoop[nextIdx];
+        const nextSurahName = getSurahName(nextSurah);
+
+        if (loadAndPlayRef.current) {
+          loadAndPlayRef.current(nextSurah, currentReciter, nextSurahName, reciterName);
+        }
+        return;
+      }
+
+      // =========================================================================
+      // 3) Standard Sequential Auto-play Next Surah
+      // =========================================================================
+      if (!wasSingleRepeatActive && autoPlayNext && currentSurah > 0 && currentSurah < 114) {
         const nextSurah = currentSurah + 1;
         const nextSurahName = getSurahName(nextSurah);
         setState((prev) => ({
           ...prev,
-          segmentA: null,
-          segmentB: null,
-          isSegmentLooping: false,
           repeatCount: 1,
           remainingRepeats: 1,
           isRepeat: false,
@@ -299,9 +292,6 @@ export function useAudioPlayer() {
           loadAndPlayRef.current(nextSurah, currentReciter, nextSurahName, reciterName);
         }
       } else {
-        // Stop audio cleanly at the target repetition count
-        audio.pause();
-        audio.currentTime = 0;
         setState((prev) => ({
           ...prev,
           isPlaying: false,
@@ -309,9 +299,6 @@ export function useAudioPlayer() {
           repeatCount: 1,
           remainingRepeats: 1,
           isRepeat: false,
-          segmentA: null,
-          segmentB: null,
-          isSegmentLooping: false,
         }));
       }
     };
@@ -319,9 +306,9 @@ export function useAudioPlayer() {
     const onError = () => {
       setState((prev) => ({
         ...prev,
-        isPlaying: false,
         isLoading: false,
-        error: 'تعذر تشغيل الصوت',
+        isPlaying: false,
+        error: 'تعذر تشغيل الصوت. يرجى التحقق من الاتصال بالإنترنت.',
       }));
     };
 
@@ -347,13 +334,6 @@ export function useAudioPlayer() {
       verseKey?: string,
       preserveRepeatState = false
     ) => {
-      // In Ayah range looping or when preserveRepeatState is passed, maintain countdown without reset
-      const isLooping = loopRef.current.isAyahRangeLooping || preserveRepeatState;
-      const targetCount = isLooping
-        ? loopRef.current.remainingRepeats
-        : loopRef.current.repeatCount || 1;
-      loopRef.current.remainingRepeats = targetCount;
-
       setState((prev) => ({
         ...prev,
         isLoading: true,
@@ -361,30 +341,78 @@ export function useAudioPlayer() {
         currentSurah: surahNumber,
         currentVerseKey: verseKey || null,
         currentReciter: reciterId,
-        surahName: verseKey ? `${surahName} (آية ${verseKey.split(':')[1]})` : surahName,
+        surahName,
         reciterName,
-        remainingRepeats: targetCount,
+        isPlaying: false,
+        ...(!preserveRepeatState
+          ? {
+              isRepeat: false,
+              repeatCount: 1,
+              remainingRepeats: 1,
+              isAyahRangeLooping: false,
+              ayahRangeStart: null,
+              ayahRangeEnd: null,
+              currentAyahNumber: null,
+            }
+          : {}),
       }));
 
-      try {
-        const endpoint = verseKey
-          ? `/api/quran/audio?reciter=${reciterId}&verse_key=${verseKey}`
-          : `/api/quran/audio?reciter=${reciterId}&chapter=${surahNumber}`;
-        const res = await fetch(endpoint);
-        if (!res.ok) throw new Error('Failed to load audio');
-        const data = (await res.json()) as { audio_file?: { audio_url?: string; url?: string } };
-        const audioUrl = data.audio_file?.audio_url || data.audio_file?.url;
-        if (!audioUrl) throw new Error('No audio URL');
+      loopRef.current.currentSurah = surahNumber;
+      loopRef.current.currentReciter = reciterId;
+      loopRef.current.reciterName = reciterName;
+      if (!preserveRepeatState) {
+        loopRef.current.repeatCount = 1;
+        loopRef.current.remainingRepeats = 1;
+        loopRef.current.isRepeat = false;
+        loopRef.current.isAyahRangeLooping = false;
+        loopRef.current.ayahRangeStart = null;
+        loopRef.current.ayahRangeEnd = null;
+        loopRef.current.currentAyahNumber = null;
+      }
 
-        if (audioRef.current) {
-          audioRef.current.src = audioUrl;
-          audioRef.current.playbackRate = state.playbackRate;
-          await audioRef.current.play();
-          setState((prev) => ({ ...prev, isPlaying: true, isLoading: false }));
+      try {
+        let url = `/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}`;
+        if (verseKey) {
+          url += `&verse=${verseKey}`;
         }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Unknown error';
-        setState((prev) => ({ ...prev, isLoading: false, error: msg }));
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('فشل تحميل الملف الصوتي');
+        const data = await res.json();
+
+        if (data.audioUrl) {
+          if (!audioRef.current) {
+            audioRef.current = new Audio();
+          }
+          const audio = audioRef.current;
+          audio.src = data.audioUrl;
+          audio.playbackRate = state.playbackRate;
+
+          try {
+            await audio.play();
+            setState((prev) => ({
+              ...prev,
+              isPlaying: true,
+              isLoading: false,
+            }));
+          } catch {
+            setState((prev) => ({
+              ...prev,
+              isPlaying: false,
+              isLoading: false,
+            }));
+          }
+        } else {
+          throw new Error('رابط الصوت غير متوفر');
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'خطأ غير معروف';
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          isPlaying: false,
+          error: message,
+        }));
       }
     },
     [state.playbackRate]
@@ -393,53 +421,49 @@ export function useAudioPlayer() {
   loadAndPlayRef.current = loadAndPlay;
 
   const playNextSurah = useCallback(() => {
-    const cur = loopRef.current.currentSurah;
-    if (cur > 0 && cur < 114) {
-      const nextSurah = cur + 1;
+    const { currentSurah, isMultiSurahLoop, selectedSurahsToLoop, currentReciter, reciterName } = loopRef.current;
+
+    // If multi-surah loop is active, jump to next selected surah
+    if (isMultiSurahLoop && selectedSurahsToLoop.length > 0) {
+      const curIdx = selectedSurahsToLoop.indexOf(currentSurah);
+      const nextIdx = curIdx === -1 ? 0 : (curIdx + 1) % selectedSurahsToLoop.length;
+      const nextSurah = selectedSurahsToLoop[nextIdx];
       const nextSurahName = getSurahName(nextSurah);
-      const reciterId = loopRef.current.currentReciter;
-      const reciterName = loopRef.current.reciterName;
-      loopRef.current.isSegmentLooping = false;
-      loopRef.current.segmentA = null;
-      loopRef.current.segmentB = null;
-      loopRef.current.repeatCount = 1;
-      loopRef.current.remainingRepeats = 1;
-      setState((prev) => ({
-        ...prev,
-        segmentA: null,
-        segmentB: null,
-        isSegmentLooping: false,
-        repeatCount: 1,
-        remainingRepeats: 1,
-      }));
       if (loadAndPlayRef.current) {
-        loadAndPlayRef.current(nextSurah, reciterId, nextSurahName, reciterName);
+        loadAndPlayRef.current(nextSurah, currentReciter, nextSurahName, reciterName);
+      }
+      return;
+    }
+
+    if (currentSurah < 114) {
+      const nextSurah = currentSurah + 1;
+      const nextSurahName = getSurahName(nextSurah);
+      if (loadAndPlayRef.current) {
+        loadAndPlayRef.current(nextSurah, currentReciter, nextSurahName, reciterName);
       }
     }
   }, []);
 
   const playPreviousSurah = useCallback(() => {
-    const cur = loopRef.current.currentSurah;
-    if (cur > 1) {
-      const prevSurah = cur - 1;
+    const { currentSurah, isMultiSurahLoop, selectedSurahsToLoop, currentReciter, reciterName } = loopRef.current;
+
+    // If multi-surah loop is active, jump to previous selected surah
+    if (isMultiSurahLoop && selectedSurahsToLoop.length > 0) {
+      const curIdx = selectedSurahsToLoop.indexOf(currentSurah);
+      const prevIdx = curIdx === -1 ? selectedSurahsToLoop.length - 1 : (curIdx - 1 + selectedSurahsToLoop.length) % selectedSurahsToLoop.length;
+      const prevSurah = selectedSurahsToLoop[prevIdx];
       const prevSurahName = getSurahName(prevSurah);
-      const reciterId = loopRef.current.currentReciter;
-      const reciterName = loopRef.current.reciterName;
-      loopRef.current.isSegmentLooping = false;
-      loopRef.current.segmentA = null;
-      loopRef.current.segmentB = null;
-      loopRef.current.repeatCount = 1;
-      loopRef.current.remainingRepeats = 1;
-      setState((prev) => ({
-        ...prev,
-        segmentA: null,
-        segmentB: null,
-        isSegmentLooping: false,
-        repeatCount: 1,
-        remainingRepeats: 1,
-      }));
       if (loadAndPlayRef.current) {
-        loadAndPlayRef.current(prevSurah, reciterId, prevSurahName, reciterName);
+        loadAndPlayRef.current(prevSurah, currentReciter, prevSurahName, reciterName);
+      }
+      return;
+    }
+
+    if (currentSurah > 1) {
+      const prevSurah = currentSurah - 1;
+      const prevSurahName = getSurahName(prevSurah);
+      if (loadAndPlayRef.current) {
+        loadAndPlayRef.current(prevSurah, currentReciter, prevSurahName, reciterName);
       }
     }
   }, []);
@@ -463,7 +487,9 @@ export function useAudioPlayer() {
       .then(() => {
         setState((prev) => ({ ...prev, isPlaying: true }));
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Audio play error:', err);
+      });
   }, []);
 
   const pause = useCallback(() => {
@@ -498,7 +524,6 @@ export function useAudioPlayer() {
     setState((prev) => ({ ...prev, playbackRate: rate }));
   }, []);
 
-  // Multi-count repeat setter (1 = once, 3, 5, 7, 10, 999 = infinite)
   const setRepeatCount = useCallback((count: number) => {
     const isRep = count > 1;
     loopRef.current.repeatCount = count;
@@ -512,7 +537,6 @@ export function useAudioPlayer() {
     }));
   }, []);
 
-  // Legacy toggle repeat (cycles: 1 -> 3 -> 5 -> 999 -> 1)
   const toggleRepeat = useCallback(() => {
     const cycles = [1, 3, 5, 999];
     const currentIndex = cycles.indexOf(state.repeatCount);
@@ -520,103 +544,42 @@ export function useAudioPlayer() {
     setRepeatCount(nextCount);
   }, [state.repeatCount, setRepeatCount]);
 
-  // Set Segment A (start of repeat loop)
-  const setSegmentA = useCallback((time?: number) => {
-    const t = time !== undefined ? time : audioRef.current?.currentTime || 0;
-    loopRef.current.segmentA = t;
-    setState((prev) => ({ ...prev, segmentA: t }));
-  }, []);
-
-  // Set Segment B (end of repeat loop)
-  const setSegmentB = useCallback((time?: number) => {
-    const t = time !== undefined ? time : audioRef.current?.currentTime || 0;
-    loopRef.current.segmentB = t;
-    setState((prev) => ({ ...prev, segmentB: t }));
-  }, []);
-
-  // Clear Segment Loop
-  const clearSegment = useCallback(() => {
-    loopRef.current.segmentA = null;
-    loopRef.current.segmentB = null;
-    loopRef.current.isSegmentLooping = false;
-    setState((prev) => ({
-      ...prev,
-      segmentA: null,
-      segmentB: null,
-      isSegmentLooping: false,
-    }));
-  }, []);
-
-  // Toggle Segment Loop Playback
-  const toggleSegmentLoop = useCallback(() => {
+  // Multi-Surah Loop Controls (تكرار مجموعة سور محددة)
+  const toggleMultiSurahLoop = useCallback((enabled?: boolean) => {
     setState((prev) => {
-      const nextLooping = !prev.isSegmentLooping;
-      let startA = prev.segmentA;
-      let endB = prev.segmentB;
+      const nextVal = enabled !== undefined ? enabled : !prev.isMultiSurahLoop;
+      try {
+        localStorage.setItem('noor_multi_surah_loop_enabled', String(nextVal));
+      } catch {}
+      loopRef.current.isMultiSurahLoop = nextVal;
+      return { ...prev, isMultiSurahLoop: nextVal };
+    });
+  }, []);
 
-      if (nextLooping) {
-        // If start point is not set, set it to 5 seconds before current time or 0
-        if (startA === null) {
-          startA = Math.max(0, (audioRef.current?.currentTime || 0) - 5);
-        }
-        // If end point is not set, set it to 15 seconds after startA
-        if (endB === null || endB <= startA) {
-          endB = Math.min(prev.duration || startA + 20, startA + 15);
-        }
-
-        // Jump to start point and play
-        if (audioRef.current) {
-          audioRef.current.currentTime = startA;
-          audioRef.current.play().catch(() => {});
-        }
-      }
-
-      loopRef.current.isSegmentLooping = nextLooping;
-      loopRef.current.segmentA = startA;
-      loopRef.current.segmentB = endB;
-      loopRef.current.remainingRepeats = prev.repeatCount > 1 ? prev.repeatCount : 3; // default to 3 repeats if normal
-
+  const setSelectedSurahsToLoop = useCallback((surahs: number[], enableNow = true) => {
+    setState((prev) => {
+      const isEnabled = enableNow && surahs.length > 0;
+      try {
+        localStorage.setItem('noor_multi_surah_loop_list', JSON.stringify(surahs));
+        localStorage.setItem('noor_multi_surah_loop_enabled', String(isEnabled));
+      } catch {}
+      loopRef.current.selectedSurahsToLoop = surahs;
+      loopRef.current.isMultiSurahLoop = isEnabled;
       return {
         ...prev,
-        isSegmentLooping: nextLooping,
-        segmentA: startA,
-        segmentB: endB,
-        isPlaying: nextLooping ? true : prev.isPlaying,
-        repeatCount: prev.repeatCount > 1 ? prev.repeatCount : 3,
-        remainingRepeats: prev.repeatCount > 1 ? prev.repeatCount : 3,
+        selectedSurahsToLoop: surahs,
+        isMultiSurahLoop: isEnabled,
       };
     });
   }, []);
 
-  // Quick Loop of recent segment (e.g. last 10 seconds or last 20 seconds)
-  const quickLoopLast = useCallback((secondsBack: number) => {
-    const cur = audioRef.current?.currentTime || 0;
-    const startA = Math.max(0, cur - secondsBack);
-    const endB = Math.max(startA + 2, cur);
+  // Backward-compatible stubs for segment functions (deprecated in favor of multi-surah loop)
+  const setSegmentA = useCallback(() => {}, []);
+  const setSegmentB = useCallback(() => {}, []);
+  const clearSegment = useCallback(() => {}, []);
+  const toggleSegmentLoop = useCallback(() => {}, []);
+  const quickLoopLast = useCallback(() => {}, []);
 
-    loopRef.current.segmentA = startA;
-    loopRef.current.segmentB = endB;
-    loopRef.current.isSegmentLooping = true;
-    loopRef.current.repeatCount = 3;
-    loopRef.current.remainingRepeats = 3;
-
-    if (audioRef.current) {
-      audioRef.current.currentTime = startA;
-      audioRef.current.play().catch(() => {});
-    }
-
-    setState((prev) => ({
-      ...prev,
-      segmentA: startA,
-      segmentB: endB,
-      isSegmentLooping: true,
-      isPlaying: true,
-      repeatCount: 3,
-      remainingRepeats: 3,
-    }));
-  }, []);
-
-  // Start repeating a specific range of Ayahs from startAyah to endAyah
   const startAyahRangeLoop = useCallback(
     (
       surahNumber: number,
@@ -638,9 +601,6 @@ export function useAudioPlayer() {
       loopRef.current.reciterName = reciterName;
       loopRef.current.repeatCount = repeats;
       loopRef.current.remainingRepeats = repeats;
-      loopRef.current.isSegmentLooping = false;
-      loopRef.current.segmentA = null;
-      loopRef.current.segmentB = null;
 
       setState((prev) => ({
         ...prev,
@@ -650,9 +610,6 @@ export function useAudioPlayer() {
         currentAyahNumber: validStart,
         repeatCount: repeats,
         remainingRepeats: repeats,
-        isSegmentLooping: false,
-        segmentA: null,
-        segmentB: null,
       }));
 
       const verseKey = `${surahNumber}:${validStart}`;
@@ -664,7 +621,6 @@ export function useAudioPlayer() {
     []
   );
 
-  // Stop Ayah range loop
   const stopAyahRangeLoop = useCallback(() => {
     loopRef.current.isAyahRangeLooping = false;
     loopRef.current.ayahRangeStart = null;
@@ -693,9 +649,6 @@ export function useAudioPlayer() {
       audioRef.current.currentTime = 0;
       audioRef.current.src = '';
     }
-    loopRef.current.isSegmentLooping = false;
-    loopRef.current.segmentA = null;
-    loopRef.current.segmentB = null;
     loopRef.current.isAyahRangeLooping = false;
     loopRef.current.ayahRangeStart = null;
     loopRef.current.ayahRangeEnd = null;
@@ -709,9 +662,6 @@ export function useAudioPlayer() {
       currentVerseKey: null,
       surahName: '',
       reciterName: '',
-      segmentA: null,
-      segmentB: null,
-      isSegmentLooping: false,
       isAyahRangeLooping: false,
       ayahRangeStart: null,
       ayahRangeEnd: null,
@@ -731,6 +681,8 @@ export function useAudioPlayer() {
     setPlaybackRate,
     setRepeatCount,
     toggleRepeat,
+    toggleMultiSurahLoop,
+    setSelectedSurahsToLoop,
     setSegmentA,
     setSegmentB,
     clearSegment,

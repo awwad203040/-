@@ -37,6 +37,7 @@ import OfflineDownloadModal from '@/components/mushaf/OfflineDownloadModal';
 import MushafSkeleton from '@/components/mushaf/MushafSkeleton';
 import { useAutoAthkar } from '@/hooks/useAutoAthkar';
 import AthkarToast from '@/components/common/AthkarToast';
+import { getPageFromIDB } from '@/lib/offline-manager';
 
 
 
@@ -138,6 +139,36 @@ function MushafReaderInner() {
   const [showPageVersesDrawer, setShowPageVersesDrawer] = useState(false);
   const [pageImageError, setPageImageError] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [offlineBlobUrl, setOfflineBlobUrl] = useState<string | null>(null);
+
+  // Check if current page is stored in IndexedDB (offline-ready for all mobile devices)
+  useEffect(() => {
+    let active = true;
+    let urlToRevoke: string | null = null;
+
+    async function loadOfflinePage() {
+      try {
+        const blob = await getPageFromIDB(currentPage);
+        if (active && blob) {
+          urlToRevoke = URL.createObjectURL(blob);
+          setOfflineBlobUrl(urlToRevoke);
+          return;
+        }
+      } catch {}
+      if (active) {
+        setOfflineBlobUrl(null);
+      }
+    }
+
+    loadOfflinePage();
+
+    return () => {
+      active = false;
+      if (urlToRevoke) {
+        URL.revokeObjectURL(urlToRevoke);
+      }
+    };
+  }, [currentPage]);
 
   // Reset page image error when changing pages
   useEffect(() => {
@@ -662,11 +693,25 @@ function MushafReaderInner() {
 
             {/* Page Container with Screen Tap Navigation */}
             <div className="relative w-full max-w-2xl mx-auto flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF]">
-              {/* Authentic Madinah Mushaf Page Image */}
+              {/* Authentic Madinah Mushaf Page Image - uses offline IndexedDB blob first, then local proxy, then direct CDN */}
               <img
-                src={`https://files.quran.app/hafs/madani/width_1024/page${currentPage.toString().padStart(3, '0')}.png`}
+                src={offlineBlobUrl || `/api/quran/page-image?page=${currentPage}`}
                 alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
-                onError={() => setPageImageError(true)}
+                onError={() => {
+                  if (!offlineBlobUrl) {
+                    const directUrl = `https://files.quran.app/hafs/madani/width_1024/page${currentPage.toString().padStart(3, '0')}.png`;
+                    const testImg = new Image();
+                    testImg.src = directUrl;
+                    testImg.onload = () => {
+                      setOfflineBlobUrl(directUrl);
+                    };
+                    testImg.onerror = () => {
+                      setPageImageError(true);
+                    };
+                  } else {
+                    setPageImageError(true);
+                  }
+                }}
                 className={`w-full h-auto max-h-[85vh] object-contain transition-all duration-200 pointer-events-none ${
                   settings.nightMode ? 'invert-[0.92] hue-rotate-180 brightness-95 contrast-125' : ''
                 }`}
@@ -945,10 +990,6 @@ function MushafReaderInner() {
           onSetSpeed={audio.setPlaybackRate}
           onToggleRepeat={audio.toggleRepeat}
           onSetRepeatCount={audio.setRepeatCount}
-          onSetSegmentA={() => audio.setSegmentA()}
-          onSetSegmentB={() => audio.setSegmentB()}
-          onClearSegment={audio.clearSegment}
-          onToggleSegmentLoop={audio.toggleSegmentLoop}
           onSkip={audio.skipTime}
           autoPlayNext={audio.autoPlayNext}
           onNextSurah={audio.playNextSurah}
@@ -956,6 +997,17 @@ function MushafReaderInner() {
           onToggleAutoPlayNext={audio.toggleAutoPlayNext}
           onClose={audio.stop}
           onOpenReciterSelect={() => setShowReciterSelect(true)}
+          isMultiSurahLoop={audio.isMultiSurahLoop}
+          selectedSurahsToLoop={audio.selectedSurahsToLoop}
+          currentSurah={audio.currentSurah}
+          onToggleMultiSurahLoop={audio.toggleMultiSurahLoop}
+          onSetSelectedSurahsToLoop={audio.setSelectedSurahsToLoop}
+          onPlaySurah={(surahNum) => {
+            const sName = SURAH_NAMES[surahNum] || `سورة ${surahNum}`;
+            const reciter = POPULAR_RECITERS.find((r) => r.id === (settings.selectedReciterId || 7));
+            const rName = reciter?.name || 'مشاري العفاسي';
+            audio.loadAndPlay(surahNum, settings.selectedReciterId || 7, sName, rName);
+          }}
         />
       )}
 
