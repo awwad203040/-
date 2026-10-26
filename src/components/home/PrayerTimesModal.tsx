@@ -204,10 +204,10 @@ export default function PrayerTimesModal({
               <span className="text-2xl">🕌</span>
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-[#F7EED8]">
-                  تنبيه الأذان الصوتي التلقائي
+                  تنبيه الأذان الصوتي (المؤذن محمد جازي)
                 </span>
                 <span className="text-[10px] text-white/75">
-                  يرتفع صوت الأذان تلقائياً حتى والتطبيق مغلق والجوال في السكون
+                  أذان خاشع بصوت محمد جازي، يرتفع تلقائياً حتى والتطبيق مغلق
                 </span>
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function PrayerTimesModal({
                 className="flex-1 py-2 px-3 rounded-xl bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border border-[#C8A85B]/40 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
               >
                 <span>🔊</span>
-                <span>تجربة وسماع صوت الأذان للتأكد</span>
+                <span>تجربة وسماع صوت الأذان (المؤذن محمد جازي)</span>
               </button>
             )}
           </div>
