@@ -1,8 +1,8 @@
-// Noor Al-Quran Service Worker (PWA Offline Support)
-const CACHE_NAME = 'noor-alquran-v20';
+// Noor Al-Quran Service Worker (PWA Offline Support v25)
+const CACHE_NAME = 'noor-alquran-v25';
 const PAGES_CACHE_NAME = 'noor-mushaf-pages-v1';
 
-const STATIC_ASSETS = [
+const CORE_ASSETS = [
   '/',
   '/mushaf',
   '/manifest.json',
@@ -11,23 +11,43 @@ const STATIC_ASSETS = [
   '/logo.png',
   '/icon-192.png',
   '/icon-512.png',
-  '/audio/adhan.ogg?v=mohamed-jazi-v2',
   '/audio/adhan.ogg',
-  '/audio/athkar/istighfar-1.mp3?v=male-v3',
-  '/audio/athkar/tasbeeh-1.mp3?v=male-v3',
-  '/audio/athkar/tasbeeh-2.mp3?v=male-v3',
-  '/audio/athkar/hawqala-1.mp3?v=male-v3',
-  '/audio/athkar/tahmeed-1.mp3?v=male-v3',
-  '/audio/athkar/salawat-1.mp3?v=male-v3',
+  '/audio/adhan.ogg?v=mohamed-jazi-v2',
+  '/audio/athkar/tasbeeh-azeem.mp3',
+  '/audio/athkar/tawheed-1.mp3',
+  '/audio/athkar/hawqala-1.mp3',
+  '/audio/athkar/salawat-nabi.mp3',
+  '/audio/athkar/tasbeeh-quddoos.mp3',
+  '/audio/athkar/baqiyat-1.mp3',
+  '/audio/athkar/istighfar-custom.mp3',
+  '/audio/athkar/istighfar-1.mp3',
+  '/audio/athkar/tasbeeh-1.mp3',
+  '/audio/athkar/tasbeeh-2.mp3',
+  '/audio/athkar/tahmeed-1.mp3',
+  '/audio/athkar/salawat-1.mp3',
 ];
 
+// Pre-cache core assets individually so a failure in one never blocks the others
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('Pre-cache error in SW install:', err);
-      });
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.allSettled(
+        CORE_ASSETS.map(async (url) => {
+          try {
+            const res = await fetch(url, { cache: 'reload' });
+            if (res && (res.ok || res.type === 'opaque')) {
+              await cache.put(url, res.clone());
+              const cleanUrl = url.split('?')[0];
+              if (cleanUrl !== url) {
+                await cache.put(cleanUrl, res.clone());
+              }
+            }
+          } catch (e) {
+            console.warn('Pre-cache skip:', url, e);
+          }
+        })
+      );
     })
   );
 });
@@ -50,25 +70,76 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 0. Local Adhan & Athkar audio: Cache-First for 100% offline audio playback
+  // 1. Local Adhan & Athkar Audio: Cache-First with 206 Partial Content Range support for mobile players
   if (url.pathname.startsWith('/audio/')) {
     event.respondWith(
-      caches.match(event.request, { ignoreSearch: true }).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const cleanPath = url.pathname;
+        const rangeHeader = event.request.headers.get('range');
+
+        // Look up cached audio: try exact URL, clean pathname, and ignoreSearch
+        let cached = await cache.match(event.request, { ignoreSearch: true });
+        if (!cached) cached = await cache.match(cleanPath, { ignoreSearch: true });
+        if (!cached) cached = await cache.match(cleanPath);
+
+        // If found in cache
+        if (cached) {
+          if (!rangeHeader) {
+            return cached;
           }
-          return response;
-        }).catch(() => {
-          if (url.pathname.includes('adhan')) {
-            return caches.match('/audio/adhan.ogg?v=mohamed-jazi-v2', { ignoreSearch: true })
-              .then((m) => m || caches.match('/audio/adhan.ogg', { ignoreSearch: true }));
+
+          // Handle Range requests from mobile media engines (e.g. Chrome on Android sends bytes=0-)
+          try {
+            const arrayBuffer = await cached.arrayBuffer();
+            const total = arrayBuffer.byteLength;
+            const matches = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+
+            if (matches) {
+              const start = parseInt(matches[1], 10);
+              const end = matches[2] ? parseInt(matches[2], 10) : total - 1;
+              const chunk = arrayBuffer.slice(start, end + 1);
+
+              const contentType =
+                cached.headers.get('Content-Type') ||
+                (cleanPath.endsWith('.ogg') ? 'audio/ogg' : 'audio/mpeg');
+
+              return new Response(chunk, {
+                status: 206,
+                statusText: 'Partial Content',
+                headers: {
+                  'Content-Range': `bytes ${start}-${end}/${total}`,
+                  'Content-Length': String(chunk.byteLength),
+                  'Content-Type': contentType,
+                  'Accept-Ranges': 'bytes',
+                },
+              });
+            }
+          } catch (_) {
+            return cached;
           }
-          return caches.match(event.request, { ignoreSearch: true });
-        });
-      })
+          return cached;
+        }
+
+        // If not in cache, fetch from network and store full audio in cache
+        try {
+          const networkRes = await fetch(cleanPath);
+          if (networkRes && networkRes.ok) {
+            cache.put(cleanPath, networkRes.clone()).catch(() => {});
+            cache.put(event.request.url, networkRes.clone()).catch(() => {});
+          }
+          return networkRes;
+        } catch (_) {
+          // If offline and requested adhan, return any cached adhan
+          if (cleanPath.includes('adhan')) {
+            const adhanFallback =
+              (await cache.match('/audio/adhan.ogg?v=mohamed-jazi-v2', { ignoreSearch: true })) ||
+              (await cache.match('/audio/adhan.ogg', { ignoreSearch: true }));
+            if (adhanFallback) return adhanFallback;
+          }
+          return new Response('Audio unavailable offline', { status: 503 });
+        }
+      })()
     );
     return;
   }
@@ -78,7 +149,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 1. Navigation (HTML Pages): Network-First with complete offline fallback
+  // 2. Navigation (HTML Pages): Network-First with 100% offline fallback
   if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(
       fetch(event.request)
@@ -117,13 +188,44 @@ self.addEventListener('fetch', (event) => {
             }
           } catch (_) {}
 
-          return new Response('Offline - No connection', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+          return new Response('Offline - No connection', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          });
         })
     );
     return;
   }
 
-  // 2. Next.js Static Chunks (_next/static/): Cache-First with network fallback
+  // 3. Static Images (Logo, Icons, Favicons): Cache-First for instant offline display
+  if (url.pathname.match(/\.(png|jpg|jpeg|svg|ico|webp)$/i) && !url.pathname.startsWith('/api/quran/')) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const cached =
+          (await cache.match(event.request, { ignoreSearch: true })) ||
+          (await cache.match(url.pathname, { ignoreSearch: true }));
+        if (cached) return cached;
+
+        try {
+          const networkRes = await fetch(event.request);
+          if (networkRes && networkRes.ok) {
+            cache.put(url.pathname, networkRes.clone()).catch(() => {});
+          }
+          return networkRes;
+        } catch (_) {
+          if (url.pathname.includes('logo')) {
+            const iconFallback = await cache.match('/icon-192.png', { ignoreSearch: true });
+            if (iconFallback) return iconFallback;
+          }
+          return new Response('', { status: 404 });
+        }
+      })()
+    );
+    return;
+  }
+
+  // 4. Next.js Static Chunks (_next/static/): Cache-First
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
       caches.match(event.request, { ignoreSearch: true }).then((cached) => {
@@ -142,64 +244,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. API Quran Pages: Network-First with runtime caching for offline reading
-  if (url.pathname.startsWith('/api/quran/pages/')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, clone);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          return caches.match(event.request, { ignoreSearch: true });
-        })
-    );
-    return;
-  }
-
-  // 3b. API Quran Page Images: Cache-First from PAGES_CACHE_NAME for fast offline rendering
-  if (url.pathname.startsWith('/api/quran/page-image')) {
-    event.respondWith(
-      caches.open(PAGES_CACHE_NAME).then((cache) => {
-        return cache.match(event.request, { ignoreSearch: true }).then((cached) => {
-          if (cached) return cached;
-          return fetch(event.request).then((response) => {
-            if (response.ok) {
-              cache.put(event.request, response.clone());
-            }
-            return response;
-          });
-        });
-      })
-    );
-    return;
-  }
-
-  // 4. External Fonts: Cache-First
-  if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
-    event.respondWith(
-      caches.match(event.request, { ignoreSearch: true }).then((cached) => {
-        return (
-          cached ||
-          fetch(event.request).then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-            }
-            return response;
-          })
-        );
-      })
-    );
-    return;
-  }
-
-  // 5. Quran Page Images (files.quran.app): Cache-First from PAGES_CACHE_NAME for instant offline reading
+  // 5. Quran Page Images (files.quran.app): Cache-First from PAGES_CACHE_NAME
   if (url.hostname.includes('files.quran.app') || url.pathname.includes('/hafs/madani/')) {
     event.respondWith(
       caches.open(PAGES_CACHE_NAME).then((pagesCache) => {
@@ -207,17 +252,19 @@ self.addEventListener('fetch', (event) => {
           if (cached) return cached;
           return caches.match(event.request.url, { ignoreSearch: true }).then((anyCached) => {
             if (anyCached) return anyCached;
-            return fetch(event.request).then((response) => {
-              if (response && (response.ok || response.type === 'opaque')) {
-                try {
-                  const clone = response.clone();
-                  pagesCache.put(event.request.url, clone).catch(() => {});
-                } catch (_) {}
-              }
-              return response;
-            }).catch(() => {
-              return pagesCache.match(event.request.url, { ignoreSearch: true });
-            });
+            return fetch(event.request)
+              .then((response) => {
+                if (response && (response.ok || response.type === 'opaque')) {
+                  try {
+                    const clone = response.clone();
+                    pagesCache.put(event.request.url, clone).catch(() => {});
+                  } catch (_) {}
+                }
+                return response;
+              })
+              .catch(() => {
+                return pagesCache.match(event.request.url, { ignoreSearch: true });
+              });
           });
         });
       })
@@ -225,7 +272,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 6. Default Network-First with offline cache fallback for all other assets
+  // 6. Default Network-First for other requests
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {

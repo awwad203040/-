@@ -66,6 +66,12 @@ export default function AnimatedLogo({
           alt={alt}
           className="w-full h-full object-cover pointer-events-none"
           loading="eager"
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (!target.src.includes('icon-192.png')) {
+              target.src = '/icon-192.png';
+            }
+          }}
         />
 
         {/* 3. The Animated Flash Light Beam Sheen (Flash Sweep) */}

@@ -76,7 +76,14 @@ export async function playTestAdhanSound() {
         webAdhanAudio.volume = 1.0;
         await webAdhanAudio.play();
       } catch (e) {
-        console.warn('Web Adhan playback failed:', e);
+        console.warn('Web Adhan playback with version failed, attempting clean url:', e);
+        try {
+          webAdhanAudio = new Audio('/audio/adhan.ogg');
+          webAdhanAudio.volume = 1.0;
+          await webAdhanAudio.play();
+        } catch (err2) {
+          console.error('All web adhan playback attempts failed:', err2);
+        }
       }
     }
     return { success: true };
