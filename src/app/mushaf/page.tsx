@@ -14,6 +14,7 @@ import {
   isBookmarked as checkIsBookmarked,
   getReadingProgress,
   saveReadingProgress,
+  setRealReadingPosition,
   addPageVisited,
   getPagesVisited,
   getSettings,
@@ -140,6 +141,15 @@ function MushafReaderInner() {
   const [pageImageError, setPageImageError] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offlineBlobUrl, setOfflineBlobUrl] = useState<string | null>(null);
+  const [stopMarkToast, setStopMarkToast] = useState<string | null>(null);
+
+  const handleSetStopMark = useCallback(() => {
+    setRealReadingPosition(currentPage, false);
+    setStopMarkToast(`📌 تم تثبيت صفحة ${currentPage} كموضع توقفك الحالي في القراءة`);
+    setTimeout(() => {
+      setStopMarkToast(null);
+    }, 2800);
+  }, [currentPage]);
 
   // Check if current page is stored in IndexedDB (offline-ready for all mobile devices)
   useEffect(() => {
@@ -958,10 +968,18 @@ function MushafReaderInner() {
           onNext={nextPage}
           onGoToPage={goToPage}
           onBookmarkPage={handleBookmarkPage}
+          onSetStopMark={handleSetStopMark}
           isBookmarked={isPageBookmarked}
           isOpenModal={showPageJumpModal}
           onCloseModal={() => setShowPageJumpModal(false)}
         />
+      )}
+
+      {/* Floating Toast Notification when Reading Stop Mark is saved */}
+      {stopMarkToast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#123B2A]/95 text-[#F7EED8] px-5 py-2.5 rounded-full shadow-2xl border border-[#C8A85B] text-xs font-bold animate-in fade-in slide-in-from-top-3 flex items-center gap-2 backdrop-blur-md">
+          <span>{stopMarkToast}</span>
+        </div>
       )}
 
       {/* Audio Player */}

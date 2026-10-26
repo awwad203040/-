@@ -16,6 +16,8 @@ import AutoAthkarModal from '@/components/home/AutoAthkarModal';
 import OfflineDownloadModal from '@/components/mushaf/OfflineDownloadModal';
 import MultiSurahLoopModal from '@/components/mushaf/MultiSurahLoopModal';
 import AthkarToast from '@/components/common/AthkarToast';
+import AnimatedLogo from '@/components/common/AnimatedLogo';
+import EditReadingProgressModal from '@/components/home/EditReadingProgressModal';
 
 export default function HomePage() {
   const router = useRouter();
@@ -37,17 +39,12 @@ export default function HomePage() {
   const [rangeRepeatCount, setRangeRepeatCount] = useState<number>(3);
   const [repeatTab, setRepeatTab] = useState<'ayahs' | 'surah' | 'multi'>('ayahs');
   const [showMultiSurahModal, setShowMultiSurahModal] = useState(false);
+  const [showEditProgressModal, setShowEditProgressModal] = useState(false);
   const [homePageJumpInput, setHomePageJumpInput] = useState('');
 
   const handleHomeJumpToPage = (targetPage?: number) => {
     const page = targetPage !== undefined ? targetPage : parseArabicOrWesternNumber(homePageJumpInput);
     if (!isNaN(page) && page >= 1 && page <= 604) {
-      saveReadingProgress({
-        pageNumber: page,
-        surahNumber: 1,
-        ayahNumber: 1,
-        updatedAt: new Date().toISOString(),
-      });
       router.push(`/mushaf?page=${page}`);
     }
   };
@@ -78,10 +75,14 @@ export default function HomePage() {
     window.addEventListener('focus', handleFocus);
     window.addEventListener('pageshow', handleFocus);
     document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('noor-reading-progress-updated', refreshProgress);
+    window.addEventListener('noor-pages-visited-updated', refreshProgress);
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('pageshow', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('noor-reading-progress-updated', refreshProgress);
+      window.removeEventListener('noor-pages-visited-updated', refreshProgress);
     };
   }, [refreshProgress]);
 
@@ -94,12 +95,6 @@ export default function HomePage() {
         : progress && progress.pageNumber >= 1 && progress.pageNumber <= 604
         ? progress.pageNumber
         : 1;
-    saveReadingProgress({
-      pageNumber: targetPage,
-      surahNumber: 1,
-      ayahNumber: 1,
-      updatedAt: new Date().toISOString(),
-    });
     router.push(`/mushaf?page=${targetPage}`);
   }, [progress, router]);
 
@@ -205,7 +200,34 @@ export default function HomePage() {
     }
   }, [audio, selectedSurahForAudio]);
 
-  const percentage = Math.round((pagesRead / 604) * 1000) / 10;
+  const currentStoppedPage =
+    progress && progress.pageNumber >= 1 && progress.pageNumber <= 604
+      ? progress.pageNumber
+      : 1;
+  const stoppedSurahMeta = getSurahForPage(currentStoppedPage);
+  const actualPagesRead = Math.max(pagesRead, currentStoppedPage > 1 ? currentStoppedPage : pagesRead);
+  const percentage = Math.min(
+    100,
+    Math.round(((actualPagesRead > 0 ? actualPagesRead : currentStoppedPage) / 604) * 1000) / 10
+  );
+
+  const formatLastReadTime = (isoString?: string) => {
+    if (!isoString) return 'اليوم';
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return 'اليوم';
+      const now = new Date();
+      const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+      if (diffHours < 1) return 'منذ قليل';
+      if (diffHours < 24 && now.getDate() === date.getDate()) {
+        return `اليوم ${date.toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' })}`;
+      }
+      if (diffHours < 48) return 'أمس';
+      return date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
+    } catch {
+      return 'اليوم';
+    }
+  };
   const currentSurahMeta = SURAH_METADATA[selectedSurahForAudio] || SURAH_METADATA[1];
   const totalVerses = currentSurahMeta?.versesCount || 7;
 
@@ -247,15 +269,8 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mb-5 flex flex-col items-center">
-            {/* App Logo */}
-            <div className="relative mb-3 group">
-              <img
-                src="/logo.png"
-                alt="شعار نور القرآن"
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl shadow-xl border-2 border-[#C8A85B]/60 object-cover transform transition-transform group-hover:scale-105 duration-300"
-              />
-              <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-[#C8A85B]/20 via-[#123B2A]/10 to-[#C8A85B]/20 blur-xs -z-10" />
-            </div>
+            {/* App Logo: Animated Flash Logo */}
+            <AnimatedLogo size="lg" className="mb-3" />
 
             <h1
               className="text-3xl md:text-4xl font-bold mb-1 tracking-wide"
@@ -316,53 +331,97 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Reading Progress Card (Clickable: Navigates to last read page on Mobile and Web) */}
-          <button
-            type="button"
-            onClick={handleContinueReading}
-            className="w-full text-right rounded-2xl p-5 mb-4 border border-[#C8A85B]/40 bg-gradient-to-r from-white/12 via-white/18 to-white/12 hover:border-[#C8A85B] transition-all active:scale-[0.98] cursor-pointer shadow-lg group block touch-manipulation select-none"
-            aria-label={`الذهاب إلى صفحة التلاوة ${progress?.pageNumber ? `صفحة ${progress.pageNumber}` : 'صفحة 1'}`}
-            title="اضغط للانتقال مباشرة إلى الصفحة التي وقفت عندها في التلاوة"
-          >
+          {/* Real Reading Progress Card linked to the mobile user */}
+          <div className="w-full text-right rounded-3xl p-4 sm:p-5 mb-4 border border-[#C8A85B]/50 bg-gradient-to-br from-white/12 via-white/18 to-[#123B2A]/40 shadow-xl backdrop-blur-md transition-all">
+            {/* Top Bar: Title & Edit Button & Device Owner Badge */}
             <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="text-xl group-hover:scale-110 transition-transform">📖</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-bold text-white group-hover:text-[#C8A85B] transition-colors" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                    تقدمك العام في القراءة
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📖</span>
+                <span
+                  className="text-base font-bold text-white flex items-center gap-2"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
+                  <span>تقدمك في القراءة</span>
+                  <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    صاحب الجوال
                   </span>
-                  {progress && progress.pageNumber > 0 && (
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#C8A85B]/30 text-[#FDF6E2] border border-[#C8A85B]/60 font-extrabold shadow-xs">
-                      صفحة {progress.pageNumber}
-                    </span>
-                  )}
+                </span>
+              </div>
+
+              {/* Edit Stopped Page Button */}
+              <button
+                type="button"
+                onClick={() => setShowEditProgressModal(true)}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border border-[#C8A85B]/40 active:scale-95 transition cursor-pointer shadow-xs"
+                title="تعديل صفحة التوقف وعدد الصفحات المقروءة"
+              >
+                <span>✏️</span>
+                <span>تعديل الموضع</span>
+              </button>
+            </div>
+
+            {/* Info Grid: Stopped Page & Pages Read & Last Read */}
+            <div className="grid grid-cols-2 gap-2.5 mb-3.5">
+              {/* Stopped Page Box */}
+              <div className="bg-black/25 rounded-2xl p-3 border border-[#C8A85B]/30 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-[11px] text-white/70 mb-1">
+                  <span>الصفحة المتوقف عندها:</span>
+                  <span className="text-[#C8A85B]">📌 موضعك</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl sm:text-2xl font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                    صفحة {currentStoppedPage}
+                  </span>
+                </div>
+                {stoppedSurahMeta && (
+                  <span className="text-[11px] text-[#C8A85B] font-bold truncate mt-0.5">
+                    سورة {stoppedSurahMeta.name} • الجزء {stoppedSurahMeta.startPage}
+                  </span>
+                )}
+              </div>
+
+              {/* Pages Read & Khatmah Box */}
+              <div className="bg-black/25 rounded-2xl p-3 border border-[#C8A85B]/30 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-[11px] text-white/70 mb-1">
+                  <span>الصفحات المقروءة:</span>
+                  <span className="text-[#C8A85B] font-mono font-bold" dir="ltr">{percentage}%</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl sm:text-2xl font-black text-white" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                    {actualPagesRead}
+                  </span>
+                  <span className="text-[11px] text-white/60 font-medium">صفحة من 604</span>
+                </div>
+                <div className="text-[10px] text-white/60 mt-0.5">
+                  <span>آخر قراءة: {formatLastReadTime(progress?.updatedAt)}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-[#C8A85B]" dir="ltr">
-                  {percentage}%
-                </span>
-                <span className="text-xs text-[#C8A85B] opacity-80 group-hover:translate-x-[-3px] transition-transform">
-                  ◀
-                </span>
-              </div>
             </div>
-            <div className="h-2.5 rounded-full overflow-hidden bg-white/15 mb-3">
+
+            {/* Progress Bar */}
+            <div className="h-2.5 rounded-full overflow-hidden bg-white/15 mb-3.5 relative">
               <div
-                className="h-full rounded-full transition-all duration-700 bg-[#C8A85B]"
-                style={{ width: `${percentage}%` }}
+                className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#C8A85B] via-[#eed596] to-[#C8A85B] shadow-[0_0_10px_rgba(200,168,91,0.5)]"
+                style={{ width: `${Math.max(2, percentage)}%` }}
               />
             </div>
-            <div className="flex justify-between items-center text-xs">
-              <span className="opacity-80 text-white font-medium">
-                {pagesRead} صفحة مقروءة • 604 صفحة
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#C8A85B] text-[#123B2A] font-extrabold text-xs shadow-sm group-hover:brightness-105 transition-all">
-                <span>{progress && progress.pageNumber > 0 ? `المتابعة من صفحة ${progress.pageNumber}` : 'ابدأ القراءة الآن'}</span>
-                <span>←</span>
-              </span>
-            </div>
-          </button>
+
+            {/* Big Action Button: Continue Reading */}
+            <button
+              type="button"
+              onClick={handleContinueReading}
+              className="w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.98] transition shadow-lg cursor-pointer flex items-center justify-between border border-[#C8A85B]"
+              style={{ fontFamily: "'Tajawal', sans-serif" }}
+            >
+              <div className="flex items-center gap-2">
+                <span>▶</span>
+                <span>
+                  متابعة القراءة من صفحة {currentStoppedPage} {stoppedSurahMeta ? `(سورة ${stoppedSurahMeta.name})` : ''}
+                </span>
+              </div>
+              <span className="text-xs font-black">فتح المصحف ←</span>
+            </button>
+          </div>
 
           {/* Audio Listening & Sheikh Selection Card */}
           <div
@@ -1062,12 +1121,6 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={() => {
-                        saveReadingProgress({
-                          pageNumber: queryNum,
-                          surahNumber: s ? s.number : 1,
-                          ayahNumber: 1,
-                          updatedAt: new Date().toISOString(),
-                        });
                         router.push(`/mushaf?page=${queryNum}`);
                       }}
                       className="px-4 py-2 rounded-xl bg-[#C8A85B] text-[#123B2A] text-xs font-bold hover:brightness-110 active:scale-95 transition shadow-sm cursor-pointer whitespace-nowrap"
@@ -1088,12 +1141,6 @@ export default function HomePage() {
                   <div
                     key={meta.number}
                     onClick={() => {
-                      saveReadingProgress({
-                        pageNumber: meta.startPage,
-                        surahNumber: meta.number,
-                        ayahNumber: 1,
-                        updatedAt: new Date().toISOString(),
-                      });
                       router.push(`/mushaf?page=${meta.startPage}`);
                     }}
                     className="w-full flex items-center justify-between px-5 py-3.5 text-right hover:bg-[#123B2A]/5 transition-colors cursor-pointer group"
@@ -1170,12 +1217,6 @@ export default function HomePage() {
               <button
                 key={juz.juzNumber}
                 onClick={() => {
-                  saveReadingProgress({
-                    pageNumber: juz.startPage,
-                    surahNumber: 1,
-                    ayahNumber: 1,
-                    updatedAt: new Date().toISOString(),
-                  });
                   router.push(`/mushaf?page=${juz.startPage}`);
                 }}
                 className="w-full flex items-center gap-4 px-5 py-4 text-right hover:bg-[#123B2A]/5 transition-colors"
@@ -1390,6 +1431,15 @@ export default function HomePage() {
             currentReciter.name
           );
         }}
+      />
+
+      {/* Edit Reading Progress Modal (Linked to Mobile User) */}
+      <EditReadingProgressModal
+        isOpen={showEditProgressModal}
+        onClose={() => setShowEditProgressModal(false)}
+        currentPage={currentStoppedPage}
+        pagesRead={actualPagesRead}
+        onProgressUpdated={refreshProgress}
       />
     </div>
   );

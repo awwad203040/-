@@ -3,6 +3,7 @@
 import type { Bookmark, ReadingProgress, UserSettings, Khatmah, DailyWird } from '@/types/quran';
 import type { AutoAthkarSettings, ThikrCategory } from '@/types/athkar';
 import { DEFAULT_ATHKAR_SETTINGS } from '@/types/athkar';
+import { getSurahForPage } from '@/lib/quran-meta';
 
 const STORAGE_KEYS = {
   BOOKMARKS: 'noor_bookmarks',
@@ -70,34 +71,31 @@ export function isBookmarked(surahNumber: number, ayahNumber: number): boolean {
 // Reading Progress
 export function getReadingProgress(): ReadingProgress | null {
   const prog = getItem<ReadingProgress | null>(STORAGE_KEYS.READING_PROGRESS, null);
-  const visited = getPagesVisited();
-
-  // If visited pages are recorded (e.g. 32 pages):
-  // Filter out page 604 if total pages visited < 500,
-  // because opening Surah An-Nas/Al-Ikhlas should not hijack sequential reading progress!
-  const normalVisited = visited.length < 500 ? visited.filter((p) => p < 600) : visited;
-  const maxNormalVisited = normalVisited.length > 0 ? Math.max(...normalVisited) : (prog?.pageNumber || 1);
-
-  // Auto-heal: If reading progress is missing, or is lagging behind the pages visited/read (e.g. says page 2 while user read 32 pages),
-  // or was accidentally hijacked to page 604 when the user only read e.g. 32 pages
-  if (!prog || prog.pageNumber < maxNormalVisited || (prog.pageNumber >= 600 && visited.length < 500)) {
-    if (maxNormalVisited >= 1) {
-      const recovered: ReadingProgress = {
-        pageNumber: maxNormalVisited,
-        surahNumber: prog?.surahNumber || 1,
-        ayahNumber: 1,
-        updatedAt: prog?.updatedAt || new Date().toISOString(),
-      };
-      setItem(STORAGE_KEYS.READING_PROGRESS, recovered);
-      return recovered;
-    }
+  if (!prog) {
+    return {
+      pageNumber: 1,
+      surahNumber: 1,
+      ayahNumber: 1,
+      updatedAt: new Date().toISOString(),
+    };
   }
-
   return prog;
 }
 
 export function saveReadingProgress(progress: ReadingProgress): void {
-  setItem(STORAGE_KEYS.READING_PROGRESS, progress);
+  const page = Math.max(1, Math.min(604, progress.pageNumber));
+  const surahMeta = getSurahForPage(page);
+  const sanitized: ReadingProgress = {
+    ...progress,
+    pageNumber: page,
+    surahNumber: progress.surahNumber || (surahMeta ? surahMeta.number : 1),
+    surahName: progress.surahName || (surahMeta ? surahMeta.name : 'الفاتحة'),
+    updatedAt: progress.updatedAt || new Date().toISOString(),
+  };
+  setItem(STORAGE_KEYS.READING_PROGRESS, sanitized);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('noor-reading-progress-updated', { detail: sanitized }));
+  }
 }
 
 // Pages Visited (for stats tracking)
@@ -106,10 +104,64 @@ export function getPagesVisited(): number[] {
 }
 
 export function addPageVisited(page: number): void {
+  if (page < 1 || page > 604) return;
   const pages = getPagesVisited();
   if (!pages.includes(page)) {
     pages.push(page);
     setItem(STORAGE_KEYS.PAGES_VISITED, pages);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('noor-pages-visited-updated', { detail: pages }));
+    }
+  }
+}
+
+/**
+ * Set the user's real reading position (linked to mobile user).
+ * Optionally syncs pages visited so pagesRead count matches reality.
+ */
+export function setRealReadingPosition(targetPage: number, syncPagesVisited: boolean = false): ReadingProgress {
+  const page = Math.max(1, Math.min(604, targetPage));
+  const surahMeta = getSurahForPage(page);
+  const surahNum = surahMeta ? surahMeta.number : 1;
+  const surahName = surahMeta ? surahMeta.name : 'الفاتحة';
+
+  const updated: ReadingProgress = {
+    pageNumber: page,
+    surahNumber: surahNum,
+    surahName: surahName,
+    ayahNumber: 1,
+    updatedAt: new Date().toISOString(),
+  };
+
+  saveReadingProgress(updated);
+  addPageVisited(page);
+
+  if (syncPagesVisited) {
+    const newPages: number[] = [];
+    for (let p = 1; p <= page; p++) {
+      newPages.push(p);
+    }
+    setItem(STORAGE_KEYS.PAGES_VISITED, newPages);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('noor-pages-visited-updated', { detail: newPages }));
+    }
+  }
+
+  return updated;
+}
+
+/**
+ * Manually set the count of pages read.
+ */
+export function setManualPagesReadCount(count: number): void {
+  const validCount = Math.max(0, Math.min(604, count));
+  const arr: number[] = [];
+  for (let i = 1; i <= validCount; i++) {
+    arr.push(i);
+  }
+  setItem(STORAGE_KEYS.PAGES_VISITED, arr);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('noor-pages-visited-updated', { detail: arr }));
   }
 }
 

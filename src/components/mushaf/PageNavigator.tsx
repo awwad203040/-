@@ -15,6 +15,7 @@ interface PageNavigatorProps {
   onGoToPage: (page: number) => void;
   onBookmarkPage: () => void;
   isBookmarked: boolean;
+  onSetStopMark?: () => void;
   isOpenModal?: boolean;
   onCloseModal?: () => void;
 }
@@ -42,6 +43,7 @@ export default function PageNavigator({
   onGoToPage,
   onBookmarkPage,
   isBookmarked,
+  onSetStopMark,
   isOpenModal,
   onCloseModal,
 }: PageNavigatorProps) {
@@ -151,6 +153,19 @@ export default function PageNavigator({
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
             </svg>
           </button>
+
+          {/* Reading Stop Position Mark (تثبيت صفحة التوقف لصاحب الجوال) */}
+          {onSetStopMark && (
+            <button
+              type="button"
+              onClick={onSetStopMark}
+              aria-label="تثبيت صفحة التوقف"
+              title="تثبيت هذه الصفحة كموضع توقفك الحالي في القراءة"
+              className="p-2 sm:p-2.5 rounded-full hover:bg-white/10 active:scale-95 transition-all cursor-pointer text-[#C8A85B] flex items-center justify-center"
+            >
+              <span className="text-base sm:text-lg select-none">📌</span>
+            </button>
+          )}
 
           {/* Page number / Go to specific page trigger */}
           <button

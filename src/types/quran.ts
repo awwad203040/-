@@ -113,6 +113,9 @@ export type ReadingProgress = {
   surahNumber?: number;
   ayahNumber?: number;
   updatedAt: string;
+  surahName?: string;
+  juzNumber?: number;
+  customPagesReadCount?: number;
 };
 
 export type ReadingStats = {

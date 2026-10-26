@@ -243,3 +243,79 @@ body {
 [dir="rtl"] .flip-rtl {
   transform: scaleX(-1);
 }
+
+/* ============================================================
+   Animated Flash Logo & Islamic Radiant Glow Keyframes
+   ============================================================ */
+
+@keyframes logoFlashSweep {
+  0% {
+    transform: translateX(-180%) rotate(25deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.95;
+  }
+  35% {
+    transform: translateX(200%) rotate(25deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(200%) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+@keyframes logoAuraPulse {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.45;
+    filter: blur(14px);
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.85;
+    filter: blur(22px);
+  }
+}
+
+@keyframes logoBreathing {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.025) translateY(-2px);
+  }
+}
+
+@keyframes logoStarSparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.2) rotate(0deg);
+  }
+  20%, 35% {
+    opacity: 1;
+    transform: scale(1.15) rotate(90deg);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(0.2) rotate(180deg);
+  }
+}
+
+.animate-logo-flash {
+  animation: logoFlashSweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-logo-aura {
+  animation: logoAuraPulse 3.5s ease-in-out infinite;
+}
+
+.animate-logo-breathing {
+  animation: logoBreathing 4s ease-in-out infinite;
+}
+
+.animate-logo-sparkle {
+  animation: logoStarSparkle 3s ease-in-out infinite;
+}
+
