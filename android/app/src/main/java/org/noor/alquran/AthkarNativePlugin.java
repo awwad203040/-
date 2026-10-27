@@ -109,4 +109,20 @@ public class AthkarNativePlugin extends Plugin {
             call.reject("Failed to open battery settings: " + e.getMessage());
         }
     }
+
+    @PluginMethod
+    public void requestAllPermissions(PluginCall call) {
+        try {
+            if (getActivity() instanceof MainActivity) {
+                getActivity().runOnUiThread(() -> {
+                    ((MainActivity) getActivity()).requestAllNecessaryPermissions();
+                });
+            }
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to request permissions: " + e.getMessage());
+        }
+    }
 }

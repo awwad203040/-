@@ -24,6 +24,8 @@ interface AthkarNativePlugin {
   openAppSettings(): Promise<{ success: boolean }>;
 
   openBatterySettings(): Promise<{ success: boolean }>;
+
+  requestAllPermissions(): Promise<{ success: boolean }>;
 }
 
 const AthkarNative = registerPlugin<AthkarNativePlugin>('AthkarNative');
@@ -108,6 +110,20 @@ export async function openNativeBatterySettings(): Promise<boolean> {
     return res?.success ?? true;
   } catch (err) {
     console.warn('Failed to open battery settings:', err);
+    return false;
+  }
+}
+
+/**
+ * Trigger Android runtime permissions flow (notifications, exact alarms, battery optimizations)
+ */
+export async function requestNativePermissions(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.requestAllPermissions();
+    return res?.success ?? true;
+  } catch (err) {
+    console.warn('Failed to request native permissions:', err);
     return false;
   }
 }
