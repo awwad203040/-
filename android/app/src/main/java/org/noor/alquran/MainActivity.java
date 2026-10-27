@@ -20,7 +20,7 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
-    private static final int PERMISSION_REQ_NOTIFICATIONS = 101;
+    private static final int PERMISSION_REQ_CORE = 100;
     private static final String PREFS_PERMS = "noor_permissions_prefs";
 
     private boolean requestedExactAlarmThisSession = false;
@@ -32,11 +32,17 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AdhanNativePlugin.class);
         super.onCreate(savedInstanceState);
 
+        try {
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                getBridge().getWebView().getSettings().setGeolocationEnabled(true);
+            }
+        } catch (Exception ignored) {}
+
         // Pre-arm alarms immediately on startup so closed-app alerts work from first launch
         AthkarAlarmReceiver.ensureScheduledOnStartup(this);
         AdhanAlarmReceiver.rescheduleFromPrefs(this);
 
-        // Automatically initiate permissions onboarding flow
+        // Automatically initiate permissions onboarding flow (Notifications + GPS Location)
         requestAllNecessaryPermissions();
     }
 
@@ -48,23 +54,35 @@ public class MainActivity extends BridgeActivity {
     }
 
     public void requestAllNecessaryPermissions() {
-        // Step 1: Request Notification Permission (Android 13+)
+        java.util.List<String> neededPermissions = new java.util.ArrayList<>();
+
+        // 1. Notification Permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, PERMISSION_REQ_NOTIFICATIONS);
-                return;
+                neededPermissions.add(Manifest.permission.POST_NOTIFICATIONS);
             }
         }
 
-        // If notification permission already granted or not needed, check exact alarms and battery
+        // 2. Location Permissions for Automatic GPS Prayer Times
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            neededPermissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+            neededPermissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+
+        if (!neededPermissions.isEmpty()) {
+            ActivityCompat.requestPermissions(this, neededPermissions.toArray(new String[0]), PERMISSION_REQ_CORE);
+            return;
+        }
+
+        // If core permissions already granted, check exact alarms and battery
         checkAndPromptNextPermission();
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQ_NOTIFICATIONS) {
-            Log.i(TAG, "Notification permission result received.");
+        if (requestCode == PERMISSION_REQ_CORE) {
+            Log.i(TAG, "Core permissions result received.");
             checkAndPromptNextPermission();
         }
     }

@@ -22,6 +22,14 @@ export interface AdhanNativePluginInterface {
   cancelAdhanAlarms(): Promise<{ success: boolean }>;
   playTestAdhan(): Promise<{ success: boolean }>;
   stopAdhan(): Promise<{ success: boolean }>;
+  getDeviceLocation(): Promise<{
+    success: boolean;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    cityName?: string;
+    error?: string;
+  }>;
 }
 
 const AdhanNative = registerPlugin<AdhanNativePluginInterface>('AdhanNative');
@@ -100,5 +108,25 @@ export async function stopAdhanSound() {
       webAdhanAudio.pause();
       webAdhanAudio.currentTime = 0;
     } catch {}
+  }
+}
+
+/**
+ * Native GPS and Network Location Resolver
+ * Returns device coordinates with reverse-geocoded Arabic city name
+ */
+export async function getNativeDeviceLocation(): Promise<{
+  success: boolean;
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
+  cityName?: string;
+  error?: string;
+}> {
+  try {
+    const res = await AdhanNative.getDeviceLocation();
+    return res;
+  } catch (err) {
+    return { success: false, error: String(err) };
   }
 }

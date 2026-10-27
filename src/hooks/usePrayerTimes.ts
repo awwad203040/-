@@ -16,6 +16,7 @@ import {
   cancelNativeAdhanAlarms,
   playTestAdhanSound,
   stopAdhanSound,
+  getNativeDeviceLocation,
 } from '@/lib/adhan-native-bridge';
 
 const DEFAULT_PRAYER_RESULT: PrayerTimesResult = {
@@ -44,6 +45,53 @@ const DEFAULT_PRAYER_RESULT: PrayerTimesResult = {
   cityName: 'مكة المكرمة',
   isGps: true,
 };
+
+// Fallback IP Geolocation to ensure 100% automatic city detection even if GPS is off
+async function fetchIpLocation(): Promise<{ lat: number; lng: number; cityName: string } | null> {
+  const endpoints = [
+    'https://ipapi.co/json/',
+    'https://freeipapi.com/api/json',
+    'https://ipwhois.app/json/'
+  ];
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
+      if (res.ok) {
+        const data = await res.json();
+        const lat = parseFloat(data.latitude ?? data.lat);
+        const lng = parseFloat(data.longitude ?? data.lon ?? data.lng);
+        const city = data.city || data.region_name || data.country_name || '';
+        if (!isNaN(lat) && !isNaN(lng)) {
+          return { lat, lng, cityName: city };
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function matchLocationToCity(lat: number, lng: number, nativeCityName?: string): string {
+  let closest = POPULAR_CITIES[0];
+  let minDistance = Infinity;
+  for (const city of POPULAR_CITIES) {
+    const d = Math.hypot(city.lat - lat, city.lng - lng);
+    if (d < minDistance) {
+      minDistance = d;
+      closest = city;
+    }
+  }
+
+  // If within ~70 km of a major preset city, use the clean Arabic name
+  if (minDistance < 0.7) {
+    return closest.name;
+  }
+
+  if (nativeCityName && nativeCityName.trim().length > 1) {
+    return nativeCityName.trim();
+  }
+
+  return `${closest.name} (موقعي)`;
+}
 
 export function usePrayerTimes() {
   const [settings, setSettings] = useState<UserPrayerSettings>(getPrayerSettings);
@@ -87,57 +135,80 @@ export function usePrayerTimes() {
     return () => clearInterval(timer);
   }, [settings]);
 
-  // Request GPS Location
-  const requestGpsLocation = useCallback(() => {
-    if (typeof window === 'undefined' || !('geolocation' in navigator)) {
-      setGpsError('خاصية تحديد الموقع غير مدعومة في جهازك');
-      return;
+  // Unified Intelligent & Automatic Location Resolver
+  const requestGpsLocation = useCallback(async (isInteractive = true) => {
+    if (isInteractive) {
+      setIsGpsLoading(true);
+      setGpsError(null);
+      triggerHaptic('tap');
+      speakAccessibility('جاري تحديد موقعك الجغرافي لحساب مواقيت الصلاة بدقة');
     }
 
-    setIsGpsLoading(true);
-    setGpsError(null);
-    triggerHaptic('tap');
-    speakAccessibility('جاري تحديد موقعك الجغرافي لحساب مواقيت الصلاة');
+    const applyLocation = (lat: number, lng: number, rawCityName?: string, isAutoIp = false) => {
+      const resolvedName = matchLocationToCity(lat, lng, rawCityName);
+      const displayLabel = isAutoIp ? `${resolvedName} (تحديد تلقائي)` : resolvedName;
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+      const updated = savePrayerSettings({
+        useGps: true,
+        customLat: lat,
+        customLng: lng,
+        customCityName: displayLabel,
+      });
 
-        // Try to find closest preset city or name it "موقعي الحالي"
-        let closestName = 'موقعي الحالي (GPS)';
-        let minDistance = Infinity;
-        for (const city of POPULAR_CITIES) {
-          const d = Math.hypot(city.lat - lat, city.lng - lng);
-          if (d < minDistance) {
-            minDistance = d;
-            if (d < 0.4) {
-              closestName = `${city.name} (GPS)`;
-            }
-          }
-        }
+      setSettings(updated);
+      setIsGpsLoading(false);
+      setGpsError(null);
 
-        const updated = savePrayerSettings({
-          useGps: true,
-          customLat: lat,
-          customLng: lng,
-          customCityName: closestName,
+      if (isInteractive) {
+        triggerHaptic('success');
+        speakAccessibility(`تم تحديد موقعك: ${resolvedName}`);
+        announceToScreenReader(`تم تحديد موقعك: ${resolvedName}`);
+      }
+    };
+
+    // 1. Try Native Android Location Manager (High Accuracy & Instant Cached GPS)
+    try {
+      const nativeLoc = await getNativeDeviceLocation();
+      if (nativeLoc.success && typeof nativeLoc.latitude === 'number' && typeof nativeLoc.longitude === 'number') {
+        applyLocation(nativeLoc.latitude, nativeLoc.longitude, nativeLoc.cityName, false);
+        return;
+      }
+    } catch {}
+
+    // 2. Try HTML5 Geolocation API (Browser / WebView)
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 6000,
+            enableHighAccuracy: true,
+          });
         });
 
-        setSettings(updated);
-        setIsGpsLoading(false);
-        triggerHaptic('success');
-        speakAccessibility(`تم تحديد موقعك: ${closestName}`);
-        announceToScreenReader(`تم تحديد موقعك: ${closestName}`);
-      },
-      (err) => {
-        setIsGpsLoading(false);
-        setGpsError('تعذر الحصول على إذن الموقع، يرجى اختيار المدينة يدوياً');
-        triggerHaptic('alert');
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
-  }, []);
+        applyLocation(pos.coords.latitude, pos.coords.longitude, undefined, false);
+        return;
+      } catch (geoErr) {
+        // Continue to IP fallback
+      }
+    }
+
+    // 3. Fallback: Automatic Network IP Geolocation (Zero-touch fallback)
+    try {
+      const ipLoc = await fetchIpLocation();
+      if (ipLoc) {
+        applyLocation(ipLoc.lat, ipLoc.lng, ipLoc.cityName, true);
+        return;
+      }
+    } catch {}
+
+    // 4. If all fail (e.g. airplane mode / completely offline)
+    setIsGpsLoading(false);
+    if (isInteractive) {
+      setGpsError(`تم الاعتماد على توقيت ${settings.customCityName || 'موقعك الحالي'} لعدم توفر شبكة`);
+      triggerHaptic('alert');
+      setTimeout(() => setGpsError(null), 5000);
+    }
+  }, [settings.customCityName]);
 
   // Select City Manually
   const selectCity = useCallback((cityId: string) => {
@@ -159,51 +230,45 @@ export function usePrayerTimes() {
     announceToScreenReader(`تم اختيار مدينة ${city.name}`);
   }, []);
 
-  // Change Calculation Method
+  // Update Calculation Method
   const setMethod = useCallback((method: CalculationMethod) => {
     const updated = savePrayerSettings({ method });
     setSettings(updated);
     triggerHaptic('tap');
   }, []);
 
-  // Toggle Notification
+  // Toggle Notifications
   const toggleNotification = useCallback(() => {
-    const updated = savePrayerSettings({
-      notificationEnabled: !settings.notificationEnabled,
-    });
+    const updated = savePrayerSettings({ notificationEnabled: !settings.notificationEnabled });
     setSettings(updated);
     triggerHaptic('tap');
   }, [settings.notificationEnabled]);
 
-  // Master Adhan Sound Toggle
+  // Master Adhan Switch
   const toggleMasterAdhan = useCallback(() => {
     const newVal = !settings.adhanEnabled;
     const updated = savePrayerSettings({ adhanEnabled: newVal });
     setSettings(updated);
     triggerHaptic('tap');
+
     if (!newVal) {
       cancelNativeAdhanAlarms();
       stopAdhanSound();
-      setIsTestAdhanPlaying(false);
     }
   }, [settings.adhanEnabled]);
 
-  // Toggle individual prayer Adhan
-  const togglePrayerAdhan = useCallback(
-    (prayerKey: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha') => {
-      const current = settings.enabledPrayers;
-      const updatedPrayers = {
-        ...current,
-        [prayerKey]: !current[prayerKey],
-      };
-      const updated = savePrayerSettings({ enabledPrayers: updatedPrayers });
-      setSettings(updated);
-      triggerHaptic('tap');
-    },
-    [settings.enabledPrayers]
-  );
+  // Toggle specific prayer adhan
+  const togglePrayerAdhan = useCallback((prayerKey: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha') => {
+    const newPrayers = {
+      ...settings.enabledPrayers,
+      [prayerKey]: !settings.enabledPrayers[prayerKey],
+    };
+    const updated = savePrayerSettings({ enabledPrayers: newPrayers });
+    setSettings(updated);
+    triggerHaptic('tap');
+  }, [settings.enabledPrayers]);
 
-  // Play Test Adhan Sound
+  // Test Adhan Sound
   const testAdhan = useCallback(async () => {
     setIsTestAdhanPlaying(true);
     triggerHaptic('tap');
@@ -217,39 +282,15 @@ export function usePrayerTimes() {
     await stopAdhanSound();
   }, []);
 
-  // Initial GPS check if useGps is true and default location
+  // Automatic Background Location Determination on Launch
   const initialGpsDone = useRef(false);
   useEffect(() => {
-    if (typeof window !== 'undefined' && settings.useGps && !initialGpsDone.current) {
+    if (typeof window !== 'undefined' && !initialGpsDone.current) {
       initialGpsDone.current = true;
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            let closestName = 'موقعي الحالي (GPS)';
-            let minDistance = Infinity;
-            for (const city of POPULAR_CITIES) {
-              const d = Math.hypot(city.lat - lat, city.lng - lng);
-              if (d < minDistance) {
-                minDistance = d;
-                if (d < 0.4) closestName = `${city.name} (GPS)`;
-              }
-            }
-            const updated = savePrayerSettings({
-              useGps: true,
-              customLat: lat,
-              customLng: lng,
-              customCityName: closestName,
-            });
-            setSettings(updated);
-          },
-          () => {},
-          { timeout: 5000 }
-        );
-      }
+      // Automatically detect and update user location silently in the background
+      requestGpsLocation(false);
     }
-  }, [settings.useGps]);
+  }, [requestGpsLocation]);
 
   return {
     prayerData,
@@ -257,7 +298,7 @@ export function usePrayerTimes() {
     isGpsLoading,
     gpsError,
     isTestAdhanPlaying,
-    requestGpsLocation,
+    requestGpsLocation: () => requestGpsLocation(true),
     selectCity,
     setMethod,
     toggleNotification,
