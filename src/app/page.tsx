@@ -343,8 +343,8 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* Row 2: Athkar Button, Prayer Times Button & Blind Accessibility Button */}
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Row 2: Athkar Button & Blind Accessibility Button side-by-side in one row */}
+              <div className="flex items-center justify-center gap-2 w-full max-w-sm">
                 {/* 1. Athkar Button */}
                 <button
                   type="button"
@@ -352,7 +352,7 @@ export default function HomePage() {
                     triggerHaptic('tap');
                     setShowAthkarModal(true);
                   }}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
+                  className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
                     autoAthkar?.settings?.enabled
                       ? 'border-emerald-400/60 bg-emerald-700/40 text-emerald-200 hover:bg-emerald-700/60'
                       : 'border-white/20 bg-white/10 text-white/80 hover:bg-white/20'
@@ -362,20 +362,20 @@ export default function HomePage() {
                   aria-label="إعداد الأذكار الصوتية التلقائية"
                 >
                   <span className={autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}>🔔</span>
-                  <span>
-                    الأذكار الصوتية: {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
+                  <span className="truncate">
+                    الأذكار: {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
                   </span>
-                  <span className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded-md">⚙️ ضبط</span>
+                  <span className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded-md shrink-0">⚙️</span>
                 </button>
 
-                {/* 2. Blind Accessibility Button right beside Athkar */}
+                {/* 2. Blind Accessibility Button directly beside Athkar */}
                 <button
                   type="button"
                   onClick={() => {
                     triggerHaptic('tap');
                     setShowAccessibilityModal(true);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
                   style={{ fontFamily: "'Tajawal', sans-serif" }}
                   title="تسهيل الوصول وخدمة المكفوفين"
                   aria-label="فتح إعدادات خدمة المكفوفين وتسهيل الوصول"
@@ -383,15 +383,17 @@ export default function HomePage() {
                   <span className="text-sm">🦯</span>
                   <span>خدمة المكفوفين</span>
                 </button>
+              </div>
 
-                {/* 3. Prayer Times Button */}
+              {/* Row 3: Prayer Times & Countdown Bar */}
+              <div className="w-full max-w-sm">
                 <button
                   type="button"
                   onClick={() => {
                     triggerHaptic('tap');
                     setShowPrayerModal(true);
                   }}
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-emerald-500/50 bg-[#0E3E2B]/85 text-[#F7EED8] hover:bg-[#124D36] active:scale-95 cursor-pointer shadow-xs"
+                  className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-emerald-500/50 bg-[#0E3E2B]/85 text-[#F7EED8] hover:bg-[#124D36] active:scale-95 cursor-pointer shadow-xs"
                   style={{ fontFamily: "'Tajawal', sans-serif" }}
                   title="مواقيت الصلاة وموعد الأذان"
                   aria-label={`مواقيت الصلاة، موعد أذان ${prayerTimes.prayerData.nextPrayer.name} الساعة ${prayerTimes.prayerData.nextPrayer.time12}، متبقي على الأذان ${prayerTimes.prayerData.nextPrayer.remainingFormatted}`}
