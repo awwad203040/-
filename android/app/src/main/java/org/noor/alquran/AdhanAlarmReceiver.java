@@ -45,6 +45,10 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
     public static final int REQ_MAGHRIB = 2004;
     public static final int REQ_ISHA = 2005;
 
+    private static MediaPlayer activePlayer = null;
+    private static PowerManager.WakeLock activeCpuLock = null;
+    private static PowerManager.WakeLock activeScreenLock = null;
+
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent != null ? intent.getAction() : null;
@@ -109,21 +113,41 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
 
     private void playAdhanDirectFallback(Context context, String prayerKey, String prayerName, String cityName) {
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        PowerManager.WakeLock wakeLock = null;
         if (pm != null) {
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NoorAlQuran:AdhanDirectFallbackWakeLock");
-            wakeLock.acquire(220000L); // 220s safety timeout
+            try {
+                if (activeCpuLock != null && activeCpuLock.isHeld()) activeCpuLock.release();
+                activeCpuLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NoorAlQuran:AdhanDirectFallbackCpuLock");
+                activeCpuLock.acquire(220000L); // 220s safety timeout
+            } catch (Exception ignored) {}
+
+            try {
+                if (activeScreenLock != null && activeScreenLock.isHeld()) activeScreenLock.release();
+                activeScreenLock = pm.newWakeLock(
+                        PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE,
+                        "NoorAlQuran:AdhanDirectFallbackScreenLock"
+                );
+                activeScreenLock.acquire(10000L); // Light up screen for 10s
+            } catch (Exception ignored) {}
         }
 
         final PendingResult pendingResult = goAsync();
-        final PowerManager.WakeLock finalWakeLock = wakeLock;
         final AtomicBoolean finished = new AtomicBoolean(false);
 
         Runnable cleanup = () -> {
             if (finished.compareAndSet(false, true)) {
                 try {
-                    if (finalWakeLock != null && finalWakeLock.isHeld()) {
-                        finalWakeLock.release();
+                    stopActivePlayer();
+                } catch (Exception ignored) {}
+                try {
+                    if (activeCpuLock != null && activeCpuLock.isHeld()) {
+                        activeCpuLock.release();
+                        activeCpuLock = null;
+                    }
+                } catch (Exception ignored) {}
+                try {
+                    if (activeScreenLock != null && activeScreenLock.isHeld()) {
+                        activeScreenLock.release();
+                        activeScreenLock = null;
                     }
                 } catch (Exception ignored) {}
                 try {
@@ -143,12 +167,28 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
                 return;
             }
 
-            MediaPlayer player = new MediaPlayer();
+            android.media.AudioManager audioManager = (android.media.AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             AudioAttributes attrs = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build();
+
+            if (audioManager != null) {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        android.media.AudioFocusRequest afr = new android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN)
+                                .setAudioAttributes(attrs)
+                                .build();
+                        audioManager.requestAudioFocus(afr);
+                    } else {
+                        audioManager.requestAudioFocus(null, android.media.AudioManager.STREAM_ALARM, android.media.AudioManager.AUDIOFOCUS_GAIN);
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            MediaPlayer player = new MediaPlayer();
             player.setAudioAttributes(attrs);
+            player.setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK);
 
             AssetFileDescriptor afd = context.getResources().openRawResourceFd(soundResId);
             if (afd != null) {
@@ -161,21 +201,36 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
 
             player.setVolume(1.0f, 1.0f);
             player.setOnCompletionListener(mp -> {
-                try { mp.release(); } catch (Exception ignored) {}
+                stopActivePlayer();
                 cleanup.run();
             });
             player.setOnErrorListener((mp, what, extra) -> {
-                try { mp.release(); } catch (Exception ignored) {}
+                stopActivePlayer();
                 cleanup.run();
                 return true;
             });
             player.prepare();
             player.start();
-            Log.i(TAG, "Direct Adhan audio playback started successfully.");
+            activePlayer = player;
+            Log.i(TAG, "Direct Adhan audio playback started successfully with wake lock and audio focus.");
         } catch (Exception e) {
             Log.e(TAG, "Direct Adhan playback error: " + e.getMessage(), e);
+            stopActivePlayer();
             cleanup.run();
         }
+    }
+
+    private static synchronized void stopActivePlayer() {
+        try {
+            if (activePlayer != null) {
+                if (activePlayer.isPlaying()) {
+                    activePlayer.stop();
+                }
+                activePlayer.reset();
+                activePlayer.release();
+                activePlayer = null;
+            }
+        } catch (Exception ignored) {}
     }
 
     private void showAdhanHeadsUpNotification(Context context, String prayerName, String cityName) {

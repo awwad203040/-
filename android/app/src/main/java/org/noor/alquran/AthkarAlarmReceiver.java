@@ -12,6 +12,8 @@ import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Color;
 import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
@@ -39,9 +41,13 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
     private static final String TAG = "AthkarAlarmReceiver";
     public static final String PREFS_NAME = "noor_athkar_prefs";
     public static final String ACTION_ATHKAR_ALARM = "org.noor.alquran.ATHKAR_ALARM";
-    public static final String CHANNEL_ID = "noor_athkar_v15_direct";
+    public static final String CHANNEL_ID = "noor_athkar_v16_wakeup";
     public static final int NOTIFICATION_ID = 777;
     public static final int ALARM_REQ_CODE = 1001;
+
+    private static MediaPlayer activePlayer = null;
+    private static PowerManager.WakeLock activeCpuLock = null;
+    private static PowerManager.WakeLock activeScreenLock = null;
 
     public static class ThikrItem {
         public String id;
@@ -83,24 +89,48 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
             return;
         }
 
-        // 2. Direct Broadcast Execution with WakeLock & goAsync
-        // Avoids ForegroundServiceStartNotAllowedException on Android 12-15 completely!
+        // 2. WAKE UP DEVICE FROM SLEEP MODE: Turn screen on & keep CPU running!
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        PowerManager.WakeLock wakeLock = null;
         if (pm != null) {
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NoorAlQuran:AthkarDirectWakeLock");
-            wakeLock.acquire(15000L); // 15 seconds max safety timeout
+            try {
+                if (activeCpuLock != null && activeCpuLock.isHeld()) {
+                    activeCpuLock.release();
+                }
+                activeCpuLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NoorAlQuran:AthkarCpuLock");
+                activeCpuLock.acquire(20000L); // 20s safety timeout
+            } catch (Exception ignored) {}
+
+            try {
+                if (activeScreenLock != null && activeScreenLock.isHeld()) {
+                    activeScreenLock.release();
+                }
+                // ACQUIRE_CAUSES_WAKEUP turns on the screen over lock screen so OEM power manager unfreezes process!
+                activeScreenLock = pm.newWakeLock(
+                        PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE,
+                        "NoorAlQuran:AthkarScreenWakeLock"
+                );
+                activeScreenLock.acquire(7000L); // Keep screen lit for 7 seconds during thikr
+            } catch (Exception ignored) {}
         }
 
         final PendingResult pendingResult = goAsync();
-        final PowerManager.WakeLock finalWakeLock = wakeLock;
         final AtomicBoolean finished = new AtomicBoolean(false);
 
         Runnable cleanup = () -> {
             if (finished.compareAndSet(false, true)) {
                 try {
-                    if (finalWakeLock != null && finalWakeLock.isHeld()) {
-                        finalWakeLock.release();
+                    stopActivePlayer();
+                } catch (Exception ignored) {}
+                try {
+                    if (activeCpuLock != null && activeCpuLock.isHeld()) {
+                        activeCpuLock.release();
+                        activeCpuLock = null;
+                    }
+                } catch (Exception ignored) {}
+                try {
+                    if (activeScreenLock != null && activeScreenLock.isHeld()) {
+                        activeScreenLock.release();
+                        activeScreenLock = null;
                     }
                 } catch (Exception ignored) {}
                 try {
@@ -109,8 +139,8 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
             }
         };
 
-        // Safety watchdog: ensure receiver cleans up within 12 seconds
-        new Handler(Looper.getMainLooper()).postDelayed(cleanup, 12000L);
+        // Safety watchdog: ensure receiver cleans up within 15 seconds
+        new Handler(Looper.getMainLooper()).postDelayed(cleanup, 15000L);
 
         try {
             List<ThikrItem> items = loadThikrItems(prefs);
@@ -124,7 +154,8 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
             // Advance index for next time
             prefs.edit().putInt("current_index", (currentIndex + 1) % items.size()).apply();
 
-            float volume = prefs.getFloat("volume", 0.9f);
+            float volume = prefs.getFloat("volume", 0.95f);
+            if (volume <= 0.05f) volume = 0.95f;
 
             // Clean sound resource name
             String soundName = currentItem.sound;
@@ -143,7 +174,7 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
             // A. Post high-priority Heads-up Notification over lockscreen
             showHeadsUpNotification(context, currentItem);
 
-            // B. Play authentic voice audio directly using USAGE_ALARM stream
+            // B. Play authentic voice audio directly using USAGE_ALARM stream with WakeMode & AudioFocus
             if (soundResId != 0) {
                 playDirectAudio(context, soundResId, volume, cleanup);
             } else {
@@ -169,12 +200,14 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
                             "أذكار نور القرآن الصوتية",
                             NotificationManager.IMPORTANCE_HIGH
                     );
-                    channel.setDescription("تنبيهات الأذكار والتسبيحات الدورية المباشرة");
+                    channel.setDescription("تنبيهات الأذكار والتسبيحات الدورية مع إيقاظ شاشة القفل");
                     channel.enableLights(true);
                     channel.setLightColor(Color.parseColor("#C8A85B"));
                     channel.enableVibration(true);
+                    channel.setVibrationPattern(new long[]{0, 300, 150, 300});
                     channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-                    channel.setSound(null, null); // Sound handled by direct MediaPlayer
+                    channel.setBypassDnd(true);
+                    channel.setSound(null, null); // Handled by active MediaPlayer with USAGE_ALARM
                     nm.createNotificationChannel(channel);
                 }
             }
@@ -207,14 +240,37 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
         }
     }
 
-    private void playDirectAudio(Context context, int soundResId, float volume, Runnable onDone) {
+    private synchronized void playDirectAudio(Context context, int soundResId, float volume, Runnable onDone) {
+        stopActivePlayer();
+
+        // 1. Request AudioFocus so audio hardware amplifier wakes up in sleep mode
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        AudioFocusRequest focusRequest = null;
+        AudioAttributes attrs = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build();
+
+        if (audioManager != null) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    focusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                            .setAudioAttributes(attrs)
+                            .build();
+                    audioManager.requestAudioFocus(focusRequest);
+                } else {
+                    audioManager.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        final AudioFocusRequest finalFocusRequest = focusRequest;
+
         try {
             MediaPlayer player = new MediaPlayer();
-            AudioAttributes attrs = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build();
             player.setAudioAttributes(attrs);
+            // CRITICAL FOR SLEEP MODE: prevents CPU suspension during playback
+            player.setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK);
 
             AssetFileDescriptor afd = context.getResources().openRawResourceFd(soundResId);
             if (afd != null) {
@@ -228,28 +284,54 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
             player.setVolume(volume, volume);
 
             player.setOnCompletionListener(mp -> {
-                try {
-                    mp.release();
-                } catch (Exception ignored) {}
+                abandonFocusQuietly(audioManager, finalFocusRequest);
+                stopActivePlayer();
                 onDone.run();
             });
 
             player.setOnErrorListener((mp, what, extra) -> {
                 Log.w(TAG, "MediaPlayer error: " + what + ", " + extra);
-                try {
-                    mp.release();
-                } catch (Exception ignored) {}
+                abandonFocusQuietly(audioManager, finalFocusRequest);
+                stopActivePlayer();
                 onDone.run();
                 return true;
             });
 
             player.prepare();
             player.start();
-            Log.i(TAG, "Athkar audio direct playback started successfully with USAGE_ALARM.");
+            activePlayer = player;
+            Log.i(TAG, "Athkar audio direct playback started successfully with static player, wake mode, and USAGE_ALARM.");
         } catch (Exception e) {
             Log.e(TAG, "Failed to play athkar audio directly: " + e.getMessage(), e);
+            abandonFocusQuietly(audioManager, finalFocusRequest);
+            stopActivePlayer();
             onDone.run();
         }
+    }
+
+    private static synchronized void stopActivePlayer() {
+        try {
+            if (activePlayer != null) {
+                if (activePlayer.isPlaying()) {
+                    activePlayer.stop();
+                }
+                activePlayer.reset();
+                activePlayer.release();
+                activePlayer = null;
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private static void abandonFocusQuietly(AudioManager am, AudioFocusRequest fr) {
+        try {
+            if (am != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && fr != null) {
+                    am.abandonAudioFocusRequest(fr);
+                } else {
+                    am.abandonAudioFocus(null);
+                }
+            }
+        } catch (Exception ignored) {}
     }
 
     public static void scheduleNextAlarm(Context context, int intervalMinutes) {
