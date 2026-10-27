@@ -393,9 +393,9 @@ export function calculatePrayerTimes(
   const fajrHA = computeHourAngle(-methodConfig.fajrAngle, lat, declination) || 6.2;
   const fajrTime = solarNoon - fajrHA;
 
-  // Asr (Shafi'i/Standard: shadow ratio = 1)
-  const asrAltitude = -arccotD(1 + tanD(Math.abs(lat - declination)));
-  const asrHA = computeHourAngle(asrAltitude, lat, declination) || 3.0;
+  // Asr (Shafi'i/Standard: shadow ratio = 1, altitude is above horizon)
+  const asrAltitude = arccotD(1 + tanD(Math.abs(lat - declination)));
+  const asrHA = computeHourAngle(asrAltitude, lat, declination) || 3.1;
   const asrTime = solarNoon + asrHA;
 
   // Isha
