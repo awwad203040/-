@@ -33,6 +33,19 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(true);
+                setTurnScreenOn(true);
+            } else {
+                getWindow().addFlags(
+                        android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+                        android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
+                        android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+                );
+            }
+        } catch (Exception ignored) {}
+
+        try {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 android.webkit.WebSettings ws = getBridge().getWebView().getSettings();
                 ws.setGeolocationEnabled(true);

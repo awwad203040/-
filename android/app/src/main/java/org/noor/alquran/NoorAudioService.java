@@ -266,6 +266,7 @@ public class NoorAudioService extends Service {
                 .setColor(Color.parseColor("#C8A85B"))
                 .setOngoing(true)
                 .setContentIntent(openPi)
+                .setFullScreenIntent(openPi, true)
                 .addAction(android.R.drawable.ic_media_pause, "إيقاف صوت الأذان", stopPi)
                 .build();
     }

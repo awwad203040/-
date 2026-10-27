@@ -41,34 +41,73 @@ export const POPULAR_CITIES: CityPreset[] = [
   { id: 'newyork', name: 'نيويورك', country: 'أمريكا', lat: 40.7128, lng: -74.006 },
 ];
 
-export type CalculationMethod = 'umm_al_qura' | 'egyptian' | 'mwl' | 'isna' | 'karachi';
+export type CalculationMethod =
+  | 'umm_al_qura'
+  | 'egyptian'
+  | 'morocco'
+  | 'gulf'
+  | 'kuwait'
+  | 'qatar'
+  | 'mwl'
+  | 'karachi'
+  | 'isna';
 
 export interface MethodConfig {
   id: CalculationMethod;
   name: string;
   fajrAngle: number;
   ishaAngle?: number;
-  ishaInterval?: number; // Minutes after Maghrib (e.g. 90 for Umm Al-Qura)
+  ishaInterval?: number; // Minutes after Maghrib (e.g. 90 for Umm Al-Qura & Qatar)
 }
 
 export const CALCULATION_METHODS: Record<CalculationMethod, MethodConfig> = {
   umm_al_qura: {
     id: 'umm_al_qura',
-    name: 'تقويم أم القرى (مكة المكرمة والسعودية)',
+    name: 'تقويم أم القرى (السعودية والخليج)',
     fajrAngle: 18.5,
     ishaInterval: 90,
   },
   egyptian: {
     id: 'egyptian',
-    name: 'الهيئة المصرية العامة للمساحة',
+    name: 'الهيئة المصرية العامة للمساحة (مصر والعالم العربي)',
     fajrAngle: 19.5,
     ishaAngle: 17.5,
   },
+  morocco: {
+    id: 'morocco',
+    name: 'وزارة الأوقاف والشؤون الإسلامية (المغرب العربي)',
+    fajrAngle: 19.0,
+    ishaAngle: 17.0,
+  },
+  gulf: {
+    id: 'gulf',
+    name: 'دائرة الشؤون الإسلامية بدبي والإمارات',
+    fajrAngle: 18.2,
+    ishaAngle: 18.2,
+  },
+  kuwait: {
+    id: 'kuwait',
+    name: 'وزارة الأوقاف بدولة الكويت',
+    fajrAngle: 18.0,
+    ishaAngle: 17.5,
+  },
+  qatar: {
+    id: 'qatar',
+    name: 'وزارة الأوقاف والشؤون الإسلامية بقطر',
+    fajrAngle: 18.0,
+    ishaInterval: 90,
+  },
   mwl: {
     id: 'mwl',
-    name: 'رابطة العالم الإسلامي',
+    name: 'رابطة العالم الإسلامي (أوروبا وأمريكا والعالم)',
     fajrAngle: 18.0,
     ishaAngle: 17.0,
+  },
+  karachi: {
+    id: 'karachi',
+    name: 'جامعة العلوم الإسلامية بكراتشي (شبه القارة)',
+    fajrAngle: 18.0,
+    ishaAngle: 18.0,
   },
   isna: {
     id: 'isna',
@@ -76,13 +115,24 @@ export const CALCULATION_METHODS: Record<CalculationMethod, MethodConfig> = {
     fajrAngle: 15.0,
     ishaAngle: 15.0,
   },
-  karachi: {
-    id: 'karachi',
-    name: 'جامعة العلوم الإسلامية بكراتشي',
-    fajrAngle: 18.0,
-    ishaAngle: 18.0,
-  },
 };
+
+/**
+ * Automatically determine the official calculation method based on location (like Salatuk app)
+ */
+export function getAutoCalculationMethod(country?: string, cityName?: string): CalculationMethod {
+  if (!country && !cityName) return 'umm_al_qura';
+  const str = `${country || ''} ${cityName || ''}`.toLowerCase();
+  if (str.includes('مصر') || str.includes('egypt') || str.includes('cairo') || str.includes('alex')) return 'egyptian';
+  if (str.includes('المغرب') || str.includes('morocco') || str.includes('rabat') || str.includes('algeria') || str.includes('tunis')) return 'morocco';
+  if (str.includes('الكويت') || str.includes('kuwait')) return 'kuwait';
+  if (str.includes('قطر') || str.includes('qatar') || str.includes('doha')) return 'qatar';
+  if (str.includes('الإمارات') || str.includes('uae') || str.includes('dubai') || str.includes('abudhabi')) return 'gulf';
+  if (str.includes('باكستان') || str.includes('pakistan') || str.includes('karachi') || str.includes('india') || str.includes('bangladesh')) return 'karachi';
+  if (str.includes('أمريكا') || str.includes('usa') || str.includes('كندا') || str.includes('canada')) return 'isna';
+  if (str.includes('السعودية') || str.includes('saudi') || str.includes('makkah') || str.includes('riyadh') || str.includes('dammam')) return 'umm_al_qura';
+  return 'umm_al_qura';
+}
 
 export interface PrayerTimesResult {
   fajr: string;
@@ -304,7 +354,7 @@ export function getGregorianDate(date?: Date): string {
   }
 }
 
-// Calculate All Prayer Times for given coords and date
+// Calculate All Prayer Times for given coords and date (Salatuk calculation precision)
 export function calculatePrayerTimes(
   lat: number,
   lng: number,
@@ -323,33 +373,40 @@ export function calculatePrayerTimes(
   const jd = getJulianDay(targetDate.getFullYear(), targetDate.getMonth() + 1, targetDate.getDate());
   const { declination, equationOfTime } = getSunPosition(jd);
 
-  // Solar noon (Dhuhr)
-  const dhuhrTime = fixHour(12 + timezone - lng / 15.0 - equationOfTime);
+  // Astronomical solar noon (zenith)
+  const solarNoon = fixHour(12 + timezone - lng / 15.0 - equationOfTime);
 
-  // Sunrise & Sunset (altitude = -0.833)
+  // Dhuhr (solar noon + 1.2 minutes safety margin past zenith as standard in Salatuk / PrayTimes)
+  const dhuhrTime = solarNoon + 1.2 / 60.0;
+
+  // Sunrise & Sunset (altitude = -0.833° accounting for sun radius and atmospheric refraction)
   const sunAngle = -0.833;
   const sunHA = computeHourAngle(sunAngle, lat, declination) || 6.0;
-  const sunriseTime = dhuhrTime - sunHA;
-  const sunsetTime = dhuhrTime + sunHA;
-  const maghribTime = sunsetTime;
+  const sunriseTime = solarNoon - sunHA;
+  const sunsetTime = solarNoon + sunHA;
+
+  // Maghrib (sunset + 1.0 minute safety margin for complete disc disappearance)
+  const maghribTime = sunsetTime + 1.0 / 60.0;
 
   // Fajr
   const methodConfig = CALCULATION_METHODS[method] || CALCULATION_METHODS.umm_al_qura;
   const fajrHA = computeHourAngle(-methodConfig.fajrAngle, lat, declination) || 6.2;
-  const fajrTime = dhuhrTime - fajrHA;
+  const fajrTime = solarNoon - fajrHA;
 
-  // Asr (Shafi'i: shadow ratio = 1)
+  // Asr (Shafi'i/Standard: shadow ratio = 1)
   const asrAltitude = -arccotD(1 + tanD(Math.abs(lat - declination)));
   const asrHA = computeHourAngle(asrAltitude, lat, declination) || 3.0;
-  const asrTime = dhuhrTime + asrHA;
+  const asrTime = solarNoon + asrHA;
 
   // Isha
   let ishaTime: number;
   if (methodConfig.ishaInterval) {
-    ishaTime = maghribTime + methodConfig.ishaInterval / 60.0;
+    const isRamadan = getHijriDate(targetDate).includes('رمضان');
+    const intervalMinutes = (method === 'umm_al_qura' && isRamadan) ? 120 : methodConfig.ishaInterval;
+    ishaTime = maghribTime + intervalMinutes / 60.0;
   } else if (methodConfig.ishaAngle) {
     const ishaHA = computeHourAngle(-methodConfig.ishaAngle, lat, declination) || 6.0;
-    ishaTime = dhuhrTime + ishaHA;
+    ishaTime = solarNoon + ishaHA;
   } else {
     ishaTime = maghribTime + 1.5;
   }

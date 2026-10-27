@@ -9,6 +9,7 @@ import {
   getFullPrayerTimes,
   POPULAR_CITIES,
   CalculationMethod,
+  getAutoCalculationMethod,
 } from '@/lib/prayer-times';
 import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
 import {
@@ -147,12 +148,14 @@ export function usePrayerTimes() {
     const applyLocation = (lat: number, lng: number, rawCityName?: string, isAutoIp = false) => {
       const resolvedName = matchLocationToCity(lat, lng, rawCityName);
       const displayLabel = isAutoIp ? `${resolvedName} (تحديد تلقائي)` : resolvedName;
+      const autoMethod = getAutoCalculationMethod(undefined, resolvedName);
 
       const updated = savePrayerSettings({
         useGps: true,
         customLat: lat,
         customLng: lng,
         customCityName: displayLabel,
+        method: autoMethod,
       });
 
       setSettings(updated);
