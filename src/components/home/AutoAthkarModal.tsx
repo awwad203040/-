@@ -8,6 +8,9 @@ import {
   testNativeAthkar,
   openNativeAppSettings,
   openNativeBatterySettings,
+  requestDirectBatteryExemption,
+  openAutoStartSettings,
+  requestNativePermissions,
 } from '@/lib/athkar-native-bridge';
 
 interface AutoAthkarModalProps {
@@ -253,6 +256,33 @@ export default function AutoAthkarModal({
                     ⚡ تم تفعيل التنبيه بنجاح! <strong>أغلق التطبيق الآن فوراً واقفل شاشة الجوال</strong>، وسيصدح صوت الذكر بعد {testCountdown} ثوانٍ بإذن الله.
                   </div>
                 )}
+
+                {/* Background & Auto-Start Helper Banner */}
+                <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-300 text-amber-950 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="text-base">⚡</span>
+                    <div className="text-[11px] leading-relaxed">
+                      <strong className="block text-amber-950 font-bold mb-0.5">خطوة هامة لعمل الأذكار في الخلفية والسكون:</strong>
+                      تأكد من تفعيل <strong>التشغيل التلقائي (Auto-start)</strong> واستثناء التطبيق من تحسين البطارية، ليصدح الذكر والأذان حتى لو كان التطبيق مغلقاً تماماً والجوال في وضع السكون.
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => requestDirectBatteryExemption()}
+                      className="py-1.5 px-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
+                    >
+                      🔋 استثناء البطارية المباشر
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openAutoStartSettings()}
+                      className="py-1.5 px-2 rounded-lg bg-[#123B2A] hover:bg-[#0e2c20] text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
+                    >
+                      🚀 تفعيل التشغيل التلقائي
+                    </button>
+                  </div>
+                </div>
 
                 {/* Quick Phone Settings Openers */}
                 <div className="pt-1 flex gap-2">

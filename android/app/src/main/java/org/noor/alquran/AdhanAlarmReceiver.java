@@ -1,15 +1,28 @@
 package org.noor.alquran;
 
 import android.app.AlarmManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.AssetFileDescriptor;
+import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.PowerManager;
 import android.util.Log;
+import androidx.core.app.NotificationCompat;
 
 import java.util.Calendar;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Native Adhan / Azan Alarm Receiver for Noor AlQuran.
@@ -23,6 +36,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
     public static final String PREFS_NAME = "noor_adhan_prefs";
     public static final String ACTION_ADHAN_ALARM = "org.noor.alquran.ADHAN_ALARM";
     public static final String ACTION_STOP_ADHAN = "org.noor.alquran.STOP_ADHAN";
+    public static final String CHANNEL_FALLBACK_ID = "noor_adhan_direct_v1";
+    public static final int NOTIFICATION_FALLBACK_ID = 8882;
 
     public static final int REQ_FAJR = 2001;
     public static final int REQ_DHUHR = 2002;
@@ -54,36 +69,163 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         final String prayerName = intent.getStringExtra("prayer_name");
         final String cityName = intent.getStringExtra("city_name") != null ? intent.getStringExtra("city_name") : "موقعك";
 
+        // 1. Guaranteed rescheduling first so the chain is never interrupted
+        rescheduleSinglePrayerNextDay(context, prayerKey, prayerName, cityName);
+
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         boolean masterEnabled = prefs.getBoolean("adhan_master_enabled", true);
         boolean prayerEnabled = prefs.getBoolean("adhan_" + prayerKey, true);
 
         if (!masterEnabled || !prayerEnabled) {
             Log.i(TAG, "Adhan for " + prayerKey + " is disabled, skipping playback.");
-            rescheduleSinglePrayerNextDay(context, prayerKey, prayerName, cityName);
             return;
         }
 
-        // Delegate Adhan audio playback and notification to NoorAudioService (Foreground Service)
-        // Foreground service guarantees continuous 3.5-minute audio without getting killed by Doze mode!
+        // 2. Try starting NoorAudioService (Foreground Service).
+        // If Android 12+ throws ForegroundServiceStartNotAllowedException while app is closed,
+        // seamlessly fall back to direct MediaPlayer playback inside the BroadcastReceiver with WakeLock!
         Intent serviceIntent = new Intent(context, NoorAudioService.class);
         serviceIntent.setAction(NoorAudioService.ACTION_PLAY_ADHAN);
         serviceIntent.putExtra("prayer_key", prayerKey);
         serviceIntent.putExtra("prayer_name", prayerName);
         serviceIntent.putExtra("city_name", cityName);
 
+        boolean startedService = false;
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(serviceIntent);
             } else {
                 context.startService(serviceIntent);
             }
+            startedService = true;
         } catch (Exception e) {
-            Log.e(TAG, "Failed to start NoorAudioService: " + e.getMessage(), e);
+            Log.w(TAG, "Could not start Foreground Service from background: " + e.getMessage() + ". Using direct playback fallback.");
         }
 
-        // Automatically reschedule next day for this prayer
-        rescheduleSinglePrayerNextDay(context, prayerKey, prayerName, cityName);
+        if (!startedService) {
+            playAdhanDirectFallback(context, prayerKey, prayerName, cityName);
+        }
+    }
+
+    private void playAdhanDirectFallback(Context context, String prayerKey, String prayerName, String cityName) {
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        PowerManager.WakeLock wakeLock = null;
+        if (pm != null) {
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NoorAlQuran:AdhanDirectFallbackWakeLock");
+            wakeLock.acquire(220000L); // 220s safety timeout
+        }
+
+        final PendingResult pendingResult = goAsync();
+        final PowerManager.WakeLock finalWakeLock = wakeLock;
+        final AtomicBoolean finished = new AtomicBoolean(false);
+
+        Runnable cleanup = () -> {
+            if (finished.compareAndSet(false, true)) {
+                try {
+                    if (finalWakeLock != null && finalWakeLock.isHeld()) {
+                        finalWakeLock.release();
+                    }
+                } catch (Exception ignored) {}
+                try {
+                    pendingResult.finish();
+                } catch (Exception ignored) {}
+            }
+        };
+
+        new Handler(Looper.getMainLooper()).postDelayed(cleanup, 220000L);
+
+        try {
+            showAdhanHeadsUpNotification(context, prayerName, cityName);
+
+            int soundResId = context.getResources().getIdentifier("adhan", "raw", context.getPackageName());
+            if (soundResId == 0) {
+                cleanup.run();
+                return;
+            }
+
+            MediaPlayer player = new MediaPlayer();
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build();
+            player.setAudioAttributes(attrs);
+
+            AssetFileDescriptor afd = context.getResources().openRawResourceFd(soundResId);
+            if (afd != null) {
+                player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                afd.close();
+            } else {
+                Uri uri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + context.getPackageName() + "/" + soundResId);
+                player.setDataSource(context, uri);
+            }
+
+            player.setVolume(1.0f, 1.0f);
+            player.setOnCompletionListener(mp -> {
+                try { mp.release(); } catch (Exception ignored) {}
+                cleanup.run();
+            });
+            player.setOnErrorListener((mp, what, extra) -> {
+                try { mp.release(); } catch (Exception ignored) {}
+                cleanup.run();
+                return true;
+            });
+            player.prepare();
+            player.start();
+            Log.i(TAG, "Direct Adhan audio playback started successfully.");
+        } catch (Exception e) {
+            Log.e(TAG, "Direct Adhan playback error: " + e.getMessage(), e);
+            cleanup.run();
+        }
+    }
+
+    private void showAdhanHeadsUpNotification(Context context, String prayerName, String cityName) {
+        try {
+            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm == null) return;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = nm.getNotificationChannel(CHANNEL_FALLBACK_ID);
+                if (channel == null) {
+                    channel = new NotificationChannel(
+                            CHANNEL_FALLBACK_ID,
+                            "أذان الصلاة المباشر",
+                            NotificationManager.IMPORTANCE_HIGH
+                    );
+                    channel.setDescription("تنبيهات أذان الصلاة بصوت الشيخ محمد جازي");
+                    channel.enableLights(true);
+                    channel.setLightColor(Color.parseColor("#123B2A"));
+                    channel.enableVibration(true);
+                    channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+                    channel.setSound(null, null);
+                    nm.createNotificationChannel(channel);
+                }
+            }
+
+            Intent launchIntent = new Intent(context, MainActivity.class);
+            launchIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            PendingIntent contentIntent = PendingIntent.getActivity(
+                    context,
+                    0,
+                    launchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_FALLBACK_ID)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle("حان الآن موعد أذان " + (prayerName != null ? prayerName : "الصلاة"))
+                    .setContentText("حسب التوقيت المحلي لمدينة " + (cityName != null ? cityName : "موقعك") + " • بصوت الشيخ محمد جازي")
+                    .setColor(Color.parseColor("#123B2A"))
+                    .setContentIntent(contentIntent)
+                    .setFullScreenIntent(contentIntent, true)
+                    .setAutoCancel(true)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+            nm.notify(NOTIFICATION_FALLBACK_ID, builder.build());
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to display adhan notification: " + e.getMessage());
+        }
     }
 
     public static void stopCurrentAdhan(Context context) {
@@ -169,8 +311,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             target.set(Calendar.SECOND, 0);
             target.set(Calendar.MILLISECOND, 0);
 
-            // If time has already passed today, schedule for tomorrow
-            if (target.before(now)) {
+            // If time has already passed today or is within 1 minute, schedule for tomorrow
+            if (target.getTimeInMillis() <= now.getTimeInMillis() + 60000L) {
                 target.add(Calendar.DAY_OF_YEAR, 1);
             }
 

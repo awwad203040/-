@@ -26,6 +26,16 @@ interface AthkarNativePlugin {
   openBatterySettings(): Promise<{ success: boolean }>;
 
   requestAllPermissions(): Promise<{ success: boolean }>;
+
+  requestDirectBatteryExemption(): Promise<{ success: boolean }>;
+
+  openAutoStartSettings(): Promise<{ success: boolean }>;
+
+  getPermissionStatus(): Promise<{
+    notifications: boolean;
+    exactAlarms: boolean;
+    batteryIgnored: boolean;
+  }>;
 }
 
 const AthkarNative = registerPlugin<AthkarNativePlugin>('AthkarNative');
@@ -125,5 +135,50 @@ export async function requestNativePermissions(): Promise<boolean> {
   } catch (err) {
     console.warn('Failed to request native permissions:', err);
     return false;
+  }
+}
+
+/**
+ * Direct Battery Exemption dialog (Action: REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+ */
+export async function requestDirectBatteryExemption(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.requestDirectBatteryExemption();
+    return res?.success ?? true;
+  } catch (err) {
+    console.warn('Failed to request direct battery exemption:', err);
+    return false;
+  }
+}
+
+/**
+ * Open OEM Auto-Start settings (Xiaomi, Huawei, Samsung, Oppo, Vivo, OnePlus)
+ */
+export async function openAutoStartSettings(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.openAutoStartSettings();
+    return res?.success ?? true;
+  } catch (err) {
+    console.warn('Failed to open auto-start settings:', err);
+    return false;
+  }
+}
+
+/**
+ * Check native permission status
+ */
+export async function getNativePermissionStatus(): Promise<{
+  notifications: boolean;
+  exactAlarms: boolean;
+  batteryIgnored: boolean;
+} | null> {
+  if (!Capacitor.isNativePlatform()) return null;
+  try {
+    return await AthkarNative.getPermissionStatus();
+  } catch (err) {
+    console.warn('Failed to get native permission status:', err);
+    return null;
   }
 }

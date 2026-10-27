@@ -1,30 +1,46 @@
 package org.noor.alquran;
 
 import android.app.AlarmManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.AssetFileDescriptor;
+import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.PowerManager;
 import android.util.Log;
+import androidx.core.app.NotificationCompat;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * High-reliability Native Alarm Receiver for Noor AlQuran Athkar.
  * Guarantees voice playback and notifications even when:
  * 1. App is completely closed / swiped away from Recents
  * 2. Device is in deep sleep / Doze mode
- * 3. Device has rebooted (BOOT_COMPLETED)
+ * 3. Screen is locked
+ * 4. Device has rebooted (BOOT_COMPLETED)
  */
 public class AthkarAlarmReceiver extends BroadcastReceiver {
     private static final String TAG = "AthkarAlarmReceiver";
     public static final String PREFS_NAME = "noor_athkar_prefs";
     public static final String ACTION_ATHKAR_ALARM = "org.noor.alquran.ATHKAR_ALARM";
+    public static final String CHANNEL_ID = "noor_athkar_v15_direct";
+    public static final int NOTIFICATION_ID = 777;
     public static final int ALARM_REQ_CODE = 1001;
 
     public static class ThikrItem {
@@ -48,21 +64,53 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         boolean enabled = prefs.getBoolean("enabled", true);
+        int intervalMinutes = prefs.getInt("interval_minutes", 10);
+        if (intervalMinutes <= 0) intervalMinutes = 10;
+
+        // 1. ALWAYS re-arm the next alarm in the chain first to ensure continuity
+        if (enabled) {
+            scheduleNextAlarm(context, intervalMinutes);
+        }
 
         if (!enabled) {
             Log.i(TAG, "Athkar is disabled by user, skipping.");
             return;
         }
 
-        int intervalMinutes = prefs.getInt("interval_minutes", 10);
-        if (intervalMinutes <= 0) intervalMinutes = 10;
-
-        // On reboot or app update, reschedule the first alarm and exit
+        // On reboot or app update, next alarm is already rescheduled above
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) || "android.intent.action.MY_PACKAGE_REPLACED".equals(action)) {
-            Log.i(TAG, "Device booted or package replaced, rescheduling Athkar.");
-            scheduleNextAlarm(context, intervalMinutes);
+            Log.i(TAG, "Device booted or package replaced, Athkar alarm re-armed.");
             return;
         }
+
+        // 2. Direct Broadcast Execution with WakeLock & goAsync
+        // Avoids ForegroundServiceStartNotAllowedException on Android 12-15 completely!
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        PowerManager.WakeLock wakeLock = null;
+        if (pm != null) {
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NoorAlQuran:AthkarDirectWakeLock");
+            wakeLock.acquire(15000L); // 15 seconds max safety timeout
+        }
+
+        final PendingResult pendingResult = goAsync();
+        final PowerManager.WakeLock finalWakeLock = wakeLock;
+        final AtomicBoolean finished = new AtomicBoolean(false);
+
+        Runnable cleanup = () -> {
+            if (finished.compareAndSet(false, true)) {
+                try {
+                    if (finalWakeLock != null && finalWakeLock.isHeld()) {
+                        finalWakeLock.release();
+                    }
+                } catch (Exception ignored) {}
+                try {
+                    pendingResult.finish();
+                } catch (Exception ignored) {}
+            }
+        };
+
+        // Safety watchdog: ensure receiver cleans up within 12 seconds
+        new Handler(Looper.getMainLooper()).postDelayed(cleanup, 12000L);
 
         try {
             List<ThikrItem> items = loadThikrItems(prefs);
@@ -78,27 +126,129 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
 
             float volume = prefs.getFloat("volume", 0.9f);
 
-            // Delegate notification and audio playback to NoorAudioService (Foreground Service)
-            // This guarantees Android never terminates audio mid-speech even when app is killed!
-            Intent serviceIntent = new Intent(context, NoorAudioService.class);
-            serviceIntent.setAction(NoorAudioService.ACTION_PLAY_THIKR);
-            serviceIntent.putExtra("thikr_id", currentItem.id);
-            serviceIntent.putExtra("thikr_sound", currentItem.sound);
-            serviceIntent.putExtra("thikr_title", currentItem.title);
-            serviceIntent.putExtra("thikr_body", currentItem.body);
-            serviceIntent.putExtra("volume", volume);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent);
+            // Clean sound resource name
+            String soundName = currentItem.sound;
+            if (soundName != null) {
+                if (soundName.contains("/")) soundName = soundName.substring(soundName.lastIndexOf('/') + 1);
+                if (soundName.contains(".")) soundName = soundName.substring(0, soundName.lastIndexOf('.'));
             } else {
-                context.startService(serviceIntent);
+                soundName = "tasbeeh_azeem";
             }
 
-            // Schedule NEXT alarm in the exact chain
-            scheduleNextAlarm(context, intervalMinutes);
+            int soundResId = context.getResources().getIdentifier(soundName, "raw", context.getPackageName());
+            if (soundResId == 0) {
+                soundResId = context.getResources().getIdentifier("tasbeeh_azeem", "raw", context.getPackageName());
+            }
+
+            // A. Post high-priority Heads-up Notification over lockscreen
+            showHeadsUpNotification(context, currentItem);
+
+            // B. Play authentic voice audio directly using USAGE_ALARM stream
+            if (soundResId != 0) {
+                playDirectAudio(context, soundResId, volume, cleanup);
+            } else {
+                cleanup.run();
+            }
 
         } catch (Exception e) {
-            Log.e(TAG, "Error executing Athkar alarm: " + e.getMessage(), e);
+            Log.e(TAG, "Error executing Athkar in receiver: " + e.getMessage(), e);
+            cleanup.run();
+        }
+    }
+
+    private void showHeadsUpNotification(Context context, ThikrItem item) {
+        try {
+            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm == null) return;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = nm.getNotificationChannel(CHANNEL_ID);
+                if (channel == null) {
+                    channel = new NotificationChannel(
+                            CHANNEL_ID,
+                            "أذكار نور القرآن الصوتية",
+                            NotificationManager.IMPORTANCE_HIGH
+                    );
+                    channel.setDescription("تنبيهات الأذكار والتسبيحات الدورية المباشرة");
+                    channel.enableLights(true);
+                    channel.setLightColor(Color.parseColor("#C8A85B"));
+                    channel.enableVibration(true);
+                    channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+                    channel.setSound(null, null); // Sound handled by direct MediaPlayer
+                    nm.createNotificationChannel(channel);
+                }
+            }
+
+            Intent launchIntent = new Intent(context, MainActivity.class);
+            launchIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            PendingIntent contentIntent = PendingIntent.getActivity(
+                    context,
+                    0,
+                    launchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle("نور القرآن 📿 • " + (item.title != null ? item.title : "ذكر"))
+                    .setContentText(item.body != null ? item.body : "")
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(item.body != null ? item.body : ""))
+                    .setColor(Color.parseColor("#C8A85B"))
+                    .setContentIntent(contentIntent)
+                    .setFullScreenIntent(contentIntent, true)
+                    .setAutoCancel(true)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+            nm.notify(NOTIFICATION_ID, builder.build());
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to display notification: " + e.getMessage());
+        }
+    }
+
+    private void playDirectAudio(Context context, int soundResId, float volume, Runnable onDone) {
+        try {
+            MediaPlayer player = new MediaPlayer();
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build();
+            player.setAudioAttributes(attrs);
+
+            AssetFileDescriptor afd = context.getResources().openRawResourceFd(soundResId);
+            if (afd != null) {
+                player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                afd.close();
+            } else {
+                Uri uri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + context.getPackageName() + "/" + soundResId);
+                player.setDataSource(context, uri);
+            }
+
+            player.setVolume(volume, volume);
+
+            player.setOnCompletionListener(mp -> {
+                try {
+                    mp.release();
+                } catch (Exception ignored) {}
+                onDone.run();
+            });
+
+            player.setOnErrorListener((mp, what, extra) -> {
+                Log.w(TAG, "MediaPlayer error: " + what + ", " + extra);
+                try {
+                    mp.release();
+                } catch (Exception ignored) {}
+                onDone.run();
+                return true;
+            });
+
+            player.prepare();
+            player.start();
+            Log.i(TAG, "Athkar audio direct playback started successfully with USAGE_ALARM.");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to play athkar audio directly: " + e.getMessage(), e);
+            onDone.run();
         }
     }
 

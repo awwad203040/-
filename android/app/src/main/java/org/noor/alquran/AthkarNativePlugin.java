@@ -125,4 +125,111 @@ public class AthkarNativePlugin extends Plugin {
             call.reject("Failed to request permissions: " + e.getMessage());
         }
     }
+
+    @PluginMethod
+    public void requestDirectBatteryExemption(PluginCall call) {
+        try {
+            Context context = getContext();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                android.os.PowerManager pm = (android.os.PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                if (pm != null && !pm.isIgnoringBatteryOptimizations(context.getPackageName())) {
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + context.getPackageName()));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                } else {
+                    Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                }
+            }
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to request battery exemption: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openAutoStartSettings(PluginCall call) {
+        Context context = getContext();
+        String pkg = context.getPackageName();
+        Intent[] autoStartIntents = new Intent[] {
+            // Xiaomi / Redmi / POCO (MIUI / HyperOS)
+            new Intent().setComponent(new android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")),
+            // Huawei / Honor
+            new Intent().setComponent(new android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity")),
+            new Intent().setComponent(new android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")),
+            // Samsung
+            new Intent().setComponent(new android.content.ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+            // Oppo / Realme
+            new Intent().setComponent(new android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")),
+            new Intent().setComponent(new android.content.ComponentName("com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity")),
+            // Vivo
+            new Intent().setComponent(new android.content.ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")),
+            new Intent().setComponent(new android.content.ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")),
+            // OnePlus
+            new Intent().setComponent(new android.content.ComponentName("com.oneplus.security", "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"))
+        };
+
+        boolean opened = false;
+        for (Intent intent : autoStartIntents) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+                opened = true;
+                break;
+            } catch (Exception ignored) {}
+        }
+
+        if (!opened) {
+            try {
+                Intent fallback = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                fallback.setData(Uri.parse("package:" + pkg));
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(fallback);
+                opened = true;
+            } catch (Exception ignored) {}
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("success", opened);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void getPermissionStatus(PluginCall call) {
+        try {
+            Context context = getContext();
+            boolean notifications = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                notifications = androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+            }
+
+            boolean exactAlarms = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                android.app.AlarmManager am = (android.app.AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                if (am != null) {
+                    exactAlarms = am.canScheduleExactAlarms();
+                }
+            }
+
+            boolean batteryIgnored = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                android.os.PowerManager pm = (android.os.PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                if (pm != null) {
+                    batteryIgnored = pm.isIgnoringBatteryOptimizations(context.getPackageName());
+                }
+            }
+
+            JSObject ret = new JSObject();
+            ret.put("notifications", notifications);
+            ret.put("exactAlarms", exactAlarms);
+            ret.put("batteryIgnored", batteryIgnored);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to get status: " + e.getMessage());
+        }
+    }
 }
