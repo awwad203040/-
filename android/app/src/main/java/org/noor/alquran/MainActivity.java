@@ -129,21 +129,109 @@ public class MainActivity extends BridgeActivity {
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
             if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
                 requestedBatteryExemptionThisSession = true;
-                try {
-                    Toast.makeText(this, "يرجى استثناء التطبيق من تحسين البطارية ليعمل الأذان في الخلفية والسكون", Toast.LENGTH_LONG).show();
-                    Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                    intent.setData(Uri.parse("package:" + getPackageName()));
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Log.w(TAG, "Direct ignore battery intent failed, trying settings list: " + e.getMessage());
+                requestBatteryExemptionDirectly();
+            }
+        }
+    }
+
+    public void requestBatteryExemptionDirectly() {
+        runOnUiThread(() -> {
+            try {
+                Toast.makeText(this, "جاري فتح نافذة استثناء البطارية...", Toast.LENGTH_SHORT).show();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                    boolean isIgnoring = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+                    if (!isIgnoring) {
+                        try {
+                            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                            intent.setData(Uri.parse("package:" + getPackageName()));
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                            return;
+                        } catch (Exception e1) {
+                            Log.w(TAG, "Direct ignore battery prompt failed: " + e1.getMessage());
+                        }
+                    }
                     try {
                         Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(intent);
+                        return;
+                    } catch (Exception e2) {
+                        Log.w(TAG, "Battery settings list failed: " + e2.getMessage());
+                    }
+                }
+                openAppSettingsDirectly();
+            } catch (Exception e) {
+                Log.e(TAG, "Error opening battery settings: " + e.getMessage());
+            }
+        });
+    }
+
+    public void openAutoStartDirectly() {
+        runOnUiThread(() -> {
+            try {
+                Toast.makeText(this, "جاري فتح إدارة التشغيل التلقائي بالجوال...", Toast.LENGTH_SHORT).show();
+                String pkg = getPackageName();
+
+                Intent[] autoStartIntents = new Intent[] {
+                    // Xiaomi / Redmi / POCO (MIUI / HyperOS)
+                    new Intent().setComponent(new android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")),
+                    new Intent().setComponent(new android.content.ComponentName("com.miui.securitycenter", "com.miui.powercenter.PowerSettings")),
+                    // Huawei / Honor
+                    new Intent().setComponent(new android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity")),
+                    new Intent().setComponent(new android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.appcontrol.activity.StartupAppControlActivity")),
+                    new Intent().setComponent(new android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")),
+                    // Samsung (Device Care / Smart Manager / Battery)
+                    new Intent().setComponent(new android.content.ComponentName("com.samsung.android.sm", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                    new Intent().setComponent(new android.content.ComponentName("com.samsung.android.sm_cn", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                    new Intent().setComponent(new android.content.ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                    // Oppo / Realme (ColorOS)
+                    new Intent().setComponent(new android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")),
+                    new Intent().setComponent(new android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity")),
+                    new Intent().setComponent(new android.content.ComponentName("com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity")),
+                    // Vivo / iQOO
+                    new Intent().setComponent(new android.content.ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")),
+                    new Intent().setComponent(new android.content.ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager")),
+                    new Intent().setComponent(new android.content.ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")),
+                    // OnePlus
+                    new Intent().setComponent(new android.content.ComponentName("com.oneplus.security", "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity")),
+                    // Transsion / Tecno / Infinix
+                    new Intent().setComponent(new android.content.ComponentName("com.transsion.phonemanager", "com.transsion.phonemanager.settings.AutoBootManageActivity")),
+                    // ASUS
+                    new Intent().setComponent(new android.content.ComponentName("com.asus.mobilemanager", "com.asus.mobilemanager.autostart.AutoStartActivity"))
+                };
+
+                for (Intent intent : autoStartIntents) {
+                    try {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                        return;
                     } catch (Exception ignored) {}
                 }
+
+                openAppSettingsDirectly();
+            } catch (Exception e) {
+                Log.e(TAG, "Error opening autostart settings: " + e.getMessage());
             }
-        }
+        });
+    }
+
+    public void openAppSettingsDirectly() {
+        runOnUiThread(() -> {
+            try {
+                Toast.makeText(this, "جاري فتح معلومات التطبيق في إعدادات الجوال...", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.parse("package:" + getPackageName()));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+            } catch (Exception e) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_SETTINGS);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                } catch (Exception ignored) {}
+            }
+        });
     }
 }

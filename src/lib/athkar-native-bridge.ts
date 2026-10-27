@@ -142,12 +142,19 @@ export async function requestNativePermissions(): Promise<boolean> {
  * Direct Battery Exemption dialog (Action: REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
  */
 export async function requestDirectBatteryExemption(): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) return false;
-  try {
-    const res = await AthkarNative.requestDirectBatteryExemption();
-    return res?.success ?? true;
-  } catch (err) {
-    console.warn('Failed to request direct battery exemption:', err);
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await AthkarNative.requestDirectBatteryExemption();
+      return res?.success ?? true;
+    } catch (err) {
+      console.warn('Failed to request direct battery exemption:', err);
+      try {
+        await AthkarNative.openBatterySettings();
+      } catch (ignored) {}
+      return false;
+    }
+  } else {
+    alert('هذا الخيار يعمل داخل تطبيق أندرويد (APK) لفتح نافذة استثناء البطارية مباشرة.');
     return false;
   }
 }
@@ -156,12 +163,19 @@ export async function requestDirectBatteryExemption(): Promise<boolean> {
  * Open OEM Auto-Start settings (Xiaomi, Huawei, Samsung, Oppo, Vivo, OnePlus)
  */
 export async function openAutoStartSettings(): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) return false;
-  try {
-    const res = await AthkarNative.openAutoStartSettings();
-    return res?.success ?? true;
-  } catch (err) {
-    console.warn('Failed to open auto-start settings:', err);
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await AthkarNative.openAutoStartSettings();
+      return res?.success ?? true;
+    } catch (err) {
+      console.warn('Failed to open auto-start settings:', err);
+      try {
+        await AthkarNative.openAppSettings();
+      } catch (ignored) {}
+      return false;
+    }
+  } else {
+    alert('هذا الخيار يعمل داخل تطبيق أندرويد (APK) لفتح إدارة التشغيل التلقائي في الهاتف.');
     return false;
   }
 }

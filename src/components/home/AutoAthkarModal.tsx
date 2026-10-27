@@ -33,6 +33,31 @@ export default function AutoAthkarModal({
   const [activeTab, setActiveTab] = useState<'settings' | 'list'>('settings');
   const [testCountdown, setTestCountdown] = useState<number | null>(null);
   const [testActive, setTestActive] = useState<boolean>(false);
+  const [btnFeedback, setBtnFeedback] = useState<string | null>(null);
+
+  const handleBatteryClick = async () => {
+    setBtnFeedback('⏳ جاري فتح إعدادات استثناء البطارية بالجوال...');
+    try {
+      await requestDirectBatteryExemption();
+      setTimeout(() => {
+        setBtnFeedback('✅ تم فتح نافذة استثناء البطارية بنجاح');
+      }, 700);
+    } catch {
+      setBtnFeedback('❌ حدث خطأ أثناء فتح الإعدادات');
+    }
+  };
+
+  const handleAutoStartClick = async () => {
+    setBtnFeedback('⏳ جاري فتح إعدادات التشغيل التلقائي بالجوال...');
+    try {
+      await openAutoStartSettings();
+      setTimeout(() => {
+        setBtnFeedback('✅ تم توجيهك إلى إعدادات التشغيل التلقائي بنجاح');
+      }, 700);
+    } catch {
+      setBtnFeedback('❌ حدث خطأ أثناء فتح الإعدادات');
+    }
+  };
 
   const handleTriggerTest5Sec = async () => {
     try {
@@ -269,34 +294,46 @@ export default function AutoAthkarModal({
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <button
                       type="button"
-                      onClick={() => requestDirectBatteryExemption()}
-                      className="py-1.5 px-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
+                      onClick={handleBatteryClick}
+                      className="py-2 px-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-95 active:bg-emerald-900 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer touch-manipulation select-none"
                     >
                       🔋 استثناء البطارية المباشر
                     </button>
                     <button
                       type="button"
-                      onClick={() => openAutoStartSettings()}
-                      className="py-1.5 px-2 rounded-lg bg-[#123B2A] hover:bg-[#0e2c20] text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
+                      onClick={handleAutoStartClick}
+                      className="py-2 px-2.5 rounded-lg bg-[#123B2A] hover:bg-[#0e2c20] active:scale-95 active:bg-[#091e15] text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer touch-manipulation select-none"
                     >
                       🚀 تفعيل التشغيل التلقائي
                     </button>
                   </div>
+
+                  {btnFeedback && (
+                    <div className="mt-2 p-2 rounded-lg bg-white/90 border border-emerald-400 text-[#0B5B43] text-[11px] font-bold text-center animate-fade-in shadow-xs">
+                      {btnFeedback}
+                    </div>
+                  )}
                 </div>
 
                 {/* Quick Phone Settings Openers */}
                 <div className="pt-1 flex gap-2">
                   <button
                     type="button"
-                    onClick={() => openNativeAppSettings()}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-white hover:bg-gray-50 text-[#123B2A] text-[10px] font-bold border border-[#C8A85B]/40 flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setBtnFeedback('⏳ جاري فتح إعدادات التطبيق...');
+                      openNativeAppSettings();
+                    }}
+                    className="flex-1 py-1.5 px-2 rounded-xl bg-white hover:bg-gray-50 active:scale-95 text-[#123B2A] text-[10px] font-bold border border-[#C8A85B]/40 flex items-center justify-center gap-1 cursor-pointer transition-all touch-manipulation select-none"
                   >
                     ⚙️ فتح إعدادات التطبيق بالجوال
                   </button>
                   <button
                     type="button"
-                    onClick={() => openNativeBatterySettings()}
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-white hover:bg-gray-50 text-[#123B2A] text-[10px] font-bold border border-[#C8A85B]/40 flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setBtnFeedback('⏳ جاري فتح إعدادات البطارية...');
+                      openNativeBatterySettings();
+                    }}
+                    className="flex-1 py-1.5 px-2 rounded-xl bg-white hover:bg-gray-50 active:scale-95 text-[#123B2A] text-[10px] font-bold border border-[#C8A85B]/40 flex items-center justify-center gap-1 cursor-pointer transition-all touch-manipulation select-none"
                   >
                     🔋 إعدادات البطارية بالجوال
                   </button>
