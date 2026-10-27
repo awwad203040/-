@@ -34,7 +34,12 @@ public class MainActivity extends BridgeActivity {
 
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
-                getBridge().getWebView().getSettings().setGeolocationEnabled(true);
+                android.webkit.WebSettings ws = getBridge().getWebView().getSettings();
+                ws.setGeolocationEnabled(true);
+                ws.setTextZoom(100);
+                ws.setUseWideViewPort(true);
+                ws.setLoadWithOverviewMode(true);
+                ws.setSupportZoom(false);
             }
         } catch (Exception ignored) {}
 

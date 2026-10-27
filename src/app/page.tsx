@@ -317,20 +317,20 @@ export default function HomePage() {
               <div className="flex items-center justify-center gap-2 w-full max-w-sm">
                 <button
                   onClick={() => setShowInstallModal(true)}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs"
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
                   style={{
                     backgroundColor: 'rgba(200, 168, 91, 0.18)',
                     color: '#C8A85B',
                     fontFamily: "'Tajawal', sans-serif",
                   }}
                 >
-                  <span>📲</span>
-                  <span>تثبيت التطبيق (APK)</span>
+                  <span className="shrink-0">📲</span>
+                  <span className="whitespace-nowrap">تثبيت التطبيق (APK)</span>
                 </button>
 
                 <button
                   onClick={() => setShowOfflineModal(true)}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs"
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
                   style={{
                     backgroundColor: 'rgba(200, 168, 91, 0.18)',
                     color: '#C8A85B',
@@ -338,8 +338,8 @@ export default function HomePage() {
                   }}
                   title="تحميل المصحف كاملاً للقراءة بدون إنترنت"
                 >
-                  <span>📥</span>
-                  <span>تحميل المصحف بدون نت</span>
+                  <span className="shrink-0">📥</span>
+                  <span className="whitespace-nowrap">تحميل المصحف بدون نت</span>
                 </button>
               </div>
 
@@ -352,7 +352,7 @@ export default function HomePage() {
                     triggerHaptic('tap');
                     setShowAthkarModal(true);
                   }}
-                  className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs ${
+                  className={`flex-1 inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs whitespace-nowrap ${
                     autoAthkar?.settings?.enabled
                       ? 'border-emerald-400/60 bg-emerald-700/40 text-emerald-200 hover:bg-emerald-700/60'
                       : 'border-white/20 bg-white/10 text-white/80 hover:bg-white/20'
@@ -361,11 +361,11 @@ export default function HomePage() {
                   title="إعداد الأذكار الصوتية التلقائية"
                   aria-label="إعداد الأذكار الصوتية التلقائية"
                 >
-                  <span className={autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}>🔔</span>
-                  <span className="truncate">
+                  <span className={`shrink-0 ${autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}`}>🔔</span>
+                  <span className="whitespace-nowrap truncate">
                     الأذكار: {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
                   </span>
-                  <span className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded-md shrink-0">⚙️</span>
+                  <span className="text-[10px] opacity-80 bg-black/20 px-1 py-0.5 rounded-md shrink-0">⚙️</span>
                 </button>
 
                 {/* 2. Blind Accessibility Button directly beside Athkar */}
@@ -375,13 +375,13 @@ export default function HomePage() {
                     triggerHaptic('tap');
                     setShowAccessibilityModal(true);
                   }}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
                   style={{ fontFamily: "'Tajawal', sans-serif" }}
                   title="تسهيل الوصول وخدمة المكفوفين"
                   aria-label="فتح إعدادات خدمة المكفوفين وتسهيل الوصول"
                 >
-                  <span className="text-sm">🦯</span>
-                  <span>خدمة المكفوفين</span>
+                  <span className="text-sm shrink-0">🦯</span>
+                  <span className="whitespace-nowrap">خدمة المكفوفين</span>
                 </button>
               </div>
 
@@ -393,16 +393,18 @@ export default function HomePage() {
                     triggerHaptic('tap');
                     setShowPrayerModal(true);
                   }}
-                  className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-emerald-500/50 bg-[#0E3E2B]/85 text-[#F7EED8] hover:bg-[#124D36] active:scale-95 cursor-pointer shadow-xs"
+                  className="w-full inline-flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border border-emerald-500/50 bg-[#0E3E2B]/85 text-[#F7EED8] hover:bg-[#124D36] active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
                   style={{ fontFamily: "'Tajawal', sans-serif" }}
                   title="مواقيت الصلاة وموعد الأذان"
                   aria-label={`مواقيت الصلاة، موعد أذان ${prayerTimes.prayerData.nextPrayer.name} الساعة ${prayerTimes.prayerData.nextPrayer.time12}، متبقي على الأذان ${prayerTimes.prayerData.nextPrayer.remainingFormatted}`}
                 >
-                  <span className="text-sm">🕌</span>
-                  <span>
-                    أذان {prayerTimes.prayerData.nextPrayer.name}: {prayerTimes.prayerData.nextPrayer.time12}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-black/35 border border-[#C8A85B]/40 px-2 py-0.5 rounded-full text-[#F5D88A] shadow-xs">
+                  <div className="inline-flex items-center gap-1.5 truncate min-w-0">
+                    <span className="text-sm shrink-0">🕌</span>
+                    <span className="whitespace-nowrap truncate">
+                      أذان {prayerTimes.prayerData.nextPrayer.name}: {prayerTimes.prayerData.nextPrayer.time12}
+                    </span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-medium bg-black/35 border border-[#C8A85B]/40 px-2 py-0.5 rounded-full text-[#F5D88A] shadow-xs whitespace-nowrap shrink-0">
                     <span className="opacity-75">متبقي:</span>
                     <span className="font-bold text-[#FFD700]" dir="rtl">
                       {prayerTimes.prayerData.nextPrayer.remainingFormatted}
@@ -414,30 +416,30 @@ export default function HomePage() {
           </div>
 
           {/* Compact Reading Progress Card linked to the mobile user */}
-          <div className="w-full text-right rounded-2xl p-3 sm:p-3.5 mb-3 border border-[#C8A85B]/40 bg-gradient-to-r from-white/12 via-white/16 to-[#123B2A]/35 shadow-md backdrop-blur-md transition-all">
+          <div className="w-full text-right rounded-2xl p-2.5 sm:p-3.5 mb-2.5 sm:mb-3 border border-[#C8A85B]/40 bg-gradient-to-r from-white/12 via-white/16 to-[#123B2A]/35 shadow-md backdrop-blur-md transition-all">
             {/* Header: Title, Owner Badge, Percentage & Edit */}
-            <div className="flex justify-between items-center mb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="text-base">📖</span>
+            <div className="flex justify-between items-center mb-1.5 whitespace-nowrap">
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                <span className="text-base shrink-0">📖</span>
                 <span
-                  className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5"
+                  className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 whitespace-nowrap"
                   style={{ fontFamily: "'Tajawal', sans-serif" }}
                 >
-                  <span>تقدمك في القراءة</span>
-                  <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className="whitespace-nowrap">تقدمك في القراءة</span>
+                  <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
                     صاحب الجوال
                   </span>
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 whitespace-nowrap">
                 <span className="text-xs font-mono font-bold text-[#C8A85B]" dir="ltr">
                   {percentage}%
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowEditProgressModal(true)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border border-[#C8A85B]/30 active:scale-95 transition cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border border-[#C8A85B]/30 active:scale-95 transition cursor-pointer whitespace-nowrap"
                   title="تعديل صفحة التوقف وعدد الصفحات المقروءة"
                 >
                   <span>✏️</span>
@@ -447,21 +449,21 @@ export default function HomePage() {
             </div>
 
             {/* Quick Stats Line */}
-            <div className="flex items-center justify-between text-xs mb-1.5 bg-black/20 rounded-xl px-2.5 py-1.5 border border-white/10">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[#C8A85B] font-bold text-sm" style={{ fontFamily: "'Amiri', serif" }}>
+            <div className="flex items-center justify-between text-xs mb-1.5 bg-black/20 rounded-xl px-2.5 py-1.5 border border-white/10 whitespace-nowrap overflow-hidden">
+              <div className="flex items-center gap-1.5 min-w-0 truncate">
+                <span className="text-[#C8A85B] font-bold text-sm whitespace-nowrap shrink-0" style={{ fontFamily: "'Amiri', serif" }}>
                   صفحة {currentStoppedPage}
                 </span>
                 {stoppedSurahMeta && (
-                  <span className="text-[11px] text-white/80 truncate">
+                  <span className="text-[11px] text-white/80 truncate whitespace-nowrap">
                     ({stoppedSurahMeta.name} • ج {stoppedSurahMeta.startPage})
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-white/70 flex items-center gap-1.5 flex-shrink-0">
-                <span>{actualPagesRead} من 604 ص</span>
+              <div className="text-[11px] text-white/70 flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+                <span className="whitespace-nowrap">{actualPagesRead} من 604 ص</span>
                 <span className="text-white/40">•</span>
-                <span className="text-[10px] text-white/60">{formatLastReadTime(progress?.updatedAt)}</span>
+                <span className="text-[10px] text-white/60 whitespace-nowrap">{formatLastReadTime(progress?.updatedAt)}</span>
               </div>
             </div>
 
@@ -477,16 +479,16 @@ export default function HomePage() {
             <button
               type="button"
               onClick={handleContinueReading}
-              className="w-full py-2 px-3 rounded-xl font-bold text-xs bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-xs cursor-pointer flex items-center justify-between border border-[#C8A85B]/70"
+              className="w-full py-2 px-3 rounded-xl font-bold text-xs bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-xs cursor-pointer flex items-center justify-between border border-[#C8A85B]/70 whitespace-nowrap"
               style={{ fontFamily: "'Tajawal', sans-serif" }}
             >
-              <div className="flex items-center gap-1.5 truncate">
+              <div className="flex items-center gap-1.5 truncate min-w-0">
                 <span>▶</span>
-                <span className="truncate">
+                <span className="truncate whitespace-nowrap">
                   متابعة القراءة من صفحة {currentStoppedPage} {stoppedSurahMeta ? `(سورة ${stoppedSurahMeta.name})` : ''}
                 </span>
               </div>
-              <span className="text-[11px] font-extrabold flex-shrink-0 mr-2">فتح المصحف ←</span>
+              <span className="text-[11px] font-extrabold flex-shrink-0 mr-2 whitespace-nowrap">فتح المصحف ←</span>
             </button>
           </div>
 

@@ -20,6 +20,11 @@
   --quran-font-size: 28px;
 }
 
+html, body {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
