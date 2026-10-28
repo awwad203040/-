@@ -9,6 +9,7 @@ import {
   speakAccessibility,
   announceToScreenReader,
 } from '@/lib/accessibility';
+import { openNativeVoiceMatchSettings } from '@/lib/athkar-native-bridge';
 
 interface AccessibilityModalProps {
   isOpen: boolean;
@@ -194,8 +195,8 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
           </div>
         </div>
 
-        {/* Voice Match / Assistant Guide */}
-        <div className="bg-[#0A2318] p-3 rounded-xl border border-[#C8A85B]/40 flex flex-col gap-1.5 text-[11px] text-white/90">
+        {/* Voice Match / Assistant Guide & 1-Click Setup */}
+        <div className="bg-[#0A2318] p-3.5 rounded-xl border border-[#C8A85B]/40 flex flex-col gap-2.5 text-[11px] text-white/90">
           <span className="font-bold text-[#C8A85B] flex items-center gap-1.5">
             <span>🗣️</span>
             <span>الفتح الصوتي ببصمة الصوت (Hey Google):</span>
@@ -203,6 +204,18 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
           <p className="text-white/80 leading-relaxed">
             عندما يكون الجوال مفتوحاً، يمكنك نطق: <strong className="text-emerald-300">&ldquo;Hey Google, افتح نور القرآن&rdquo;</strong> وسيفتح التطبيق فوراً، ثم انطق اسم السورة التي تريدها ليتم تشغيلها مباشرة.
           </p>
+          <button
+            type="button"
+            onClick={async () => {
+              triggerHaptic('tap');
+              speakAccessibility('جاري فتح إعدادات بصمة الصوت في هاتفك...');
+              await openNativeVoiceMatchSettings();
+            }}
+            className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] font-extrabold text-xs flex items-center justify-center gap-2 shadow-md active:scale-98 transition cursor-pointer hover:brightness-105"
+          >
+            <span className="text-base">🎙️</span>
+            <span>تفعيل بصمة الصوت في هاتفي بنقرة واحدة (Voice Match)</span>
+          </button>
         </div>
 
         {/* Gesture Guide for the Blind */}

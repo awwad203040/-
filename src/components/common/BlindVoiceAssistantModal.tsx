@@ -8,6 +8,7 @@ import {
   VoiceCommandResult,
 } from '@/lib/voice-command-engine';
 import { speakAccessibility, triggerHaptic, announceToScreenReader } from '@/lib/accessibility';
+import { openNativeVoiceMatchSettings } from '@/lib/athkar-native-bridge';
 
 interface BlindVoiceAssistantModalProps {
   isOpen: boolean;
@@ -239,9 +240,29 @@ export default function BlindVoiceAssistantModal({
           </div>
         </div>
 
+        {/* Voice Match One-Click Banner */}
+        <div className="w-full bg-[#0A2318] p-2.5 rounded-xl border border-[#C8A85B]/40 flex items-center justify-between gap-2 text-[11px] text-white">
+          <div className="flex items-center gap-1.5 truncate">
+            <span>🗣️</span>
+            <span className="truncate">بصمة الصوت (Hey Google) لفتح التطبيق:</span>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              stopVoiceListening();
+              triggerHaptic('tap');
+              speakAccessibility('جاري فتح إعدادات بصمة الصوت في هاتفك...');
+              await openNativeVoiceMatchSettings();
+            }}
+            className="px-2.5 py-1 rounded-lg bg-[#C8A85B] text-[#123B2A] font-extrabold text-[11px] cursor-pointer hover:bg-[#dfc278] transition shadow-xs whitespace-nowrap shrink-0"
+          >
+            تفعيل بنقرة واحدة
+          </button>
+        </div>
+
         {/* Guidance Footer */}
-        <div className="w-full bg-[#0D281C]/90 p-3 rounded-xl border border-white/10 text-[11px] text-white/80 flex items-center justify-between">
-          <span>💡 يدعم بصمة الصوت وتشغيل Google Assistant مباشرة</span>
+        <div className="w-full bg-[#0D281C]/90 p-2.5 rounded-xl border border-white/10 text-[11px] text-white/80 flex items-center justify-between">
+          <span>💡 يمكنك نطق: &ldquo;سورة الكهف بصوت العفاسي&rdquo;</span>
           <button
             type="button"
             onClick={() => {

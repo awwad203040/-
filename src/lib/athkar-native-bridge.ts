@@ -31,6 +31,8 @@ interface AthkarNativePlugin {
 
   openAutoStartSettings(): Promise<{ success: boolean }>;
 
+  openVoiceMatchSettings(): Promise<{ success: boolean }>;
+
   getPermissionStatus(): Promise<{
     notifications: boolean;
     exactAlarms: boolean;
@@ -39,6 +41,20 @@ interface AthkarNativePlugin {
 }
 
 const AthkarNative = registerPlugin<AthkarNativePlugin>('AthkarNative');
+
+/**
+ * Open Google Assistant Voice Match settings directly on Android with 1 click.
+ */
+export async function openNativeVoiceMatchSettings(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.openVoiceMatchSettings();
+    return res.success;
+  } catch (err) {
+    console.warn('Failed to open voice match settings:', err);
+    return false;
+  }
+}
 
 /**
  * Synchronize user athkar preferences directly into native Android AlarmManager and SharedPreferences.

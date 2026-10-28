@@ -179,6 +179,41 @@ public class AthkarNativePlugin extends Plugin {
     }
 
     @PluginMethod
+    public void openVoiceMatchSettings(PluginCall call) {
+        try {
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    Intent[] voiceIntents = new Intent[] {
+                        // 1. Direct Google Voice Match Enrollment
+                        new Intent("com.google.android.apps.gsa.smartsearch.VOICE_MATCH_ENROLLMENT")
+                            .setPackage("com.google.android.googlequicksearchbox"),
+                        // 2. Google Voice Search Settings
+                        new Intent("com.google.android.googlequicksearchbox.action.VOICE_SEARCH_SETTINGS")
+                            .setPackage("com.google.android.googlequicksearchbox"),
+                        // 3. Android Voice Input Settings
+                        new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS),
+                        // 4. Google Assistant / Voice Command
+                        new Intent(Intent.ACTION_VOICE_COMMAND)
+                    };
+
+                    for (Intent intent : voiceIntents) {
+                        try {
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            getActivity().startActivity(intent);
+                            return;
+                        } catch (Exception ignored) {}
+                    }
+                });
+            }
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open voice match settings: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
     public void getPermissionStatus(PluginCall call) {
         try {
             Context context = getContext();
