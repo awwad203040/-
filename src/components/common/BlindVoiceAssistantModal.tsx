@@ -7,7 +7,12 @@ import {
   stopVoiceListening,
   VoiceCommandResult,
 } from '@/lib/voice-command-engine';
-import { speakAccessibility, triggerHaptic, announceToScreenReader } from '@/lib/accessibility';
+import {
+  speakAccessibility,
+  stopAccessibilitySpeech,
+  triggerHaptic,
+  announceToScreenReader,
+} from '@/lib/accessibility';
 import { openNativeVoiceMatchSettings } from '@/lib/athkar-native-bridge';
 
 interface BlindVoiceAssistantModalProps {
@@ -24,14 +29,17 @@ export default function BlindVoiceAssistantModal({
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [feedback, setFeedback] = useState('');
-  const [statusText, setStatusText] = useState('جاري الاستماع...');
+  const [statusText, setStatusText] = useState('انقر على الميكروفون للتحدث أو انتظر...');
   const [supported, setSupported] = useState(true);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const startListeningSession = useCallback(() => {
+    // Stop any ongoing speech synthesis so the mic doesn't capture the app's own voice
+    stopAccessibilitySpeech();
+
     setTranscript('');
     setFeedback('');
-    setStatusText('جاري الاستماع... انطق اسم السورة الآن');
+    setStatusText('جاري فتح الميكروفون...');
 
     const started = startVoiceListening({
       onStart: () => {
@@ -76,21 +84,23 @@ export default function BlindVoiceAssistantModal({
   useEffect(() => {
     if (isOpen) {
       setSupported(isSpeechRecognitionSupported());
-      speakAccessibility('المساعد الصوتي الذكي. تفضل بنطق اسم السورة للاستماع إليها', { force: true });
+      speakAccessibility('المساعد الصوتي، تفضل بنطق اسم السورة', { force: true });
       announceToScreenReader('تم فتح المساعد الصوتي للمكفوفين', true);
 
-      // Start listening after half a second
+      // Allow 2.2 seconds for the prompt to finish speaking before opening the microphone
       const timer = setTimeout(() => {
         startListeningSession();
-      }, 600);
+      }, 2200);
 
       return () => {
         clearTimeout(timer);
         stopVoiceListening();
+        stopAccessibilitySpeech();
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
       };
     } else {
       stopVoiceListening();
+      stopAccessibilitySpeech();
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     }
   }, [isOpen, startListeningSession]);
@@ -101,10 +111,11 @@ export default function BlindVoiceAssistantModal({
     if (isListening) {
       stopVoiceListening();
       setIsListening(false);
-      setStatusText('تم إيقاف الاستماع');
+      setStatusText('تم إيقاف الاستماع، اضغط للتحدث');
       triggerHaptic('pause');
       speakAccessibility('تم إيقاف الاستماع');
     } else {
+      stopAccessibilitySpeech();
       triggerHaptic('tap');
       startListeningSession();
     }

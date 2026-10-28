@@ -18,6 +18,7 @@ interface AccessibilityModalProps {
 
 export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps) {
   const [settings, setSettings] = useState<AccessibilitySettings>(getAccessibilitySettings);
+  const [isTestingVoice, setIsTestingVoice] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -231,14 +232,27 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
             {/* Test Voice Button */}
             <button
               type="button"
-              onClick={() => {
+              disabled={isTestingVoice}
+              onClick={async () => {
+                setIsTestingVoice(true);
                 triggerHaptic('success');
-                speakAccessibility('أهلاً بك في تطبيق نور القرآن، الناطق الصوتي مضبوط الآن بنجاح بصوت نقي وواضح', { force: true, rate: settings.speechRate });
+                try {
+                  await speakAccessibility('أهلاً بك في تطبيق نور القرآن، الناطق الصوتي مضبوط الآن بنجاح بصوت نقي وواضح', {
+                    force: true,
+                    rate: settings.speechRate || 1.0,
+                  });
+                } catch {}
+                setTimeout(() => setIsTestingVoice(false), 3500);
               }}
-              className="w-full py-2 px-3 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-400/40 text-emerald-200 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-xs"
+              aria-label="تجربة نطق الصوت الآن"
+              className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-md ${
+                isTestingVoice
+                  ? 'bg-emerald-500/40 border-emerald-300 text-white animate-pulse'
+                  : 'bg-emerald-600/30 hover:bg-emerald-600/50 border-emerald-400/40 text-emerald-200'
+              }`}
             >
-              <span>🔊</span>
-              <span>تجربة نطق الصوت الآن (استماع)</span>
+              <span className="text-base">{isTestingVoice ? '🔊' : '🗣️'}</span>
+              <span>{isTestingVoice ? 'جاري نطق الصوت بوضوح الآن...' : 'تجربة نطق الصوت الآن (استماع)'}</span>
             </button>
           </div>
         </div>

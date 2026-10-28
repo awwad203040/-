@@ -1,9 +1,15 @@
 // Centralized Arabic Voice Command & Speech Recognition Engine
 // محرك التعرف الصوتي والأوامر المنطوقة للمكفوفين وضعاف البصر - تطبيق نور القرآن
 
+import { Capacitor } from '@capacitor/core';
 import { SURAH_METADATA, POPULAR_RECITERS } from './quran-meta';
 import { speakAccessibility, triggerHaptic, announceToScreenReader } from './accessibility';
 import { getReadingProgress } from './storage';
+import {
+  startNativeSpeechRecognition,
+  stopNativeSpeechRecognition,
+  addNativeSpeechListener,
+} from './athkar-native-bridge';
 
 export interface VoiceCommandResult {
   action: 'play_surah' | 'pause' | 'resume' | 'next' | 'previous' | 'where_am_i' | 'open_read_quran' | 'unknown';
@@ -15,9 +21,10 @@ export interface VoiceCommandResult {
   feedbackMessage: string;
 }
 
-// 1. فحص دعم المتصفح أو بيئة WebView للتعرف الصوتي
+// 1. فحص دعم المتصفح أو بيئة الهاتف الأصلية للتعرف الصوتي
 export function isSpeechRecognitionSupported(): boolean {
   if (typeof window === 'undefined') return false;
+  if (Capacitor.isNativePlatform()) return true;
   return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
 }
 
@@ -412,9 +419,20 @@ export function playAuditoryChime(type: 'listen_start' | 'listen_stop' | 'succes
   } catch {}
 }
 
-// 7. إدارة جلسة التعرف على الصوت
+// 7. إدارة جلسة التعرف على الصوت (دعم مزدوج: Native Android SpeechRecognizer + Web Speech API)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let activeRecognition: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let activeNativeSpeechListeners: any[] = [];
+
+function clearNativeSpeechListeners() {
+  for (const l of activeNativeSpeechListeners) {
+    try {
+      if (typeof l?.remove === 'function') l.remove();
+    } catch {}
+  }
+  activeNativeSpeechListeners = [];
+}
 
 export interface VoiceListenerOptions {
   onStart?: () => void;
@@ -427,6 +445,68 @@ export interface VoiceListenerOptions {
 export function startVoiceListening(options: VoiceListenerOptions): boolean {
   if (typeof window === 'undefined') return false;
 
+  // إيقاف أي جلسة سابقة
+  stopVoiceListening();
+
+  // 1. الأولوية المطلقة: محرك أندرويد الأصلي (Android Native SpeechRecognizer)
+  // يحل مشكلة WebView نهائياً ويوفر وقتاً كافياً للتحدث دون انقطاع
+  if (Capacitor.isNativePlatform()) {
+    try {
+      clearNativeSpeechListeners();
+
+      const lStart = addNativeSpeechListener('onSpeechStart', () => {
+        playAuditoryChime('listen_start');
+        triggerHaptic('tap');
+        options.onStart?.();
+      });
+
+      const lPartial = addNativeSpeechListener('onSpeechPartial', (data: { text?: string }) => {
+        if (data?.text && options.onInterimResult) {
+          options.onInterimResult(data.text);
+        }
+      });
+
+      const lResult = addNativeSpeechListener('onSpeechResult', (data: { text?: string; matches?: string[] }) => {
+        const text = data?.text || '';
+        if (text) {
+          playAuditoryChime('success');
+          triggerHaptic('success');
+          const parsed = parseVoiceCommand(text);
+          options.onFinalResult?.(parsed);
+        } else {
+          playAuditoryChime('listen_stop');
+          options.onError?.('لم يتم تمييز السورة، يرجى إعادة المحاولة ونطق اسم السورة');
+        }
+      });
+
+      const lError = addNativeSpeechListener('onSpeechError', (data: { message?: string; error?: string }) => {
+        playAuditoryChime('listen_stop');
+        options.onError?.(data?.message || 'حدث خطأ أثناء الاستماع');
+      });
+
+      const lEnd = addNativeSpeechListener('onSpeechEnd', () => {
+        options.onEnd?.();
+      });
+
+      activeNativeSpeechListeners = [lStart, lPartial, lResult, lError, lEnd];
+
+      startNativeSpeechRecognition({ language: 'ar-SA' }).then((started) => {
+        if (!started) {
+          options.onError?.('تعذر تشغيل الميكروفون، تأكد من منح الصلاحية');
+        }
+      }).catch(() => {
+        options.onError?.('تعذر تشغيل الميكروفون');
+      });
+
+      return true;
+    } catch (e) {
+      console.warn('Native speech listening failed:', e);
+      options.onError?.('تعذر تشغيل المساعد الصوتي');
+      return false;
+    }
+  }
+
+  // 2. البديل لبيئة المتصفح (Web Speech API)
   const SpeechRecognitionClass =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -437,9 +517,6 @@ export function startVoiceListening(options: VoiceListenerOptions): boolean {
     speakAccessibility(errorMsg, { force: true });
     return false;
   }
-
-  // إيقاف أي جلسة سابقة
-  stopVoiceListening();
 
   try {
     const recognition = new SpeechRecognitionClass();
@@ -509,6 +586,10 @@ export function startVoiceListening(options: VoiceListenerOptions): boolean {
 }
 
 export function stopVoiceListening() {
+  if (Capacitor.isNativePlatform()) {
+    stopNativeSpeechRecognition().catch(() => {});
+    clearNativeSpeechListeners();
+  }
   if (activeRecognition) {
     try {
       activeRecognition.abort();

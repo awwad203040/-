@@ -5,20 +5,35 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.provider.Settings;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
 import android.util.Log;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.util.ArrayList;
+import java.util.Locale;
 
 @CapacitorPlugin(name = "AthkarNative")
 public class AthkarNativePlugin extends Plugin {
     private static final String TAG = "AthkarNativePlugin";
-    private android.speech.tts.TextToSpeech nativeTts;
+    private TextToSpeech nativeTts;
     private boolean isNativeTtsReady = false;
+    private String pendingSpeechText = null;
+    private float pendingRate = 1.0f;
+    private float pendingPitch = 1.0f;
+
+    private SpeechRecognizer speechRecognizer;
+    private boolean isSpeechListening = false;
 
     @Override
     public void load() {
@@ -30,22 +45,69 @@ public class AthkarNativePlugin extends Plugin {
         try {
             Context ctx = getContext();
             if (ctx == null) return;
-            nativeTts = new android.speech.tts.TextToSpeech(ctx.getApplicationContext(), status -> {
-                if (status == android.speech.tts.TextToSpeech.SUCCESS && nativeTts != null) {
-                    java.util.Locale arabic = new java.util.Locale("ar", "SA");
-                    int res = nativeTts.setLanguage(arabic);
-                    if (res == android.speech.tts.TextToSpeech.LANG_MISSING_DATA ||
-                        res == android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED) {
-                        nativeTts.setLanguage(new java.util.Locale("ar"));
+
+            String preferredEngine = null;
+            try {
+                android.content.pm.PackageManager pm = ctx.getPackageManager();
+                pm.getPackageInfo("com.google.android.tts", 0);
+                preferredEngine = "com.google.android.tts";
+            } catch (Exception ignored) {}
+
+            TextToSpeech.OnInitListener initListener = status -> {
+                if (status == TextToSpeech.SUCCESS && nativeTts != null) {
+                    Locale saudi = new Locale("ar", "SA");
+                    int res = nativeTts.isLanguageAvailable(saudi);
+                    if (res >= TextToSpeech.LANG_AVAILABLE) {
+                        nativeTts.setLanguage(saudi);
+                    } else {
+                        Locale generalArabic = new Locale("ar");
+                        if (nativeTts.isLanguageAvailable(generalArabic) >= TextToSpeech.LANG_AVAILABLE) {
+                            nativeTts.setLanguage(generalArabic);
+                        } else {
+                            nativeTts.setLanguage(Locale.getDefault());
+                        }
                     }
                     isNativeTtsReady = true;
                     Log.i(TAG, "Native Arabic TextToSpeech engine initialized successfully.");
+
+                    if (pendingSpeechText != null && !pendingSpeechText.isEmpty()) {
+                        final String toSpeak = pendingSpeechText;
+                        final float rate = pendingRate;
+                        final float pitch = pendingPitch;
+                        pendingSpeechText = null;
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> doNativeSpeak(toSpeak, rate, pitch));
+                        }
+                    }
                 } else {
                     Log.w(TAG, "Native TextToSpeech initialization failed: " + status);
                 }
-            });
+            };
+
+            if (preferredEngine != null) {
+                nativeTts = new TextToSpeech(ctx.getApplicationContext(), initListener, preferredEngine);
+            } else {
+                nativeTts = new TextToSpeech(ctx.getApplicationContext(), initListener);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to init native TTS: " + e.getMessage());
+        }
+    }
+
+    private boolean doNativeSpeak(String text, float rate, float pitch) {
+        if (nativeTts == null || !isNativeTtsReady) return false;
+        try {
+            nativeTts.setSpeechRate(rate);
+            nativeTts.setPitch(pitch);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                nativeTts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "noor_tts_" + System.currentTimeMillis());
+            } else {
+                nativeTts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+            }
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "doNativeSpeak error: " + e.getMessage());
+            return false;
         }
     }
 
@@ -294,32 +356,32 @@ public class AthkarNativePlugin extends Plugin {
             return;
         }
 
-        if (nativeTts != null && isNativeTtsReady) {
-            try {
-                nativeTts.setSpeechRate(rate);
-                nativeTts.setPitch(pitch);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    nativeTts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "noor_tts_" + System.currentTimeMillis());
-                } else {
-                    nativeTts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null);
-                }
-                JSObject ret = new JSObject();
-                ret.put("success", true);
-                call.resolve(ret);
-                return;
-            } catch (Exception e) {
-                Log.e(TAG, "Failed native TTS speak: " + e.getMessage());
-            }
+        if (nativeTts == null) {
+            initNativeTts();
         }
 
+        if (nativeTts != null && isNativeTtsReady) {
+            boolean ok = doNativeSpeak(text, rate, pitch);
+            JSObject ret = new JSObject();
+            ret.put("success", ok);
+            call.resolve(ret);
+            return;
+        }
+
+        // Queue pending text if TTS is still initializing, so user speech is never missed
+        pendingSpeechText = text;
+        pendingRate = rate;
+        pendingPitch = pitch;
+
         JSObject ret = new JSObject();
-        ret.put("success", false);
-        ret.put("reason", "TTS not initialized yet");
+        ret.put("success", true);
+        ret.put("queued", true);
         call.resolve(ret);
     }
 
     @PluginMethod
     public void stopNativeSpeech(PluginCall call) {
+        pendingSpeechText = null;
         try {
             if (nativeTts != null) {
                 nativeTts.stop();
@@ -332,8 +394,230 @@ public class AthkarNativePlugin extends Plugin {
         }
     }
 
+    @PluginMethod
+    public void startSpeechRecognition(final PluginCall call) {
+        final Context context = getContext();
+        if (context == null) {
+            call.reject("Context is null");
+            return;
+        }
+
+        // 1. Verify RECORD_AUDIO permission
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (getActivity() != null) {
+                ActivityCompat.requestPermissions(
+                    getActivity(),
+                    new String[]{android.Manifest.permission.RECORD_AUDIO},
+                    102
+                );
+            }
+            JSObject errObj = new JSObject();
+            errObj.put("error", "permission_denied");
+            errObj.put("message", "يرجى السماح بصلاحية الميكروفون لاستخدام المساعد الصوتي");
+            notifyListeners("onSpeechError", errObj);
+            call.reject("RECORD_AUDIO permission not granted");
+            return;
+        }
+
+        // 2. Stop any active TTS so the microphone doesn't capture the app's own voice
+        try {
+            if (nativeTts != null) {
+                nativeTts.stop();
+            }
+        } catch (Exception ignored) {}
+
+        // 3. Check if SpeechRecognizer service is available
+        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
+            Log.w(TAG, "SpeechRecognizer is not available on this device.");
+            JSObject errObj = new JSObject();
+            errObj.put("error", "not_available");
+            errObj.put("message", "خدمة التعرف الصوتي غير متوفرة في هذا الجهاز، يرجى تفعيل تطبيق Google");
+            notifyListeners("onSpeechError", errObj);
+            call.reject("SpeechRecognizer not available");
+            return;
+        }
+
+        final String lang = call.getString("language", "ar-SA");
+
+        if (getActivity() == null) {
+            call.reject("Activity is null");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> {
+            try {
+                if (speechRecognizer != null) {
+                    try {
+                        speechRecognizer.destroy();
+                    } catch (Exception ignored) {}
+                    speechRecognizer = null;
+                }
+
+                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
+                speechRecognizer.setRecognitionListener(new RecognitionListener() {
+                    @Override
+                    public void onReadyForSpeech(Bundle params) {
+                        isSpeechListening = true;
+                        Log.i(TAG, "SpeechRecognizer: onReadyForSpeech");
+                        JSObject data = new JSObject();
+                        data.put("status", "ready");
+                        notifyListeners("onSpeechStart", data);
+                    }
+
+                    @Override
+                    public void onBeginningOfSpeech() {
+                        Log.i(TAG, "SpeechRecognizer: onBeginningOfSpeech");
+                    }
+
+                    @Override
+                    public void onRmsChanged(float rmsdB) {}
+
+                    @Override
+                    public void onBufferReceived(byte[] buffer) {}
+
+                    @Override
+                    public void onEndOfSpeech() {
+                        Log.i(TAG, "SpeechRecognizer: onEndOfSpeech");
+                        isSpeechListening = false;
+                        JSObject data = new JSObject();
+                        data.put("status", "processing");
+                        notifyListeners("onSpeechEnd", data);
+                    }
+
+                    @Override
+                    public void onError(int error) {
+                        isSpeechListening = false;
+                        Log.w(TAG, "SpeechRecognizer onError: " + error);
+                        String errorMsg = "حدث خطأ أثناء الاستماع";
+                        switch (error) {
+                            case SpeechRecognizer.ERROR_NO_MATCH:
+                                errorMsg = "لم يتم تمييز السورة، يرجى نطق اسم السورة بوضوح";
+                                break;
+                            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                                errorMsg = "انتهى وقت الاستماع دون سماع صوت، انقر على الميكروفون للتحدث";
+                                break;
+                            case SpeechRecognizer.ERROR_AUDIO:
+                                errorMsg = "تعذر تسجيل الصوت من الميكروفون";
+                                break;
+                            case SpeechRecognizer.ERROR_NETWORK:
+                            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
+                                errorMsg = "يرجى التحقق من اتصال الإنترنت لاستخدام المساعد الصوتي";
+                                break;
+                            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                                errorMsg = "يرجى السماح بصلاحية الميكروفون لتشغيل المساعد الصوتي";
+                                break;
+                            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                                errorMsg = "المساعد الصوتي مشغول، انقر مرة أخرى";
+                                break;
+                            case SpeechRecognizer.ERROR_CLIENT:
+                                errorMsg = "تم إيقاف الاستماع";
+                                break;
+                        }
+
+                        JSObject errObj = new JSObject();
+                        errObj.put("error", "code_" + error);
+                        errObj.put("code", error);
+                        errObj.put("message", errorMsg);
+                        notifyListeners("onSpeechError", errObj);
+                    }
+
+                    @Override
+                    public void onResults(Bundle results) {
+                        isSpeechListening = false;
+                        ArrayList<String> matches = results != null ? results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) : null;
+                        String text = "";
+                        JSArray matchesArray = new JSArray();
+                        if (matches != null && !matches.isEmpty()) {
+                            text = matches.get(0);
+                            for (String m : matches) {
+                                matchesArray.put(m);
+                            }
+                        }
+                        Log.i(TAG, "SpeechRecognizer onResults: " + text);
+
+                        JSObject ret = new JSObject();
+                        ret.put("text", text);
+                        ret.put("matches", matchesArray);
+                        notifyListeners("onSpeechResult", ret);
+                    }
+
+                    @Override
+                    public void onPartialResults(Bundle partialResults) {
+                        ArrayList<String> matches = partialResults != null ? partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) : null;
+                        if (matches != null && !matches.isEmpty()) {
+                            String partialText = matches.get(0);
+                            JSObject ret = new JSObject();
+                            ret.put("text", partialText);
+                            notifyListeners("onSpeechPartial", ret);
+                        }
+                    }
+
+                    @Override
+                    public void onEvent(int eventType, Bundle params) {}
+                });
+
+                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lang);
+                intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false);
+                intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+                intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+                // Allow generous speech window so the user is never rushed!
+                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 6000L);
+                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L);
+                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L);
+
+                speechRecognizer.startListening(intent);
+
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                call.resolve(ret);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to start SpeechRecognizer: " + e.getMessage(), e);
+                JSObject errObj = new JSObject();
+                errObj.put("error", "exception");
+                errObj.put("message", "تعذر تشغيل المساعد الصوتي: " + e.getMessage());
+                notifyListeners("onSpeechError", errObj);
+                call.reject("Failed to start SpeechRecognizer: " + e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void stopSpeechRecognition(final PluginCall call) {
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                try {
+                    if (speechRecognizer != null) {
+                        speechRecognizer.stopListening();
+                        speechRecognizer.destroy();
+                        speechRecognizer = null;
+                    }
+                    isSpeechListening = false;
+                    JSObject ret = new JSObject();
+                    ret.put("success", true);
+                    call.resolve(ret);
+                } catch (Exception e) {
+                    call.reject("Failed to stop SpeechRecognizer: " + e.getMessage());
+                }
+            });
+        } else {
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        }
+    }
+
     @Override
     protected void handleOnDestroy() {
+        if (speechRecognizer != null) {
+            try {
+                speechRecognizer.destroy();
+            } catch (Exception ignored) {}
+            speechRecognizer = null;
+        }
         if (nativeTts != null) {
             try {
                 nativeTts.stop();

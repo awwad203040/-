@@ -37,6 +37,13 @@ interface AthkarNativePlugin {
 
   stopNativeSpeech(): Promise<{ success: boolean }>;
 
+  startSpeechRecognition(options?: { language?: string }): Promise<{ success: boolean }>;
+
+  stopSpeechRecognition(): Promise<{ success: boolean }>;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addListener?(eventName: string, listenerFunc: (data: any) => void): any;
+
   getPermissionStatus(): Promise<{
     notifications: boolean;
     exactAlarms: boolean;
@@ -86,6 +93,43 @@ export async function stopNativeVoice(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Start native Android Speech Recognition in Arabic.
+ */
+export async function startNativeSpeechRecognition(options?: { language?: string }): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.startSpeechRecognition({ language: options?.language || 'ar-SA' });
+    return res?.success ?? true;
+  } catch (err) {
+    console.warn('Native speech recognition start failed:', err);
+    return false;
+  }
+}
+
+/**
+ * Stop native Android Speech Recognition.
+ */
+export async function stopNativeSpeechRecognition(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.stopSpeechRecognition();
+    return res?.success ?? true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Add event listener for native speech events.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function addNativeSpeechListener(eventName: string, callback: (data: any) => void) {
+  if (!Capacitor.isNativePlatform()) return { remove: () => {} };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (AthkarNative as any).addListener(eventName, callback);
 }
 
 /**
