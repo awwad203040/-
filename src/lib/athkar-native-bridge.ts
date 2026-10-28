@@ -41,7 +41,7 @@ interface AthkarNativePlugin {
 
   requestAudioPermission(): Promise<{ granted: boolean }>;
 
-  startSpeechRecognition(options?: { language?: string }): Promise<{ success: boolean; reason?: string }>;
+  startSpeechRecognition(options?: { language?: string; forceDialog?: boolean }): Promise<{ success: boolean; reason?: string }>;
 
   stopSpeechRecognition(): Promise<{ success: boolean }>;
 
@@ -174,10 +174,13 @@ export async function requestNativeAudioPermission(): Promise<boolean> {
 /**
  * Start native Android Speech Recognition in Arabic.
  */
-export async function startNativeSpeechRecognition(options?: { language?: string }): Promise<boolean> {
+export async function startNativeSpeechRecognition(options?: { language?: string; forceDialog?: boolean }): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
   try {
-    const res = await AthkarNative.startSpeechRecognition({ language: options?.language || 'ar-SA' });
+    const res = await AthkarNative.startSpeechRecognition({
+      language: options?.language || 'ar-SA',
+      forceDialog: !!options?.forceDialog,
+    });
     return res?.success ?? true;
   } catch (err) {
     console.warn('Native speech recognition start failed:', err);

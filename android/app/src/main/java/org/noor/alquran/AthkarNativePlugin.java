@@ -13,6 +13,10 @@ import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.pm.ResolveInfo;
+import android.os.Handler;
+import android.os.Looper;
 import androidx.activity.result.ActivityResult;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -26,6 +30,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 @CapacitorPlugin(
@@ -50,6 +55,9 @@ public class AthkarNativePlugin extends Plugin {
 
     private SpeechRecognizer speechRecognizer;
     private boolean isSpeechListening = false;
+    private Handler speechWatchdogHandler = null;
+    private Runnable speechWatchdogRunnable = null;
+    private boolean hasReceivedSpeechAudio = false;
 
     @PluginMethod
     public void consumeVoiceLaunch(PluginCall call) {
@@ -527,9 +535,9 @@ public class AthkarNativePlugin extends Plugin {
     }
 
     private void executeSpeechRecognition(final PluginCall call) {
-        final Context context = getContext();
-        if (context == null) {
-            call.reject("Context is null");
+        final Activity activity = getActivity();
+        if (activity == null || activity.isFinishing()) {
+            call.reject("Activity is not available");
             return;
         }
 
@@ -541,11 +549,18 @@ public class AthkarNativePlugin extends Plugin {
         } catch (Exception ignored) {}
 
         final String lang = call.getString("language", "ar-SA");
+        final boolean forceDialog = call.getBoolean("forceDialog", false);
 
-        // Check if SpeechRecognizer service is available in background
+        // If explicitly requested, use Google system dialog directly
+        if (forceDialog) {
+            Log.i(TAG, "forceDialog requested. Launching native Google speech dialog directly.");
+            launchSpeechIntentFallback(call, lang);
+            return;
+        }
+
         boolean isServiceAvailable = false;
         try {
-            isServiceAvailable = SpeechRecognizer.isRecognitionAvailable(context);
+            isServiceAvailable = SpeechRecognizer.isRecognitionAvailable(activity);
         } catch (Exception ignored) {}
 
         if (!isServiceAvailable) {
@@ -554,13 +569,12 @@ public class AthkarNativePlugin extends Plugin {
             return;
         }
 
-        if (getActivity() == null) {
-            call.reject("Activity is null");
-            return;
-        }
-
-        getActivity().runOnUiThread(() -> {
+        activity.runOnUiThread(() -> {
             try {
+                if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+                    speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+                }
+
                 if (speechRecognizer != null) {
                     try {
                         speechRecognizer.destroy();
@@ -568,7 +582,39 @@ public class AthkarNativePlugin extends Plugin {
                     speechRecognizer = null;
                 }
 
-                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
+                hasReceivedSpeechAudio = false;
+
+                // Priority: Google's dedicated Speech Recognition Service
+                ComponentName googleService = new ComponentName(
+                    "com.google.android.googlequicksearchbox",
+                    "com.google.android.voicesearch.serviceapi.GoogleRecognitionService"
+                );
+                boolean hasGoogle = false;
+                try {
+                    Intent testIntent = new Intent("android.speech.RecognitionService");
+                    testIntent.setComponent(googleService);
+                    List<ResolveInfo> list = activity.getPackageManager().queryIntentServices(testIntent, 0);
+                    hasGoogle = (list != null && !list.isEmpty());
+                } catch (Exception ignored) {}
+
+                if (hasGoogle) {
+                    try {
+                        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(activity, googleService);
+                        Log.i(TAG, "SpeechRecognizer bound to Google RecognitionService");
+                    } catch (Exception e) {
+                        Log.w(TAG, "Binding to Google service failed, using default Activity recognizer", e);
+                        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(activity);
+                    }
+                } else {
+                    speechRecognizer = SpeechRecognizer.createSpeechRecognizer(activity);
+                }
+
+                if (speechRecognizer == null) {
+                    Log.i(TAG, "SpeechRecognizer is null, falling back to intent dialog.");
+                    launchSpeechIntentFallback(call, lang);
+                    return;
+                }
+
                 speechRecognizer.setRecognitionListener(new RecognitionListener() {
                     @Override
                     public void onReadyForSpeech(Bundle params) {
@@ -577,15 +623,45 @@ public class AthkarNativePlugin extends Plugin {
                         JSObject data = new JSObject();
                         data.put("status", "ready");
                         notifyListeners("onSpeechStart", data);
+
+                        // Start 3.8s watchdog: if no speech is detected, automatically switch to Google dialog!
+                        if (speechWatchdogHandler == null) {
+                            speechWatchdogHandler = new Handler(Looper.getMainLooper());
+                        }
+                        speechWatchdogRunnable = () -> {
+                            if (isSpeechListening && !hasReceivedSpeechAudio) {
+                                Log.i(TAG, "SpeechRecognizer watchdog: silence detected. Switching to Google speech dialog fallback.");
+                                try {
+                                    if (speechRecognizer != null) {
+                                        speechRecognizer.destroy();
+                                        speechRecognizer = null;
+                                    }
+                                } catch (Exception ignored) {}
+                                isSpeechListening = false;
+                                launchSpeechIntentFallback(call, lang);
+                            }
+                        };
+                        speechWatchdogHandler.postDelayed(speechWatchdogRunnable, 3800);
                     }
 
                     @Override
                     public void onBeginningOfSpeech() {
+                        hasReceivedSpeechAudio = true;
                         Log.i(TAG, "SpeechRecognizer: onBeginningOfSpeech");
+                        if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+                            speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+                        }
                     }
 
                     @Override
-                    public void onRmsChanged(float rmsdB) {}
+                    public void onRmsChanged(float rmsdB) {
+                        if (rmsdB > 2.0f) {
+                            hasReceivedSpeechAudio = true;
+                            if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+                                speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+                            }
+                        }
+                    }
 
                     @Override
                     public void onBufferReceived(byte[] buffer) {}
@@ -594,6 +670,9 @@ public class AthkarNativePlugin extends Plugin {
                     public void onEndOfSpeech() {
                         Log.i(TAG, "SpeechRecognizer: onEndOfSpeech");
                         isSpeechListening = false;
+                        if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+                            speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+                        }
                         JSObject data = new JSObject();
                         data.put("status", "processing");
                         notifyListeners("onSpeechEnd", data);
@@ -603,35 +682,35 @@ public class AthkarNativePlugin extends Plugin {
                     public void onError(int error) {
                         isSpeechListening = false;
                         Log.w(TAG, "SpeechRecognizer onError: " + error);
+                        if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+                            speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+                        }
 
-                        // If recognizer failed with client error or busy, attempt intent fallback
-                        if (error == SpeechRecognizer.ERROR_CLIENT || error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
-                            Log.i(TAG, "Attempting intent fallback after SpeechRecognizer error " + error);
+                        // On recognition error (e.g. no match, timeout, recognizer busy), smoothly trigger system speech dialog!
+                        if (error == SpeechRecognizer.ERROR_NO_MATCH ||
+                            error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT ||
+                            error == SpeechRecognizer.ERROR_CLIENT ||
+                            error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ||
+                            error == SpeechRecognizer.ERROR_AUDIO) {
+                            Log.i(TAG, "Auto-recovering via speech intent dialog after error " + error);
+                            try {
+                                if (speechRecognizer != null) {
+                                    speechRecognizer.destroy();
+                                    speechRecognizer = null;
+                                }
+                            } catch (Exception ignored) {}
+                            launchSpeechIntentFallback(call, lang);
+                            return;
                         }
 
                         String errorMsg = "حدث خطأ أثناء الاستماع";
                         switch (error) {
-                            case SpeechRecognizer.ERROR_NO_MATCH:
-                                errorMsg = "لم يتم تمييز السورة، يرجى نطق اسم السورة بوضوح";
-                                break;
-                            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                                errorMsg = "انتهى وقت الاستماع دون سماع صوت، انقر على الميكروفون للتحدث";
-                                break;
-                            case SpeechRecognizer.ERROR_AUDIO:
-                                errorMsg = "تعذر تسجيل الصوت من الميكروفون، يرجى المحاولة مجدداً";
-                                break;
                             case SpeechRecognizer.ERROR_NETWORK:
                             case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
                                 errorMsg = "يرجى التحقق من اتصال الإنترنت لاستخدام المساعد الصوتي";
                                 break;
                             case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
                                 errorMsg = "يرجى السماح بصلاحية الميكروفون لتشغيل المساعد الصوتي";
-                                break;
-                            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                                errorMsg = "المساعد الصوتي مشغول، انقر مرة أخرى";
-                                break;
-                            case SpeechRecognizer.ERROR_CLIENT:
-                                errorMsg = "تم إيقاف الاستماع";
                                 break;
                         }
 
@@ -645,6 +724,10 @@ public class AthkarNativePlugin extends Plugin {
                     @Override
                     public void onResults(Bundle results) {
                         isSpeechListening = false;
+                        if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+                            speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+                        }
+
                         ArrayList<String> matches = results != null ? results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) : null;
                         String text = "";
                         JSArray matchesArray = new JSArray();
@@ -655,6 +738,12 @@ public class AthkarNativePlugin extends Plugin {
                             }
                         }
                         Log.i(TAG, "SpeechRecognizer onResults: " + text);
+
+                        if (text.trim().isEmpty()) {
+                            Log.i(TAG, "Empty results, launching speech dialog fallback");
+                            launchSpeechIntentFallback(call, lang);
+                            return;
+                        }
 
                         JSObject ret = new JSObject();
                         ret.put("text", text);
@@ -684,9 +773,9 @@ public class AthkarNativePlugin extends Plugin {
                 intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false);
                 intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
-                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 6000L);
-                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L);
-                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L);
+                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 5000L);
+                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L);
+                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L);
 
                 speechRecognizer.startListening(intent);
 
@@ -694,36 +783,60 @@ public class AthkarNativePlugin extends Plugin {
                 ret.put("success", true);
                 call.resolve(ret);
             } catch (Exception e) {
-                Log.e(TAG, "Failed in-app SpeechRecognizer, falling back to intent: " + e.getMessage());
+                Log.e(TAG, "Failed in-app SpeechRecognizer, falling back to intent dialog: " + e.getMessage());
                 launchSpeechIntentFallback(call, lang);
             }
         });
     }
 
-    private void launchSpeechIntentFallback(PluginCall call, String lang) {
-        try {
-            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lang);
-            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "انطق اسم السورة للاستماع إليها...");
-            startActivityForResult(call, intent, "speechIntentResult");
-
-            JSObject data = new JSObject();
-            data.put("status", "ready");
-            notifyListeners("onSpeechStart", data);
-        } catch (Exception ex) {
-            Log.e(TAG, "Failed to launch speech intent fallback: " + ex.getMessage(), ex);
-            JSObject errObj = new JSObject();
-            errObj.put("error", "not_supported");
-            errObj.put("message", "تعذر تشغيل المساعد الصوتي، يرجى تفعيل تطبيق Google بهاتفك");
-            notifyListeners("onSpeechError", errObj);
-
-            JSObject ret = new JSObject();
-            ret.put("success", false);
-            ret.put("reason", ex.getMessage());
-            call.resolve(ret);
+    private void launchSpeechIntentFallback(final PluginCall call, final String lang) {
+        final Activity activity = getActivity();
+        if (activity == null || activity.isFinishing()) {
+            if (call != null) call.reject("Activity is null");
+            return;
         }
+
+        activity.runOnUiThread(() -> {
+            try {
+                if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+                    speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+                }
+
+                if (speechRecognizer != null) {
+                    try {
+                        speechRecognizer.destroy();
+                    } catch (Exception ignored) {}
+                    speechRecognizer = null;
+                }
+                isSpeechListening = false;
+
+                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang != null ? lang : "ar-SA");
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lang != null ? lang : "ar-SA");
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "انطق اسم السورة (مثل: سورة الكهف)");
+                intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+
+                startActivityForResult(call, intent, "speechIntentResult");
+
+                JSObject data = new JSObject();
+                data.put("status", "ready");
+                notifyListeners("onSpeechStart", data);
+            } catch (Exception ex) {
+                Log.e(TAG, "Failed to launch speech intent fallback: " + ex.getMessage(), ex);
+                JSObject errObj = new JSObject();
+                errObj.put("error", "not_supported");
+                errObj.put("message", "تعذر تشغيل المساعد الصوتي، يرجى تفعيل تطبيق Google بهاتفك");
+                notifyListeners("onSpeechError", errObj);
+
+                if (call != null) {
+                    JSObject ret = new JSObject();
+                    ret.put("success", false);
+                    ret.put("reason", ex.getMessage());
+                    call.resolve(ret);
+                }
+            }
+        });
     }
 
     @ActivityCallback
@@ -763,6 +876,9 @@ public class AthkarNativePlugin extends Plugin {
 
     @PluginMethod
     public void stopSpeechRecognition(final PluginCall call) {
+        if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+            speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+        }
         if (getActivity() != null) {
             getActivity().runOnUiThread(() -> {
                 try {
@@ -788,6 +904,9 @@ public class AthkarNativePlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
+        if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+            speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+        }
         if (speechRecognizer != null) {
             try {
                 speechRecognizer.destroy();

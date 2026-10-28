@@ -3,8 +3,14 @@
 
     <!-- Android 11+ Package Visibility Queries for Speech Recognition and TTS -->
     <queries>
+        <package android:name="com.google.android.googlequicksearchbox" />
+        <package android:name="com.google.android.tts" />
+        <package android:name="com.samsung.android.bixby.agent" />
         <intent>
             <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
         </intent>
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />

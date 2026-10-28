@@ -310,9 +310,10 @@ export function parseVoiceCommand(rawInput: string): VoiceCommandResult {
 
   // ط. تنظيف كلمات الطلب المعتادة للوصول إلى اسم السورة الصافي
   let cleanName = normalized
-    .replace(/^(شغل لي|شغل|تشغيل|استمع الى|استمع لـ|استمع ل|استمع|اسمعني|اسمع|اقرا لي|اقرا|تلاوة|تلاوه|افتح لي|افتح|اريد|ابغى|ابغي|ابي|ودي اسمع|ممكن سورة|ممكن سوره)\s*/g, '')
+    .replace(/^(شغل لي|شغل|تشغيل|استمع الى|استمع لـ|استمع ل|استمع|اسمعني|اسمع|اقرا لي|اقرا|تلاوة|تلاوه|افتح لي|افتح|اريد|ابغى|ابغي|ابي|ودي اسمع|ممكن سورة|ممكن سوره|القران|القران الكريم)\s*/g, '')
     .replace(/^سوره\s+/g, '')
     .replace(/^سورة\s+/g, '')
+    .replace(/\s+(كامله|كاملة|كاملا)$/g, '')
     .trim();
 
   // إزالة اسم القارئ من العبارة للمطابقة النقية
@@ -440,6 +441,7 @@ export interface VoiceListenerOptions {
   onFinalResult?: (result: VoiceCommandResult) => void;
   onError?: (error: string) => void;
   onEnd?: () => void;
+  forceDialog?: boolean;
 }
 
 export function startVoiceListening(options: VoiceListenerOptions): boolean {
@@ -467,12 +469,22 @@ export function startVoiceListening(options: VoiceListenerOptions): boolean {
       });
 
       const lResult = addNativeSpeechListener('onSpeechResult', (data: { text?: string; matches?: string[] }) => {
-        const text = data?.text || '';
-        if (text) {
+        const candidates = [data?.text, ...(data?.matches || [])].filter(Boolean) as string[];
+        if (candidates.length > 0) {
           playAuditoryChime('success');
           triggerHaptic('success');
-          const parsed = parseVoiceCommand(text);
-          options.onFinalResult?.(parsed);
+          let bestResult: VoiceCommandResult | null = null;
+          for (const cand of candidates) {
+            const parsed = parseVoiceCommand(cand);
+            if (parsed.action !== 'unknown') {
+              bestResult = parsed;
+              break;
+            }
+          }
+          if (!bestResult) {
+            bestResult = parseVoiceCommand(candidates[0]);
+          }
+          options.onFinalResult?.(bestResult);
         } else {
           playAuditoryChime('listen_stop');
           options.onError?.('لم يتم تمييز السورة، يرجى إعادة المحاولة ونطق اسم السورة');
@@ -490,7 +502,7 @@ export function startVoiceListening(options: VoiceListenerOptions): boolean {
 
       activeNativeSpeechListeners = [lStart, lPartial, lResult, lError, lEnd];
 
-      startNativeSpeechRecognition({ language: 'ar-SA' }).then((started) => {
+      startNativeSpeechRecognition({ language: 'ar-SA', forceDialog: options.forceDialog }).then((started) => {
         if (!started) {
           options.onError?.('انتهى الاستماع، انقر على الميكروفون للتحدث مجدداً');
         }

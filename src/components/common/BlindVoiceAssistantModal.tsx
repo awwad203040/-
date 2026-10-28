@@ -45,15 +45,16 @@ export default function BlindVoiceAssistantModal({
     setAutoLaunch(isAutoVoiceAssistantOnLaunch());
   }, [isOpen]);
 
-  const startListeningSession = useCallback(() => {
+  const startListeningSession = useCallback((forceDialog = false) => {
     // Stop any ongoing speech synthesis so the mic doesn't capture the app's own voice
     stopAccessibilitySpeech();
 
     setTranscript('');
     setFeedback('');
-    setStatusText('جاري فتح الميكروفون...');
+    setStatusText(forceDialog ? 'جاري فتح نافذة التحدث...' : 'أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
 
     const started = startVoiceListening({
+      forceDialog,
       onStart: () => {
         setIsListening(true);
         setPermissionGranted(true);
@@ -67,6 +68,14 @@ export default function BlindVoiceAssistantModal({
         setIsListening(false);
         setTranscript(result.originalText);
         setFeedback(result.feedbackMessage);
+
+        if (result.action === 'unknown') {
+          setStatusText(result.feedbackMessage);
+          speakAccessibility(result.feedbackMessage, { force: true });
+          announceToScreenReader(result.feedbackMessage, true);
+          return;
+        }
+
         setStatusText('تم التعرف على طلبك بنجاح');
         speakAccessibility(result.feedbackMessage, { force: true });
         announceToScreenReader(result.feedbackMessage, true);
@@ -75,7 +84,7 @@ export default function BlindVoiceAssistantModal({
         timeoutRef.current = setTimeout(() => {
           onExecuteCommand(result);
           onClose();
-        }, 1400);
+        }, 1100);
       },
       onError: (errMsg) => {
         setIsListening(false);
@@ -166,17 +175,9 @@ export default function BlindVoiceAssistantModal({
       return;
     }
 
-    if (isListening) {
-      stopVoiceListening();
-      setIsListening(false);
-      setStatusText('تم إيقاف الاستماع، اضغط للتحدث');
-      triggerHaptic('pause');
-      speakAccessibility('تم إيقاف الاستماع');
-    } else {
-      stopAccessibilitySpeech();
-      triggerHaptic('tap');
-      startListeningSession();
-    }
+    stopAccessibilitySpeech();
+    triggerHaptic('tap');
+    startListeningSession(true);
   };
 
   const sampleCommands = [
@@ -189,6 +190,7 @@ export default function BlindVoiceAssistantModal({
   ];
 
   const handleSampleClick = (cmd: string) => {
+    stopVoiceListening();
     triggerHaptic('tap');
     speakAccessibility(`جاري طلب: ${cmd}`, { force: true });
     // Parse sample directly
@@ -200,7 +202,7 @@ export default function BlindVoiceAssistantModal({
       setTimeout(() => {
         onExecuteCommand(res);
         onClose();
-      }, 1000);
+      }, 900);
     });
   };
 
