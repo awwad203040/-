@@ -492,10 +492,10 @@ export function startVoiceListening(options: VoiceListenerOptions): boolean {
 
       startNativeSpeechRecognition({ language: 'ar-SA' }).then((started) => {
         if (!started) {
-          options.onError?.('تعذر تشغيل الميكروفون، تأكد من منح الصلاحية');
+          options.onError?.('انتهى الاستماع، انقر على الميكروفون للتحدث مجدداً');
         }
       }).catch(() => {
-        options.onError?.('تعذر تشغيل الميكروفون');
+        options.onError?.('تعذر بدء المساعد الصوتي');
       });
 
       return true;

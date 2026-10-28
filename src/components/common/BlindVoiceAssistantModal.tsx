@@ -34,8 +34,8 @@ export default function BlindVoiceAssistantModal({
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [feedback, setFeedback] = useState('');
-  const [statusText, setStatusText] = useState('انقر على الميكروفون للتحدث أو انتظر...');
-  const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
+  const [statusText, setStatusText] = useState('أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
+  const [permissionGranted, setPermissionGranted] = useState<boolean>(true);
   const [supported, setSupported] = useState(true);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -73,7 +73,7 @@ export default function BlindVoiceAssistantModal({
       },
       onError: (errMsg) => {
         setIsListening(false);
-        if (errMsg.includes('صلاحية') || errMsg.includes('إذن')) {
+        if (errMsg.includes('صلاحية الميكروفون') || errMsg.includes('إذن الميكروفون') || errMsg.includes('permission_denied')) {
           setPermissionGranted(false);
           setStatusText('يرجى منح صلاحية الميكروفون للتحدث');
         } else {
@@ -89,8 +89,7 @@ export default function BlindVoiceAssistantModal({
 
     if (!started) {
       setIsListening(false);
-      setPermissionGranted(false);
-      setStatusText('يرجى منح صلاحية الميكروفون للتحدث.');
+      setStatusText('انقر على الميكروفون للتحدث');
     }
   }, [onExecuteCommand, onClose]);
 
@@ -118,25 +117,26 @@ export default function BlindVoiceAssistantModal({
     if (isOpen) {
       setSupported(isSpeechRecognitionSupported());
       announceToScreenReader('تم فتح المساعد الصوتي للمكفوفين', true);
+      speakAccessibility('المساعد الصوتي، تفضل بنطق اسم السورة', { force: true });
+      setStatusText('أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
 
-      // Check microphone permission before opening listening session
+      // Verify permission in background; only if explicitly false, show permission banner
       checkNativeAudioPermission().then((granted) => {
         if (isCancelled) return;
         setPermissionGranted(granted);
-        if (granted) {
-          speakAccessibility('المساعد الصوتي، تفضل بنطق اسم السورة', { force: true });
-          setStatusText('أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
-          if (timeoutRef.current) clearTimeout(timeoutRef.current);
-          timeoutRef.current = setTimeout(() => {
-            if (!isCancelled) {
-              startListeningSession();
-            }
-          }, 2000);
-        } else {
+        if (!granted) {
           setStatusText('يرجى النقر على زر منح الصلاحية لتشغيل الميكروفون');
           speakAccessibility('يرجى منح صلاحية الميكروفون لتشغيل المساعد الصوتي', { force: true });
         }
       });
+
+      // Start listening session smoothly after greeting
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        if (!isCancelled) {
+          startListeningSession();
+        }
+      }, 1900);
 
       return () => {
         isCancelled = true;

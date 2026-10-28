@@ -410,11 +410,15 @@ public class AthkarNativePlugin extends Plugin {
     @PluginMethod
     public void checkAudioPermission(PluginCall call) {
         Context context = getContext();
+        if (context == null && getActivity() != null) {
+            context = getActivity().getApplicationContext();
+        }
         boolean granted = context != null && ContextCompat.checkSelfPermission(
             context,
             android.Manifest.permission.RECORD_AUDIO
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED;
 
+        Log.i(TAG, "checkAudioPermission evaluated: " + granted);
         JSObject ret = new JSObject();
         ret.put("granted", granted);
         call.resolve(ret);
@@ -423,6 +427,9 @@ public class AthkarNativePlugin extends Plugin {
     @PluginMethod
     public void requestAudioPermission(PluginCall call) {
         Context context = getContext();
+        if (context == null && getActivity() != null) {
+            context = getActivity().getApplicationContext();
+        }
         if (context != null && ContextCompat.checkSelfPermission(
             context,
             android.Manifest.permission.RECORD_AUDIO
@@ -439,6 +446,9 @@ public class AthkarNativePlugin extends Plugin {
     @PermissionCallback
     private void audioPermissionCallback(PluginCall call) {
         Context context = getContext();
+        if (context == null && getActivity() != null) {
+            context = getActivity().getApplicationContext();
+        }
         boolean granted = context != null && ContextCompat.checkSelfPermission(
             context,
             android.Manifest.permission.RECORD_AUDIO
@@ -580,7 +590,7 @@ public class AthkarNativePlugin extends Plugin {
                                 errorMsg = "انتهى وقت الاستماع دون سماع صوت، انقر على الميكروفون للتحدث";
                                 break;
                             case SpeechRecognizer.ERROR_AUDIO:
-                                errorMsg = "تعذر تسجيل الصوت من الميكروفون، تأكد من صلاحية الميكروفون";
+                                errorMsg = "تعذر تسجيل الصوت من الميكروفون، يرجى المحاولة مجدداً";
                                 break;
                             case SpeechRecognizer.ERROR_NETWORK:
                             case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:

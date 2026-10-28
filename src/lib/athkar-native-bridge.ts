@@ -104,13 +104,27 @@ export async function stopNativeVoice(): Promise<boolean> {
  */
 export async function checkNativeAudioPermission(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return true;
+
   try {
-    const res = await AthkarNative.checkAudioPermission();
-    return Boolean(res?.granted);
-  } catch (err) {
-    console.warn('checkNativeAudioPermission failed:', err);
-    return false;
-  }
+    // 1. Try custom plugin check
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await (AthkarNative as any).checkAudioPermission?.();
+    if (res && typeof res.granted === 'boolean') {
+      return res.granted;
+    }
+  } catch {}
+
+  try {
+    // 2. Try standard Capacitor permission status
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const perm = await (AthkarNative as any).checkPermissions?.();
+    if (perm && typeof perm.recordAudio === 'string') {
+      return perm.recordAudio === 'granted';
+    }
+  } catch {}
+
+  // 3. Fallback: return true optimistically to never block the user falsely
+  return true;
 }
 
 /**
@@ -118,13 +132,26 @@ export async function checkNativeAudioPermission(): Promise<boolean> {
  */
 export async function requestNativeAudioPermission(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return true;
+
   try {
-    const res = await AthkarNative.requestAudioPermission();
-    return Boolean(res?.granted);
-  } catch (err) {
-    console.warn('requestNativeAudioPermission failed:', err);
-    return false;
-  }
+    // 1. Try custom plugin request
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await (AthkarNative as any).requestAudioPermission?.();
+    if (res && typeof res.granted === 'boolean') {
+      return res.granted;
+    }
+  } catch {}
+
+  try {
+    // 2. Try standard Capacitor permission request
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const perm = await (AthkarNative as any).requestPermissions?.({ permissions: ['recordAudio'] });
+    if (perm && typeof perm.recordAudio === 'string') {
+      return perm.recordAudio === 'granted';
+    }
+  } catch {}
+
+  return true;
 }
 
 /**
