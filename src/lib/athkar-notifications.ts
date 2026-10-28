@@ -231,8 +231,11 @@ export async function showSingleThikrNotification(
           body: thikr.textDisplay,
           icon: '/icon-192.png',
           badge: '/icon-192.png',
+          vibrate: [200, 100, 200],
           tag: 'noor-thikr-toast',
-        });
+          renotify: true,
+          data: { url: '/', thikrId: thikr.id, audioUrl: thikr.audioUrl },
+        } as unknown as NotificationOptions);
       } else {
         new Notification('نور القرآن 📿', {
           body: thikr.textDisplay,

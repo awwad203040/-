@@ -1,5 +1,5 @@
-// Noor Al-Quran Service Worker (PWA Offline Support v25)
-const CACHE_NAME = 'noor-alquran-v25';
+// Noor Al-Quran Service Worker (PWA Offline Support & Instant Updates v26)
+const CACHE_NAME = 'noor-alquran-v26';
 const PAGES_CACHE_NAME = 'noor-mushaf-pages-v1';
 
 const CORE_ASSETS = [
@@ -286,4 +286,30 @@ self.addEventListener('fetch', (event) => {
         return caches.match(event.request, { ignoreSearch: true });
       })
   );
+});
+
+// 7. Notification Click Handler - Focus existing PWA window or launch start_url
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
+// 8. Message Listener for Instant Programmatic Update & Skip Waiting
+self.addEventListener('message', (event) => {
+  if (event.data && (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting')) {
+    self.skipWaiting();
+  }
 });

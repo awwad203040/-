@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { forcePwaUpdate } from '@/components/PwaRegister';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -25,12 +26,7 @@ export default function InstallAppModal({
     setIsUpdating(true);
     setUpdateSuccess(false);
     try {
-      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.update();
-        }
-      }
+      await forcePwaUpdate();
       setUpdateSuccess(true);
       setTimeout(() => {
         window.location.reload();

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import {
   PrayerTimesResult,
   UserPrayerSettings,
@@ -100,6 +101,7 @@ export function usePrayerTimes() {
   const [isGpsLoading, setIsGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [isTestAdhanPlaying, setIsTestAdhanPlaying] = useState(false);
+  const lastAdhanTriggerRef = useRef<string>('');
 
   // Synchronize scheduled native alarms whenever prayer times or settings change
   useEffect(() => {
@@ -126,11 +128,80 @@ export function usePrayerTimes() {
     settings.enabledPrayers,
   ]);
 
-  // Update prayer times every second for live countdown
+  // Update prayer times every second for live countdown & check for prayer arrival on Web / PWA
   useEffect(() => {
     const update = () => {
-      setPrayerData(getFullPrayerTimes(settings, new Date()));
+      const now = new Date();
+      const updatedData = getFullPrayerTimes(settings, now);
+      setPrayerData(updatedData);
+
+      // On Web / PWA: Check if current minute matches any enabled prayer to sound the Adhan
+      if (!Capacitor.isNativePlatform() && settings.adhanEnabled) {
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const currentHHMM = `${hours}:${minutes}`;
+        const todayKey = now.toISOString().slice(0, 10);
+
+        const prayers: Array<{
+          key: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
+          name: string;
+          time: string;
+          time12: string;
+        }> = [
+          { key: 'fajr', name: 'الفجر', time: updatedData.fajr, time12: updatedData.fajr12 },
+          { key: 'dhuhr', name: 'الظهر', time: updatedData.dhuhr, time12: updatedData.dhuhr12 },
+          { key: 'asr', name: 'العصر', time: updatedData.asr, time12: updatedData.asr12 },
+          { key: 'maghrib', name: 'المغرب', time: updatedData.maghrib, time12: updatedData.maghrib12 },
+          { key: 'isha', name: 'العشاء', time: updatedData.isha, time12: updatedData.isha12 },
+        ];
+
+        for (const prayer of prayers) {
+          if (settings.enabledPrayers[prayer.key] && currentHHMM === prayer.time) {
+            const triggerKey = `${todayKey}_${prayer.key}`;
+            if (lastAdhanTriggerRef.current !== triggerKey) {
+              lastAdhanTriggerRef.current = triggerKey;
+
+              // Play Adhan Audio (Sheikh Mohamed Jazi Azan)
+              playTestAdhanSound().catch(() => {});
+
+              // Show Web / Service Worker Notification if permitted
+              if (
+                typeof window !== 'undefined' &&
+                'Notification' in window &&
+                Notification.permission === 'granted'
+              ) {
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                  navigator.serviceWorker.ready
+                    .then((reg) => {
+                      reg.showNotification('الله أكبر - حان موعد الأذان 🕌', {
+                        body: `حان الآن موعد أذان صلاة ${prayer.name} (${prayer.time12}) حسب توقيت ${updatedData.cityName}`,
+                        icon: '/icon-192.png',
+                        badge: '/icon-192.png',
+                        vibrate: [300, 150, 300, 150, 600],
+                        tag: `noor-adhan-${prayer.key}`,
+                        renotify: true,
+                        data: { url: '/' },
+                      } as unknown as NotificationOptions);
+                    })
+                    .catch(() => {});
+                } else {
+                  try {
+                    new Notification('الله أكبر - حان موعد الأذان 🕌', {
+                      body: `حان الآن موعد أذان صلاة ${prayer.name} (${prayer.time12}) حسب توقيت ${updatedData.cityName}`,
+                      icon: '/icon-192.png',
+                    });
+                  } catch {}
+                }
+              }
+
+              announceToScreenReader(`حان الآن موعد أذان صلاة ${prayer.name}`);
+            }
+            break;
+          }
+        }
+      }
     };
+
     update();
     const timer = setInterval(update, 1000);
     return () => clearInterval(timer);
@@ -242,9 +313,13 @@ export function usePrayerTimes() {
 
   // Toggle Notifications
   const toggleNotification = useCallback(() => {
-    const updated = savePrayerSettings({ notificationEnabled: !settings.notificationEnabled });
+    const newVal = !settings.notificationEnabled;
+    const updated = savePrayerSettings({ notificationEnabled: newVal });
     setSettings(updated);
     triggerHaptic('tap');
+    if (newVal && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
   }, [settings.notificationEnabled]);
 
   // Master Adhan Switch
@@ -253,6 +328,10 @@ export function usePrayerTimes() {
     const updated = savePrayerSettings({ adhanEnabled: newVal });
     setSettings(updated);
     triggerHaptic('tap');
+
+    if (newVal && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
 
     if (!newVal) {
       cancelNativeAdhanAlarms();
