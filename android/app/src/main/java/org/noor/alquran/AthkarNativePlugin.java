@@ -12,6 +12,8 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
+import android.app.Activity;
+import androidx.activity.result.ActivityResult;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSArray;
@@ -19,11 +21,22 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 import java.util.ArrayList;
 import java.util.Locale;
 
-@CapacitorPlugin(name = "AthkarNative")
+@CapacitorPlugin(
+    name = "AthkarNative",
+    permissions = {
+        @Permission(
+            alias = "recordAudio",
+            strings = { android.Manifest.permission.RECORD_AUDIO }
+        )
+    }
+)
 public class AthkarNativePlugin extends Plugin {
     private static final String TAG = "AthkarNativePlugin";
     private TextToSpeech nativeTts;
@@ -395,6 +408,48 @@ public class AthkarNativePlugin extends Plugin {
     }
 
     @PluginMethod
+    public void checkAudioPermission(PluginCall call) {
+        Context context = getContext();
+        boolean granted = context != null && ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+
+        JSObject ret = new JSObject();
+        ret.put("granted", granted);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void requestAudioPermission(PluginCall call) {
+        Context context = getContext();
+        if (context != null && ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            JSObject ret = new JSObject();
+            ret.put("granted", true);
+            call.resolve(ret);
+            return;
+        }
+
+        requestPermissionForAlias("recordAudio", call, "audioPermissionCallback");
+    }
+
+    @PermissionCallback
+    private void audioPermissionCallback(PluginCall call) {
+        Context context = getContext();
+        boolean granted = context != null && ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+
+        JSObject ret = new JSObject();
+        ret.put("granted", granted);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
     public void startSpeechRecognition(final PluginCall call) {
         final Context context = getContext();
         if (context == null) {
@@ -402,43 +457,64 @@ public class AthkarNativePlugin extends Plugin {
             return;
         }
 
-        // 1. Verify RECORD_AUDIO permission
+        // 1. Check RECORD_AUDIO permission
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO)
                 != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            if (getActivity() != null) {
-                ActivityCompat.requestPermissions(
-                    getActivity(),
-                    new String[]{android.Manifest.permission.RECORD_AUDIO},
-                    102
-                );
-            }
+            requestPermissionForAlias("recordAudio", call, "audioPermissionCallbackForStart");
+            return;
+        }
+
+        executeSpeechRecognition(call);
+    }
+
+    @PermissionCallback
+    private void audioPermissionCallbackForStart(PluginCall call) {
+        Context context = getContext();
+        if (context != null && ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            executeSpeechRecognition(call);
+        } else {
             JSObject errObj = new JSObject();
             errObj.put("error", "permission_denied");
             errObj.put("message", "يرجى السماح بصلاحية الميكروفون لاستخدام المساعد الصوتي");
             notifyListeners("onSpeechError", errObj);
-            call.reject("RECORD_AUDIO permission not granted");
+
+            JSObject ret = new JSObject();
+            ret.put("success", false);
+            ret.put("reason", "permission_denied");
+            call.resolve(ret);
+        }
+    }
+
+    private void executeSpeechRecognition(final PluginCall call) {
+        final Context context = getContext();
+        if (context == null) {
+            call.reject("Context is null");
             return;
         }
 
-        // 2. Stop any active TTS so the microphone doesn't capture the app's own voice
+        // Stop any active TTS so the microphone doesn't capture the app's own voice
         try {
             if (nativeTts != null) {
                 nativeTts.stop();
             }
         } catch (Exception ignored) {}
 
-        // 3. Check if SpeechRecognizer service is available
-        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            Log.w(TAG, "SpeechRecognizer is not available on this device.");
-            JSObject errObj = new JSObject();
-            errObj.put("error", "not_available");
-            errObj.put("message", "خدمة التعرف الصوتي غير متوفرة في هذا الجهاز، يرجى تفعيل تطبيق Google");
-            notifyListeners("onSpeechError", errObj);
-            call.reject("SpeechRecognizer not available");
+        final String lang = call.getString("language", "ar-SA");
+
+        // Check if SpeechRecognizer service is available in background
+        boolean isServiceAvailable = false;
+        try {
+            isServiceAvailable = SpeechRecognizer.isRecognitionAvailable(context);
+        } catch (Exception ignored) {}
+
+        if (!isServiceAvailable) {
+            Log.i(TAG, "SpeechRecognizer service not available, launching system speech intent fallback.");
+            launchSpeechIntentFallback(call, lang);
             return;
         }
-
-        final String lang = call.getString("language", "ar-SA");
 
         if (getActivity() == null) {
             call.reject("Activity is null");
@@ -489,6 +565,12 @@ public class AthkarNativePlugin extends Plugin {
                     public void onError(int error) {
                         isSpeechListening = false;
                         Log.w(TAG, "SpeechRecognizer onError: " + error);
+
+                        // If recognizer failed with client error or busy, attempt intent fallback
+                        if (error == SpeechRecognizer.ERROR_CLIENT || error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
+                            Log.i(TAG, "Attempting intent fallback after SpeechRecognizer error " + error);
+                        }
+
                         String errorMsg = "حدث خطأ أثناء الاستماع";
                         switch (error) {
                             case SpeechRecognizer.ERROR_NO_MATCH:
@@ -498,7 +580,7 @@ public class AthkarNativePlugin extends Plugin {
                                 errorMsg = "انتهى وقت الاستماع دون سماع صوت، انقر على الميكروفون للتحدث";
                                 break;
                             case SpeechRecognizer.ERROR_AUDIO:
-                                errorMsg = "تعذر تسجيل الصوت من الميكروفون";
+                                errorMsg = "تعذر تسجيل الصوت من الميكروفون، تأكد من صلاحية الميكروفون";
                                 break;
                             case SpeechRecognizer.ERROR_NETWORK:
                             case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
@@ -564,7 +646,6 @@ public class AthkarNativePlugin extends Plugin {
                 intent.putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false);
                 intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
-                // Allow generous speech window so the user is never rushed!
                 intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 6000L);
                 intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L);
                 intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3500L);
@@ -575,14 +656,71 @@ public class AthkarNativePlugin extends Plugin {
                 ret.put("success", true);
                 call.resolve(ret);
             } catch (Exception e) {
-                Log.e(TAG, "Failed to start SpeechRecognizer: " + e.getMessage(), e);
-                JSObject errObj = new JSObject();
-                errObj.put("error", "exception");
-                errObj.put("message", "تعذر تشغيل المساعد الصوتي: " + e.getMessage());
-                notifyListeners("onSpeechError", errObj);
-                call.reject("Failed to start SpeechRecognizer: " + e.getMessage());
+                Log.e(TAG, "Failed in-app SpeechRecognizer, falling back to intent: " + e.getMessage());
+                launchSpeechIntentFallback(call, lang);
             }
         });
+    }
+
+    private void launchSpeechIntentFallback(PluginCall call, String lang) {
+        try {
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lang);
+            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "انطق اسم السورة للاستماع إليها...");
+            startActivityForResult(call, intent, "speechIntentResult");
+
+            JSObject data = new JSObject();
+            data.put("status", "ready");
+            notifyListeners("onSpeechStart", data);
+        } catch (Exception ex) {
+            Log.e(TAG, "Failed to launch speech intent fallback: " + ex.getMessage(), ex);
+            JSObject errObj = new JSObject();
+            errObj.put("error", "not_supported");
+            errObj.put("message", "تعذر تشغيل المساعد الصوتي، يرجى تفعيل تطبيق Google بهاتفك");
+            notifyListeners("onSpeechError", errObj);
+
+            JSObject ret = new JSObject();
+            ret.put("success", false);
+            ret.put("reason", ex.getMessage());
+            call.resolve(ret);
+        }
+    }
+
+    @ActivityCallback
+    private void speechIntentResult(PluginCall call, ActivityResult result) {
+        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+            ArrayList<String> matches = result.getData().getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            String text = (matches != null && !matches.isEmpty()) ? matches.get(0) : "";
+            JSArray matchesArray = new JSArray();
+            if (matches != null) {
+                for (String m : matches) {
+                    matchesArray.put(m);
+                }
+            }
+            Log.i(TAG, "speechIntentResult success: " + text);
+
+            JSObject ret = new JSObject();
+            ret.put("text", text);
+            ret.put("matches", matchesArray);
+            notifyListeners("onSpeechResult", ret);
+
+            if (call != null) {
+                call.resolve(ret);
+            }
+        } else {
+            Log.i(TAG, "speechIntentResult cancelled or no result");
+            JSObject ret = new JSObject();
+            ret.put("message", "تم إيقاف الاستماع");
+            notifyListeners("onSpeechEnd", ret);
+            if (call != null) {
+                JSObject cancelObj = new JSObject();
+                cancelObj.put("success", false);
+                cancelObj.put("cancelled", true);
+                call.resolve(cancelObj);
+            }
+        }
     }
 
     @PluginMethod

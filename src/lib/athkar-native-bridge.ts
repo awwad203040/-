@@ -37,7 +37,11 @@ interface AthkarNativePlugin {
 
   stopNativeSpeech(): Promise<{ success: boolean }>;
 
-  startSpeechRecognition(options?: { language?: string }): Promise<{ success: boolean }>;
+  checkAudioPermission(): Promise<{ granted: boolean }>;
+
+  requestAudioPermission(): Promise<{ granted: boolean }>;
+
+  startSpeechRecognition(options?: { language?: string }): Promise<{ success: boolean; reason?: string }>;
 
   stopSpeechRecognition(): Promise<{ success: boolean }>;
 
@@ -91,6 +95,34 @@ export async function stopNativeVoice(): Promise<boolean> {
     const res = await AthkarNative.stopNativeSpeech();
     return res.success;
   } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if Android RECORD_AUDIO permission is granted.
+ */
+export async function checkNativeAudioPermission(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return true;
+  try {
+    const res = await AthkarNative.checkAudioPermission();
+    return Boolean(res?.granted);
+  } catch (err) {
+    console.warn('checkNativeAudioPermission failed:', err);
+    return false;
+  }
+}
+
+/**
+ * Prompt user for Android RECORD_AUDIO permission.
+ */
+export async function requestNativeAudioPermission(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return true;
+  try {
+    const res = await AthkarNative.requestAudioPermission();
+    return Boolean(res?.granted);
+  } catch (err) {
+    console.warn('requestNativeAudioPermission failed:', err);
     return false;
   }
 }

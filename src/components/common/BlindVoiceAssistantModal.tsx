@@ -13,7 +13,12 @@ import {
   triggerHaptic,
   announceToScreenReader,
 } from '@/lib/accessibility';
-import { openNativeVoiceMatchSettings } from '@/lib/athkar-native-bridge';
+import {
+  openNativeVoiceMatchSettings,
+  checkNativeAudioPermission,
+  requestNativeAudioPermission,
+  openNativeAppSettings,
+} from '@/lib/athkar-native-bridge';
 
 interface BlindVoiceAssistantModalProps {
   isOpen: boolean;
@@ -30,6 +35,7 @@ export default function BlindVoiceAssistantModal({
   const [transcript, setTranscript] = useState('');
   const [feedback, setFeedback] = useState('');
   const [statusText, setStatusText] = useState('انقر على الميكروفون للتحدث أو انتظر...');
+  const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [supported, setSupported] = useState(true);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -44,6 +50,7 @@ export default function BlindVoiceAssistantModal({
     const started = startVoiceListening({
       onStart: () => {
         setIsListening(true);
+        setPermissionGranted(true);
         setStatusText('أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
         announceToScreenReader('المساعد الصوتي يستمع إليك الآن. تفضل بنطق اسم السورة', true);
       },
@@ -66,7 +73,12 @@ export default function BlindVoiceAssistantModal({
       },
       onError: (errMsg) => {
         setIsListening(false);
-        setStatusText(errMsg);
+        if (errMsg.includes('صلاحية') || errMsg.includes('إذن')) {
+          setPermissionGranted(false);
+          setStatusText('يرجى منح صلاحية الميكروفون للتحدث');
+        } else {
+          setStatusText(errMsg);
+        }
         speakAccessibility(errMsg, { force: true });
         announceToScreenReader(errMsg, true);
       },
@@ -77,28 +89,63 @@ export default function BlindVoiceAssistantModal({
 
     if (!started) {
       setIsListening(false);
-      setStatusText('تعذر بدء التعرف الصوتي. تأكد من إعطاء إذن الميكروفون.');
+      setPermissionGranted(false);
+      setStatusText('يرجى منح صلاحية الميكروفون للتحدث.');
     }
   }, [onExecuteCommand, onClose]);
 
+  const handleRequestPermission = useCallback(async () => {
+    triggerHaptic('tap');
+    speakAccessibility('جاري طلب صلاحية الميكروفون...');
+    const granted = await requestNativeAudioPermission();
+    if (granted) {
+      setPermissionGranted(true);
+      triggerHaptic('success');
+      setStatusText('تم تفعيل الميكروفون بنجاح، أستمع إليك الآن...');
+      speakAccessibility('تم تفعيل الميكروفون بنجاح، تفضل بنطق اسم السورة', { force: true });
+      startListeningSession();
+    } else {
+      setPermissionGranted(false);
+      setStatusText('يرجى تفعيل صلاحية الميكروفون من إعدادات الهاتف');
+      speakAccessibility('يرجى تفعيل صلاحية الميكروفون من إعدادات الهاتف');
+      await openNativeAppSettings();
+    }
+  }, [startListeningSession]);
+
   useEffect(() => {
+    let isCancelled = false;
+
     if (isOpen) {
       setSupported(isSpeechRecognitionSupported());
-      speakAccessibility('المساعد الصوتي، تفضل بنطق اسم السورة', { force: true });
       announceToScreenReader('تم فتح المساعد الصوتي للمكفوفين', true);
 
-      // Allow 2.2 seconds for the prompt to finish speaking before opening the microphone
-      const timer = setTimeout(() => {
-        startListeningSession();
-      }, 2200);
+      // Check microphone permission before opening listening session
+      checkNativeAudioPermission().then((granted) => {
+        if (isCancelled) return;
+        setPermissionGranted(granted);
+        if (granted) {
+          speakAccessibility('المساعد الصوتي، تفضل بنطق اسم السورة', { force: true });
+          setStatusText('أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          timeoutRef.current = setTimeout(() => {
+            if (!isCancelled) {
+              startListeningSession();
+            }
+          }, 2000);
+        } else {
+          setStatusText('يرجى النقر على زر منح الصلاحية لتشغيل الميكروفون');
+          speakAccessibility('يرجى منح صلاحية الميكروفون لتشغيل المساعد الصوتي', { force: true });
+        }
+      });
 
       return () => {
-        clearTimeout(timer);
+        isCancelled = true;
         stopVoiceListening();
         stopAccessibilitySpeech();
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
       };
     } else {
+      isCancelled = true;
       stopVoiceListening();
       stopAccessibilitySpeech();
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -108,6 +155,11 @@ export default function BlindVoiceAssistantModal({
   if (!isOpen) return null;
 
   const handleManualMicClick = () => {
+    if (permissionGranted === false) {
+      handleRequestPermission();
+      return;
+    }
+
     if (isListening) {
       stopVoiceListening();
       setIsListening(false);
@@ -233,6 +285,39 @@ export default function BlindVoiceAssistantModal({
             </p>
           )}
         </div>
+
+        {/* Permission Action Banner if not granted */}
+        {permissionGranted === false && (
+          <div className="w-full bg-[#2A1515] border-2 border-red-400/50 rounded-2xl p-4 flex flex-col items-center gap-2.5 text-center shadow-lg animate-in fade-in">
+            <span className="text-sm font-bold text-red-200 flex items-center gap-1.5">
+              <span>🎙️</span>
+              <span>يلزم تفعيل إذن الميكروفون</span>
+            </span>
+            <p className="text-[11px] text-white/80 leading-relaxed">
+              لتتمكن من نطق اسم أي سورة والاستماع إليها فوراً، يرجى السماح بصلاحية الميكروفون.
+            </p>
+            <div className="flex w-full gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleRequestPermission}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition cursor-pointer hover:brightness-105"
+              >
+                <span>🎙️</span>
+                <span>منح الصلاحية الآن</span>
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  triggerHaptic('tap');
+                  await openNativeAppSettings();
+                }}
+                className="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold cursor-pointer transition"
+              >
+                ⚙️ الإعدادات
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Quick Sample Voice Pills */}
         <div className="w-full">
