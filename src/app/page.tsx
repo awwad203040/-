@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReadingProgress, Bookmark } from '@/types/quran';
-import { getReadingProgress, saveReadingProgress, getBookmarks, getPagesVisited, getSettings, saveSettings } from '@/lib/storage';
+import { getReadingProgress, saveReadingProgress, getBookmarks, getPagesVisited, getSettings, saveSettings, isAutoVoiceAssistantOnLaunch } from '@/lib/storage';
+import { consumeNativeVoiceLaunch } from '@/lib/athkar-native-bridge';
 import { SURAH_METADATA, JUZ_METADATA, POPULAR_RECITERS, getSurahName, getSurahForPage, parseArabicOrWesternNumber } from '@/lib/quran-meta';
 import InstallAppModal from '@/components/home/InstallAppModal';
 import AudioPlayerComponent from '@/components/mushaf/AudioPlayer';
@@ -255,6 +256,23 @@ export default function HomePage() {
 
   // Listen for native voice commands triggered by Android intents (Google Assistant / Voice Match)
   useEffect(() => {
+    // 1. Check if the app was launched by Google Assistant / Gemini voice intent
+    consumeNativeVoiceLaunch().then(({ isVoiceLaunch, query }) => {
+      if (isVoiceLaunch) {
+        if (query) {
+          import('@/lib/voice-command-engine').then(({ parseVoiceCommand }) => {
+            const res = parseVoiceCommand(query);
+            handleVoiceCommandResult(res);
+          });
+        } else {
+          setShowVoiceAssistantModal(true);
+        }
+      } else if (isAutoVoiceAssistantOnLaunch()) {
+        setShowVoiceAssistantModal(true);
+      }
+    });
+
+    // 2. Also listen for custom events if already mounted
     const handleVoiceTrigger = () => {
       setShowVoiceAssistantModal(true);
     };

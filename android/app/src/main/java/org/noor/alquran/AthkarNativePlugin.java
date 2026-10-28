@@ -39,6 +39,9 @@ import java.util.Locale;
 )
 public class AthkarNativePlugin extends Plugin {
     private static final String TAG = "AthkarNativePlugin";
+    public static volatile boolean pendingVoiceLaunch = false;
+    public static volatile String pendingVoiceQuery = "";
+
     private TextToSpeech nativeTts;
     private boolean isNativeTtsReady = false;
     private String pendingSpeechText = null;
@@ -47,6 +50,17 @@ public class AthkarNativePlugin extends Plugin {
 
     private SpeechRecognizer speechRecognizer;
     private boolean isSpeechListening = false;
+
+    @PluginMethod
+    public void consumeVoiceLaunch(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("isVoiceLaunch", pendingVoiceLaunch);
+        ret.put("query", pendingVoiceQuery != null ? pendingVoiceQuery : "");
+        Log.i(TAG, "consumeVoiceLaunch called. Returning isVoiceLaunch=" + pendingVoiceLaunch + ", query=" + pendingVoiceQuery);
+        pendingVoiceLaunch = false;
+        pendingVoiceQuery = "";
+        call.resolve(ret);
+    }
 
     @Override
     public void load() {

@@ -19,6 +19,7 @@ import {
   requestNativeAudioPermission,
   openNativeAppSettings,
 } from '@/lib/athkar-native-bridge';
+import { isAutoVoiceAssistantOnLaunch, setAutoVoiceAssistantOnLaunch } from '@/lib/storage';
 
 interface BlindVoiceAssistantModalProps {
   isOpen: boolean;
@@ -37,7 +38,12 @@ export default function BlindVoiceAssistantModal({
   const [statusText, setStatusText] = useState('أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
   const [permissionGranted, setPermissionGranted] = useState<boolean>(true);
   const [supported, setSupported] = useState(true);
+  const [autoLaunch, setAutoLaunch] = useState<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setAutoLaunch(isAutoVoiceAssistantOnLaunch());
+  }, [isOpen]);
 
   const startListeningSession = useCallback(() => {
     // Stop any ongoing speech synthesis so the mic doesn't capture the app's own voice
@@ -353,6 +359,35 @@ export default function BlindVoiceAssistantModal({
             className="px-2.5 py-1 rounded-lg bg-[#C8A85B] text-[#123B2A] font-extrabold text-[11px] cursor-pointer hover:bg-[#dfc278] transition shadow-xs whitespace-nowrap shrink-0"
           >
             تفعيل بنقرة واحدة
+          </button>
+        </div>
+
+        {/* Auto Launch for Blind Users */}
+        <div className="w-full bg-[#0A2318] p-2.5 rounded-xl border border-white/10 flex items-center justify-between text-[11px] text-white">
+          <div className="flex items-center gap-1.5 truncate">
+            <span>⚡</span>
+            <span className="truncate">فتح المساعد الصوتي دائماً عند تشغيل التطبيق:</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !autoLaunch;
+              setAutoLaunch(next);
+              setAutoVoiceAssistantOnLaunch(next);
+              triggerHaptic('tap');
+              speakAccessibility(
+                next
+                  ? 'تم تفعيل فتح المساعد الصوتي تلقائياً عند تشغيل التطبيق'
+                  : 'تم إيقاف الفتح التلقائي',
+                { force: true }
+              );
+            }}
+            className={`w-11 h-6 flex items-center rounded-full p-0.5 transition cursor-pointer shrink-0 ${
+              autoLaunch ? 'bg-[#C8A85B] justify-end' : 'bg-white/20 justify-start'
+            }`}
+            aria-label="الفتح التلقائي للمساعد الصوتي"
+          >
+            <div className="w-5 h-5 rounded-full bg-white shadow-md transform transition" />
           </button>
         </div>
 

@@ -301,3 +301,20 @@ export function saveAutoAthkarSettings(settings: Partial<AutoAthkarSettings>): v
   const current = getAutoAthkarSettings();
   setItem(STORAGE_KEYS.AUTO_ATHKAR, { ...current, ...settings });
 }
+
+export function isAutoVoiceAssistantOnLaunch(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem('noor_auto_voice_launch') === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setAutoVoiceAssistantOnLaunch(enabled: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('noor_auto_voice_launch', enabled ? 'true' : 'false');
+  } catch {}
+}
+

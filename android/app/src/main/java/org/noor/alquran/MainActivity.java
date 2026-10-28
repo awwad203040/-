@@ -63,10 +63,9 @@ public class MainActivity extends BridgeActivity {
         // Automatically initiate permissions onboarding flow (Notifications + GPS Location + Audio)
         requestAllNecessaryPermissions();
 
-        // Check if app was opened via Voice Command intent
+        // Check if app was opened via Voice Command intent or Google Assistant
         if (getIntent() != null) {
-            final Intent startupIntent = getIntent();
-            getWindow().getDecorView().postDelayed(() -> handleVoiceIntent(startupIntent), 1800);
+            handleVoiceIntent(getIntent());
         }
     }
 
@@ -77,27 +76,68 @@ public class MainActivity extends BridgeActivity {
         handleVoiceIntent(intent);
     }
 
+    private boolean isVoiceTriggeredIntent(Intent intent) {
+        if (intent == null) return false;
+        String action = intent.getAction();
+
+        if (Intent.ACTION_VOICE_COMMAND.equals(action) ||
+            android.provider.MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH.equals(action) ||
+            Intent.ACTION_SEARCH.equals(action)) {
+            return true;
+        }
+
+        // Check getReferrer() for Google Assistant / Gemini
+        try {
+            Uri referrer = getReferrer();
+            if (referrer != null) {
+                String refStr = referrer.toString().toLowerCase();
+                if (refStr.contains("googlequicksearchbox") || refStr.contains("assistant") || refStr.contains("gemini")) {
+                    Log.i(TAG, "Launched via Assistant/Gemini referrer: " + refStr);
+                    return true;
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Check intent extras for voice assistant flags
+        if (intent.getExtras() != null) {
+            for (String k : intent.getExtras().keySet()) {
+                String val = String.valueOf(intent.getExtras().get(k)).toLowerCase();
+                if (val.contains("google") || val.contains("assistant") || val.contains("voice") || val.contains("gemini")) {
+                    Log.i(TAG, "Voice intent extra detected: " + k + " = " + val);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private void handleVoiceIntent(Intent intent) {
         if (intent == null) return;
         String action = intent.getAction();
-        if (action == null) return;
+        Log.i(TAG, "handleVoiceIntent called with action: " + action);
 
-        Log.i(TAG, "Handling voice intent with action: " + action);
+        boolean isVoice = isVoiceTriggeredIntent(intent);
 
-        if (Intent.ACTION_VOICE_COMMAND.equals(action)) {
-            dispatchJSEvent("noor-voice-command-trigger", "{}");
-        } else if (android.provider.MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH.equals(action) ||
-                   Intent.ACTION_SEARCH.equals(action)) {
-            String query = intent.getStringExtra(android.app.SearchManager.QUERY);
-            if (query == null) {
-                query = intent.getStringExtra("query");
-            }
-            if (query != null && !query.trim().isEmpty()) {
-                String safeQuery = query.replace("'", "\\'");
-                dispatchJSEvent("noor-voice-play-search", "{ query: '" + safeQuery + "' }");
-            } else {
-                dispatchJSEvent("noor-voice-command-trigger", "{}");
-            }
+        String query = intent.getStringExtra(android.app.SearchManager.QUERY);
+        if (query == null) {
+            query = intent.getStringExtra("query");
+        }
+
+        if (isVoice) {
+            Log.i(TAG, "Voice launch confirmed! Setting pendingVoiceLaunch = true, query=" + query);
+            AthkarNativePlugin.pendingVoiceLaunch = true;
+            AthkarNativePlugin.pendingVoiceQuery = query != null ? query : "";
+
+            final String safeQuery = (query != null ? query : "").replace("'", "\\'");
+            final String eventName = safeQuery.isEmpty() ? "noor-voice-command-trigger" : "noor-voice-play-search";
+            final String detailJson = safeQuery.isEmpty() ? "{}" : "{ query: '" + safeQuery + "' }";
+
+            // Dispatch immediately and at staggered intervals to guarantee React catches it
+            dispatchJSEvent(eventName, detailJson);
+            getWindow().getDecorView().postDelayed(() -> dispatchJSEvent(eventName, detailJson), 1200);
+            getWindow().getDecorView().postDelayed(() -> dispatchJSEvent(eventName, detailJson), 2500);
+            getWindow().getDecorView().postDelayed(() -> dispatchJSEvent(eventName, detailJson), 4500);
         }
     }
 

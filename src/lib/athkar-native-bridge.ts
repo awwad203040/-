@@ -48,6 +48,8 @@ interface AthkarNativePlugin {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addListener?(eventName: string, listenerFunc: (data: any) => void): any;
 
+  consumeVoiceLaunch(): Promise<{ isVoiceLaunch: boolean; query?: string }>;
+
   getPermissionStatus(): Promise<{
     notifications: boolean;
     exactAlarms: boolean;
@@ -56,6 +58,21 @@ interface AthkarNativePlugin {
 }
 
 const AthkarNative = registerPlugin<AthkarNativePlugin>('AthkarNative');
+
+/**
+ * Check and consume any pending voice launch (e.g. opened by Google Assistant / Voice Match).
+ */
+export async function consumeNativeVoiceLaunch(): Promise<{ isVoiceLaunch: boolean; query?: string }> {
+  if (!Capacitor.isNativePlatform()) return { isVoiceLaunch: false };
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await (AthkarNative as any).consumeVoiceLaunch?.();
+    return res || { isVoiceLaunch: false };
+  } catch (err) {
+    console.warn('consumeNativeVoiceLaunch error:', err);
+    return { isVoiceLaunch: false };
+  }
+}
 
 /**
  * Open Google Assistant Voice Match settings directly on Android with 1 click.
