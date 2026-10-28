@@ -6,6 +6,7 @@ export interface AccessibilitySettings {
   hapticFeedback: boolean; // الاهتزاز اللمسي الذكي
   voiceGuidance: boolean; // المساعد الصوتي الناطق
   speechRate: number; // سرعة النطق (1.0 = عادي)
+  voiceCommandsEnabled: boolean; // المساعد الصوتي والتعرف على الأوامر المنطوقة
 }
 
 const DEFAULT_SETTINGS: AccessibilitySettings = {
@@ -13,6 +14,7 @@ const DEFAULT_SETTINGS: AccessibilitySettings = {
   hapticFeedback: true,
   voiceGuidance: false,
   speechRate: 1.0,
+  voiceCommandsEnabled: true,
 };
 
 const STORAGE_KEY = 'noor_accessibility_settings';

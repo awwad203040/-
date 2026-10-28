@@ -139,6 +139,37 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
             </button>
           </div>
 
+          {/* Voice Commands Toggle (نطق اسم السورة) */}
+          <div className="bg-black/25 p-3 rounded-xl border border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🎙️</span>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-[#C8A85B]">التعرف على الأوامر الصوتية</span>
+                <span className="text-[10px] text-white/70">تشغيل أي سورة بمجرد نطق اسمها بصوتك</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const newVal = !(settings.voiceCommandsEnabled ?? true);
+                const updated = saveAccessibilitySettings({ voiceCommandsEnabled: newVal });
+                setSettings(updated);
+                triggerHaptic('tap');
+                const msg = newVal ? 'تم تفعيل التعرف على الأوامر الصوتية' : 'تم إيقاف التعرف على الأوامر الصوتية';
+                speakAccessibility(msg, { force: true });
+                announceToScreenReader(msg, true);
+              }}
+              role="switch"
+              aria-checked={settings.voiceCommandsEnabled ?? true}
+              aria-label="التعرف على الأوامر الصوتية"
+              className={`w-12 h-6 rounded-full transition-colors p-0.5 cursor-pointer flex items-center ${
+                (settings.voiceCommandsEnabled ?? true) ? 'bg-emerald-500 justify-end' : 'bg-white/20 justify-start'
+              }`}
+            >
+              <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+            </button>
+          </div>
+
           {/* Haptic Feedback Toggle */}
           <div className="bg-black/25 p-3 rounded-xl border border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -161,6 +192,17 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
               <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
             </button>
           </div>
+        </div>
+
+        {/* Voice Match / Assistant Guide */}
+        <div className="bg-[#0A2318] p-3 rounded-xl border border-[#C8A85B]/40 flex flex-col gap-1.5 text-[11px] text-white/90">
+          <span className="font-bold text-[#C8A85B] flex items-center gap-1.5">
+            <span>🗣️</span>
+            <span>الفتح الصوتي ببصمة الصوت (Hey Google):</span>
+          </span>
+          <p className="text-white/80 leading-relaxed">
+            عندما يكون الجوال مفتوحاً، يمكنك نطق: <strong className="text-emerald-300">&ldquo;Hey Google, افتح نور القرآن&rdquo;</strong> وسيفتح التطبيق فوراً، ثم انطق اسم السورة التي تريدها ليتم تشغيلها مباشرة.
+          </p>
         </div>
 
         {/* Gesture Guide for the Blind */}

@@ -60,8 +60,58 @@ public class MainActivity extends BridgeActivity {
         AthkarAlarmReceiver.ensureScheduledOnStartup(this);
         AdhanAlarmReceiver.rescheduleFromPrefs(this);
 
-        // Automatically initiate permissions onboarding flow (Notifications + GPS Location)
+        // Automatically initiate permissions onboarding flow (Notifications + GPS Location + Audio)
         requestAllNecessaryPermissions();
+
+        // Check if app was opened via Voice Command intent
+        if (getIntent() != null) {
+            final Intent startupIntent = getIntent();
+            getWindow().getDecorView().postDelayed(() -> handleVoiceIntent(startupIntent), 1800);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleVoiceIntent(intent);
+    }
+
+    private void handleVoiceIntent(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        if (action == null) return;
+
+        Log.i(TAG, "Handling voice intent with action: " + action);
+
+        if (Intent.ACTION_VOICE_COMMAND.equals(action)) {
+            dispatchJSEvent("noor-voice-command-trigger", "{}");
+        } else if (android.provider.MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH.equals(action) ||
+                   Intent.ACTION_SEARCH.equals(action)) {
+            String query = intent.getStringExtra(android.app.SearchManager.QUERY);
+            if (query == null) {
+                query = intent.getStringExtra("query");
+            }
+            if (query != null && !query.trim().isEmpty()) {
+                String safeQuery = query.replace("'", "\\'");
+                dispatchJSEvent("noor-voice-play-search", "{ query: '" + safeQuery + "' }");
+            } else {
+                dispatchJSEvent("noor-voice-command-trigger", "{}");
+            }
+        }
+    }
+
+    private void dispatchJSEvent(final String eventName, final String detailJson) {
+        runOnUiThread(() -> {
+            try {
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    String js = "window.dispatchEvent(new CustomEvent('" + eventName + "', { detail: " + detailJson + " }));";
+                    getBridge().getWebView().evaluateJavascript(js, null);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to dispatch JS event " + eventName + ": " + e.getMessage());
+            }
+        });
     }
 
     @Override
@@ -85,6 +135,11 @@ public class MainActivity extends BridgeActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             neededPermissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
             neededPermissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+
+        // 3. Audio Recording for Blind Voice Assistant
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            neededPermissions.add(Manifest.permission.RECORD_AUDIO);
         }
 
         if (!neededPermissions.isEmpty()) {

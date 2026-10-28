@@ -20,6 +20,8 @@ import EditReadingProgressModal from '@/components/home/EditReadingProgressModal
 import { AccessibilityModal } from '@/components/common/AccessibilityModal';
 import PrayerTimesModal from '@/components/home/PrayerTimesModal';
 import ReadQuranModal from '@/components/home/ReadQuranModal';
+import BlindVoiceAssistantModal from '@/components/common/BlindVoiceAssistantModal';
+import type { VoiceCommandResult } from '@/lib/voice-command-engine';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
 
@@ -47,6 +49,7 @@ export default function HomePage() {
   const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [showReadQuranModal, setShowReadQuranModal] = useState(false);
+  const [showVoiceAssistantModal, setShowVoiceAssistantModal] = useState(false);
 
   // Refresh reading progress freshly from localStorage
   const refreshProgress = useCallback(() => {
@@ -206,6 +209,77 @@ export default function HomePage() {
       );
     }
   }, [audio, selectedReciterId, currentReciter.name]);
+
+  // Handle voice command results from BlindVoiceAssistantModal or Google Assistant
+  const handleVoiceCommandResult = useCallback((res: VoiceCommandResult) => {
+    if (res.action === 'play_surah' && res.surahNumber) {
+      const sNum = res.surahNumber;
+      const recId = res.reciterId || selectedReciterId || 7;
+      const sName = res.surahName || getSurahName(sNum);
+      const rName = res.reciterName || POPULAR_RECITERS.find((r) => r.id === recId)?.name || currentReciter.name;
+
+      if (res.reciterId && res.reciterId !== selectedReciterId) {
+        setSelectedReciterId(res.reciterId);
+        saveSettings({ selectedReciterId: res.reciterId });
+      }
+
+      setSelectedSurahForAudio(sNum);
+      triggerHaptic('play');
+      announceToScreenReader(`جاري تشغيل سورة ${sName} بصوت الشيخ ${rName}`);
+      audio.loadAndPlay(sNum, recId, sName, rName);
+    } else if (res.action === 'pause') {
+      triggerHaptic('pause');
+      audio.pause();
+    } else if (res.action === 'resume') {
+      triggerHaptic('play');
+      audio.play();
+    } else if (res.action === 'next') {
+      triggerHaptic('next');
+      audio.playNextSurah();
+    } else if (res.action === 'previous') {
+      triggerHaptic('prev');
+      audio.playPreviousSurah();
+    } else if (res.action === 'where_am_i') {
+      triggerHaptic('alert');
+      const saved = getReadingProgress();
+      const p = saved?.pageNumber || 1;
+      const s = saved?.surahNumber || 1;
+      const sn = getSurahName(s);
+      speakAccessibility(`آخر موضع توقفت عنده هو سورة ${sn}، صفحة ${p}`, { force: true });
+      announceToScreenReader(`آخر موضع توقفت عنده هو سورة ${sn}، صفحة ${p}`);
+    } else if (res.action === 'open_read_quran') {
+      triggerHaptic('tap');
+      setShowReadQuranModal(true);
+    }
+  }, [selectedReciterId, currentReciter.name, audio]);
+
+  // Listen for native voice commands triggered by Android intents (Google Assistant / Voice Match)
+  useEffect(() => {
+    const handleVoiceTrigger = () => {
+      setShowVoiceAssistantModal(true);
+    };
+
+    const handleVoiceSearch = (e: Event) => {
+      const custom = e as CustomEvent<{ query?: string }>;
+      const query = custom.detail?.query;
+      if (query) {
+        import('@/lib/voice-command-engine').then(({ parseVoiceCommand }) => {
+          const res = parseVoiceCommand(query);
+          handleVoiceCommandResult(res);
+        });
+      } else {
+        setShowVoiceAssistantModal(true);
+      }
+    };
+
+    window.addEventListener('noor-voice-command-trigger', handleVoiceTrigger);
+    window.addEventListener('noor-voice-play-search', handleVoiceSearch);
+
+    return () => {
+      window.removeEventListener('noor-voice-command-trigger', handleVoiceTrigger);
+      window.removeEventListener('noor-voice-play-search', handleVoiceSearch);
+    };
+  }, [handleVoiceCommandResult]);
 
   // Select reciter from modal
   const handleSelectReciterFromModal = useCallback((id: number, name: string) => {
@@ -403,8 +477,8 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* Row 2: Athkar Button & Blind Accessibility Button side-by-side in one row */}
-              <div className="flex items-center justify-center gap-2 w-full max-w-sm">
+              {/* Row 2: Athkar Button, Blind Accessibility, and Voice Assistant Button */}
+              <div className="flex items-center justify-center gap-1.5 w-full max-w-sm">
                 {/* 1. Athkar Button */}
                 <button
                   type="button"
@@ -412,7 +486,7 @@ export default function HomePage() {
                     triggerHaptic('tap');
                     setShowAthkarModal(true);
                   }}
-                  className={`flex-1 inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs whitespace-nowrap ${
+                  className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs whitespace-nowrap ${
                     autoAthkar?.settings?.enabled
                       ? 'border-emerald-400/60 bg-emerald-700/40 text-emerald-200 hover:bg-emerald-700/60'
                       : 'border-white/20 bg-white/10 text-white/80 hover:bg-white/20'
@@ -428,20 +502,36 @@ export default function HomePage() {
                   <span className="text-[10px] opacity-80 bg-black/20 px-1 py-0.5 rounded-md shrink-0">⚙️</span>
                 </button>
 
-                {/* 2. Blind Accessibility Button directly beside Athkar */}
+                {/* 2. Blind Accessibility Button */}
                 <button
                   type="button"
                   onClick={() => {
                     triggerHaptic('tap');
                     setShowAccessibilityModal(true);
                   }}
-                  className="flex-1 inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
                   style={{ fontFamily: "'Tajawal', sans-serif" }}
                   title="تسهيل الوصول وخدمة المكفوفين"
                   aria-label="فتح إعدادات خدمة المكفوفين وتسهيل الوصول"
                 >
                   <span className="text-sm shrink-0">🦯</span>
-                  <span className="whitespace-nowrap">خدمة المكفوفين</span>
+                  <span className="whitespace-nowrap">المكفوفين</span>
+                </button>
+
+                {/* 3. Voice Assistant Button for Blind Users */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('tap');
+                    setShowVoiceAssistantModal(true);
+                  }}
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border border-[#C8A85B] bg-gradient-to-r from-[#C8A85B]/30 via-[#C8A85B]/40 to-[#997732]/40 text-[#F7EED8] hover:brightness-110 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title="المساعد الصوتي الذكي للمكفوفين - انطق اسم السورة لتشغيلها"
+                  aria-label="المساعد الصوتي الذكي للمكفوفين - انطق اسم السورة لتشغيلها"
+                >
+                  <span className="text-sm shrink-0 animate-bounce">🎙️</span>
+                  <span className="whitespace-nowrap font-extrabold text-[#FFD700]">نطق السورة</span>
                 </button>
               </div>
 
@@ -1328,6 +1418,34 @@ export default function HomePage() {
         currentPlayingSurah={audio.currentSurah || selectedSurahForAudio}
         currentReciterName={currentReciter.name}
         onPlaySurah={handlePlaySurah}
+      />
+
+      {/* Floating Blind Voice Assistant Button (FAB) for Instant One-Tap Voice Access */}
+      <div className={`fixed ${audio.currentSurah > 0 ? 'bottom-20' : 'bottom-6'} left-4 z-40`}>
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('tap');
+            setShowVoiceAssistantModal(true);
+          }}
+          className="relative group flex items-center gap-2 p-3 sm:px-4 sm:py-3 rounded-full bg-gradient-to-r from-[#C8A85B] to-[#997732] text-[#123B2A] font-bold shadow-2xl border-2 border-[#F7EED8] hover:scale-105 active:scale-95 transition-all cursor-pointer ring-4 ring-[#C8A85B]/30"
+          aria-label="المساعد الصوتي لنور القرآن - انطق اسم السورة لتشغيلها بصوتك"
+          title="المساعد الصوتي لنور القرآن - انطق اسم السورة لتشغيلها"
+        >
+          <span className="text-xl sm:text-2xl animate-bounce">🎙️</span>
+          <span className="hidden sm:inline text-xs font-black tracking-wide text-[#123B2A] whitespace-nowrap">
+            انطق اسم السورة
+          </span>
+          {/* Subtle pulsating glow ring */}
+          <span className="absolute -inset-1 rounded-full bg-[#C8A85B]/30 animate-pulse -z-10 pointer-events-none" />
+        </button>
+      </div>
+
+      {/* Blind Voice Assistant Modal (Speech Recognition & Hands-Free Player) */}
+      <BlindVoiceAssistantModal
+        isOpen={showVoiceAssistantModal}
+        onClose={() => setShowVoiceAssistantModal(false)}
+        onExecuteCommand={handleVoiceCommandResult}
       />
     </div>
   );
