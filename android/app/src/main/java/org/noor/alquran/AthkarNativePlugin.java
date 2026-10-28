@@ -289,20 +289,34 @@ public class AthkarNativePlugin extends Plugin {
         try {
             if (getActivity() != null) {
                 getActivity().runOnUiThread(() -> {
+                    Intent launchGoogleApp = null;
+                    try {
+                        if (getContext() != null) {
+                            launchGoogleApp = getContext().getPackageManager().getLaunchIntentForPackage("com.google.android.googlequicksearchbox");
+                        }
+                    } catch (Exception ignored) {}
+
                     Intent[] voiceIntents = new Intent[] {
-                        // 1. Direct Google Voice Match Enrollment
+                        // 1. Direct Google Assistant Deep Link
+                        new Intent(Intent.ACTION_VIEW, Uri.parse("googleapp://assistant/settings")),
+                        // 2. Direct Google Voice Match Enrollment
                         new Intent("com.google.android.apps.gsa.smartsearch.VOICE_MATCH_ENROLLMENT")
                             .setPackage("com.google.android.googlequicksearchbox"),
-                        // 2. Google Voice Search Settings
+                        // 3. Google Assistant Settings Component
+                        new Intent().setComponent(new android.content.ComponentName("com.google.android.googlequicksearchbox", "com.google.android.apps.gsa.assistant.settings.AssistantSettingsActivity")),
+                        // 4. Google Voice Search Settings
                         new Intent("com.google.android.googlequicksearchbox.action.VOICE_SEARCH_SETTINGS")
                             .setPackage("com.google.android.googlequicksearchbox"),
-                        // 3. Android Voice Input Settings
+                        // 5. Open Google App directly
+                        launchGoogleApp,
+                        // 6. Android Voice Input Settings
                         new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS),
-                        // 4. Google Assistant / Voice Command
+                        // 7. Google Assistant / Voice Command
                         new Intent(Intent.ACTION_VOICE_COMMAND)
                     };
 
                     for (Intent intent : voiceIntents) {
+                        if (intent == null) continue;
                         try {
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                             getActivity().startActivity(intent);
