@@ -21,6 +21,7 @@ import AnimatedLogo from '@/components/common/AnimatedLogo';
 import EditReadingProgressModal from '@/components/home/EditReadingProgressModal';
 import { AccessibilityModal } from '@/components/common/AccessibilityModal';
 import PrayerTimesModal from '@/components/home/PrayerTimesModal';
+import ReadQuranModal from '@/components/home/ReadQuranModal';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
 
@@ -49,6 +50,7 @@ export default function HomePage() {
   const [showEditProgressModal, setShowEditProgressModal] = useState(false);
   const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
   const [showPrayerModal, setShowPrayerModal] = useState(false);
+  const [showReadQuranModal, setShowReadQuranModal] = useState(false);
   const [homePageJumpInput, setHomePageJumpInput] = useState('');
 
   const handleHomeJumpToPage = (targetPage?: number) => {
@@ -297,8 +299,89 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mb-5 flex flex-col items-center">
-            {/* App Logo: Animated Flash Logo */}
-            <AnimatedLogo size="lg" className="mb-3" />
+            {/* Header Row: Animated "اقرأ القرآن" Portal Window on the Right & Official Animated Logo */}
+            <div className="flex items-center justify-center gap-3.5 sm:gap-6 mb-3 w-full">
+              {/* 1. On the Right (يمين الشعار في RTL): نافذة "اقرأ القرآن" الجذابة والمتحركة بنفس حركة وبريق الشعار */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('tap');
+                  speakAccessibility('فتح نافذة اقرأ القرآن وفهرس السور والأجزاء والختمة المباركة');
+                  setShowReadQuranModal(true);
+                }}
+                className="group relative inline-block select-none cursor-pointer focus:outline-none"
+                title="اقرأ القرآن - فهرس السور والأجزاء والختمة وتصحيح التلاوة"
+                aria-label="اقرأ القرآن - فتح الفهرس الشامل للسور والأجزاء وتتبع الختمة"
+              >
+                {/* 1. Pulsing Golden Radiant Aura Behind */}
+                <div className="absolute -inset-2 rounded-3xl bg-gradient-to-tr from-[#C8A85B]/40 via-[#F5D88A]/30 to-[#C8A85B]/40 animate-logo-aura -z-10 pointer-events-none" />
+                <div className="absolute -inset-1 rounded-3xl bg-radial from-[#C8A85B]/30 via-transparent to-transparent animate-pulse -z-10 pointer-events-none" />
+
+                {/* 2. Main Container with Floating Breathing Animation & Metallic Rim */}
+                <div
+                  className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl border-2 sm:border-[2.5px] border-[#C8A85B]/80 overflow-hidden shadow-2xl animate-logo-breathing transform-gpu transition-all duration-300 group-hover:scale-105 active:scale-95 flex flex-col items-center justify-center p-1.5 sm:p-2"
+                  style={{
+                    background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+                    boxShadow: '0 8px 24px -4px rgba(200, 168, 91, 0.45), 0 4px 12px rgba(18, 59, 42, 0.25)',
+                  }}
+                >
+                  {/* Glowing Islamic Mushaf Icon */}
+                  <div className="relative mb-0.5">
+                    <span className="text-2xl sm:text-3xl filter drop-shadow-[0_2px_8px_rgba(200,168,91,0.6)]">
+                      📖
+                    </span>
+                  </div>
+
+                  {/* Title: اقرأ القرآن */}
+                  <span
+                    className="font-bold text-xs sm:text-sm text-[#F7EED8] tracking-wide leading-tight text-center"
+                    style={{ fontFamily: "'Amiri', serif" }}
+                  >
+                    اقرأ القرآن
+                  </span>
+
+                  {/* Subtitle Badge */}
+                  <span
+                    className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-full bg-[#C8A85B]/25 text-[#F5D88A] border border-[#C8A85B]/40 font-medium mt-1 whitespace-nowrap"
+                    style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  >
+                    الفهرس الشامل
+                  </span>
+
+                  {/* 3. The Animated Flash Light Beam Sheen (Sweep) */}
+                  <div
+                    className="absolute inset-0 pointer-events-none overflow-hidden"
+                    style={{ mixBlendMode: 'screen' }}
+                  >
+                    <div
+                      className="w-[200%] h-full animate-logo-flash"
+                      style={{
+                        background:
+                          'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.05) 15%, rgba(255,255,255,0.4) 30%, rgba(255,248,220,0.95) 45%, rgba(255,255,255,0.9) 50%, rgba(255,248,220,0.95) 55%, rgba(255,255,255,0.4) 70%, rgba(255,255,255,0.05) 85%, transparent 100%)',
+                        filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.8))',
+                      }}
+                    />
+                  </div>
+
+                  {/* 4. Subtle Inner Golden Frame Rim Glow */}
+                  <div className="absolute inset-0 rounded-3xl border border-white/25 pointer-events-none" />
+                </div>
+
+                {/* 5. Glowing Star Glint Sparkles */}
+                <div className="absolute -top-1 -right-1 text-xs text-[#FFD700] animate-logo-sparkle pointer-events-none">
+                  ✦
+                </div>
+                <div
+                  className="absolute -bottom-1 -left-1 text-[10px] text-[#FFD700] animate-logo-sparkle pointer-events-none"
+                  style={{ animationDelay: '1.5s' }}
+                >
+                  ✦
+                </div>
+              </button>
+
+              {/* 2. Official Animated Logo */}
+              <AnimatedLogo size="lg" />
+            </div>
 
             <h1
               className="text-3xl md:text-4xl font-bold mb-1 tracking-wide"
@@ -1628,6 +1711,18 @@ export default function HomePage() {
         isOpen={showPrayerModal}
         onClose={() => setShowPrayerModal(false)}
         prayerHook={prayerTimes}
+      />
+
+      {/* Comprehensive Read Quran Modal (All tabs, search & audio) */}
+      <ReadQuranModal
+        isOpen={showReadQuranModal}
+        onClose={() => setShowReadQuranModal(false)}
+        bookmarks={bookmarks}
+        progress={progress}
+        isPlayingAudio={audio.isPlaying}
+        currentPlayingSurah={audio.currentSurah || selectedSurahForAudio}
+        currentReciterName={currentReciter.name}
+        onPlaySurah={handlePlaySurah}
       />
     </div>
   );
