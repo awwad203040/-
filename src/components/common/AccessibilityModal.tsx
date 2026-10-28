@@ -193,6 +193,54 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
               <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
             </button>
           </div>
+
+          {/* Speech Rate Control & Test Voice Button */}
+          <div className="bg-black/25 p-3 rounded-xl border border-white/10 flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>⏱️</span>
+                <span>سرعة الناطق الصوتي:</span>
+              </span>
+              <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg">
+                {[
+                  { label: 'بطيء', rate: 0.85 },
+                  { label: 'طبيعي', rate: 1.0 },
+                  { label: 'سريع', rate: 1.2 },
+                ].map((s) => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => {
+                      const updated = saveAccessibilitySettings({ speechRate: s.rate });
+                      setSettings(updated);
+                      triggerHaptic('tap');
+                      speakAccessibility(`سرعة الصوت ${s.label}`, { force: true, rate: s.rate });
+                    }}
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition ${
+                      (settings.speechRate || 1.0) === s.rate
+                        ? 'bg-[#C8A85B] text-[#123B2A] shadow-xs'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Test Voice Button */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('success');
+                speakAccessibility('أهلاً بك في تطبيق نور القرآن، الناطق الصوتي مضبوط الآن بنجاح بصوت نقي وواضح', { force: true, rate: settings.speechRate });
+              }}
+              className="w-full py-2 px-3 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-400/40 text-emerald-200 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-xs"
+            >
+              <span>🔊</span>
+              <span>تجربة نطق الصوت الآن (استماع)</span>
+            </button>
+          </div>
         </div>
 
         {/* Voice Match / Assistant Guide & 1-Click Setup */}

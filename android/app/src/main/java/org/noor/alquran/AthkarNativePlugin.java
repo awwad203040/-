@@ -17,6 +17,37 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "AthkarNative")
 public class AthkarNativePlugin extends Plugin {
     private static final String TAG = "AthkarNativePlugin";
+    private android.speech.tts.TextToSpeech nativeTts;
+    private boolean isNativeTtsReady = false;
+
+    @Override
+    public void load() {
+        super.load();
+        initNativeTts();
+    }
+
+    private void initNativeTts() {
+        try {
+            Context ctx = getContext();
+            if (ctx == null) return;
+            nativeTts = new android.speech.tts.TextToSpeech(ctx.getApplicationContext(), status -> {
+                if (status == android.speech.tts.TextToSpeech.SUCCESS && nativeTts != null) {
+                    java.util.Locale arabic = new java.util.Locale("ar", "SA");
+                    int res = nativeTts.setLanguage(arabic);
+                    if (res == android.speech.tts.TextToSpeech.LANG_MISSING_DATA ||
+                        res == android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED) {
+                        nativeTts.setLanguage(new java.util.Locale("ar"));
+                    }
+                    isNativeTtsReady = true;
+                    Log.i(TAG, "Native Arabic TextToSpeech engine initialized successfully.");
+                } else {
+                    Log.w(TAG, "Native TextToSpeech initialization failed: " + status);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to init native TTS: " + e.getMessage());
+        }
+    }
 
     @PluginMethod
     public void syncAthkar(PluginCall call) {
@@ -246,5 +277,70 @@ public class AthkarNativePlugin extends Plugin {
         } catch (Exception e) {
             call.reject("Failed to get status: " + e.getMessage());
         }
+    }
+
+    @PluginMethod
+    public void speakNativeText(PluginCall call) {
+        String text = call.getString("text", "");
+        Double r = call.getDouble("rate", 1.0);
+        Double p = call.getDouble("pitch", 1.0);
+        float rate = r != null ? r.floatValue() : 1.0f;
+        float pitch = p != null ? p.floatValue() : 1.0f;
+
+        if (text == null || text.trim().isEmpty()) {
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+            return;
+        }
+
+        if (nativeTts != null && isNativeTtsReady) {
+            try {
+                nativeTts.setSpeechRate(rate);
+                nativeTts.setPitch(pitch);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    nativeTts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "noor_tts_" + System.currentTimeMillis());
+                } else {
+                    nativeTts.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null);
+                }
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                call.resolve(ret);
+                return;
+            } catch (Exception e) {
+                Log.e(TAG, "Failed native TTS speak: " + e.getMessage());
+            }
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("success", false);
+        ret.put("reason", "TTS not initialized yet");
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void stopNativeSpeech(PluginCall call) {
+        try {
+            if (nativeTts != null) {
+                nativeTts.stop();
+            }
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to stop TTS: " + e.getMessage());
+        }
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        if (nativeTts != null) {
+            try {
+                nativeTts.stop();
+                nativeTts.shutdown();
+            } catch (Exception ignored) {}
+            nativeTts = null;
+        }
+        super.handleOnDestroy();
     }
 }

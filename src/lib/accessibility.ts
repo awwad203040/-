@@ -1,5 +1,6 @@
 // Centralized Accessibility & Blind-Assistance Engine for Noor-AlQuran
 // محرك إمكانية الوصول وخدمة المكفوفين وضعاف البصر
+import { speakNativeVoice, stopNativeVoice } from './athkar-native-bridge';
 
 export interface AccessibilitySettings {
   blindMode: boolean; // وضع تسهيل الوصول للمكفوفين
@@ -81,34 +82,105 @@ export function triggerHaptic(type: HapticType = 'tap') {
 }
 
 // 2. المساعد الصوتي الناطق للمكفوفين (Arabic Speech Synthesis)
-let currentUtterance: SpeechSynthesisUtterance | null = null;
+const activeUtterances = new Set<SpeechSynthesisUtterance>();
+let cachedVoices: SpeechSynthesisVoice[] = [];
 
-export function speakAccessibility(text: string, options?: { force?: boolean; rate?: number }) {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  const loadVoices = () => {
+    try {
+      cachedVoices = window.speechSynthesis.getVoices();
+    } catch {}
+  };
+  loadVoices();
+  if (typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+}
+
+// Pronunciation tuning for Arabic speech
+export function prepareAccessibilitySpeechText(text: string): string {
+  if (!text) return '';
+  return text
+    // Replace ligatures and symbols
+    .replace(/ﷺ/g, 'صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمْ')
+    .replace(/ﷻ/g, 'جَلَّ جَلَالُه')
+    // Remove symbols and markdown
+    .replace(/[*#_~`\[\]()«»"']/g, ' ')
+    // Remove awkward punctuation that causes speech to say "فاصلة" or stutter
+    .replace(/[،,؛;:\-–—]/g, ' ')
+    // Clear double spaces
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export async function speakAccessibility(text: string, options?: { force?: boolean; rate?: number; pitch?: number }) {
+  if (typeof window === 'undefined') return;
   const settings = getAccessibilitySettings();
 
   // لا ننطق إذا كان المساعد الصوتي ووضع المكفوفين غير مفعل، إلا لو كان force = true
   if (!settings.blindMode && !settings.voiceGuidance && !options?.force) return;
 
+  const cleanText = prepareAccessibilitySpeechText(text);
+  if (!cleanText) return;
+
+  const targetRate = options?.rate || settings.speechRate || 1.0;
+  const targetPitch = options?.pitch || 1.0;
+
+  // 1. الأولوية للناطق الأصلي بهاتف أندرويد (Google TextToSpeech Engine)
   try {
-    window.speechSynthesis.cancel(); // إلغاء أي نطق سابق لتفادي التراكم
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ar-SA';
-    utterance.rate = options?.rate || settings.speechRate || 1.0;
-    utterance.pitch = 1.0;
-
-    // محاولة انتقاء صوت عربي إن وجد
-    const voices = window.speechSynthesis.getVoices();
-    const arabicVoice = voices.find((v) => v.lang.startsWith('ar') || v.lang.includes('Arabic'));
-    if (arabicVoice) {
-      utterance.voice = arabicVoice;
+    const nativeSpoken = await speakNativeVoice(cleanText, targetRate, targetPitch);
+    if (nativeSpoken) {
+      return;
     }
+  } catch {}
 
-    currentUtterance = utterance;
-    window.speechSynthesis.speak(utterance);
+  // 2. البديل عبر Web Speech Synthesis (للمتصفح مع تجنب أخطاء كروميوم)
+  if (!('speechSynthesis' in window)) return;
+
+  try {
+    window.speechSynthesis.cancel(); // إلغاء أي نطق سابق
+
+    // تأخير طفيف (40ms) لضمان اكتمال الإلغاء في أندرويد قبل بدء النطق الجديد
+    setTimeout(() => {
+      try {
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'ar-SA';
+        utterance.rate = targetRate;
+        utterance.pitch = targetPitch;
+
+        // اختيار أفضل صوت عربي طبيعي متوفر
+        const voices = cachedVoices.length > 0 ? cachedVoices : window.speechSynthesis.getVoices();
+        const arabicVoice =
+          voices.find((v) => v.lang === 'ar-SA' || v.lang === 'ar_SA') ||
+          voices.find((v) => v.lang.startsWith('ar') || v.lang.includes('Arabic')) ||
+          voices.find((v) => v.name.toLowerCase().includes('arabic') || v.name.toLowerCase().includes('saudi'));
+
+        if (arabicVoice) {
+          utterance.voice = arabicVoice;
+        }
+
+        activeUtterances.add(utterance);
+        utterance.onend = () => activeUtterances.delete(utterance);
+        utterance.onerror = () => activeUtterances.delete(utterance);
+
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.warn('Speech synthesis speak error:', err);
+      }
+    }, 40);
   } catch (err) {
     console.warn('Speech synthesis error:', err);
+  }
+}
+
+export function stopAccessibilitySpeech() {
+  if (typeof window === 'undefined') return;
+  stopNativeVoice().catch(() => {});
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      activeUtterances.clear();
+    } catch {}
   }
 }
 

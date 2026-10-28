@@ -33,6 +33,10 @@ interface AthkarNativePlugin {
 
   openVoiceMatchSettings(): Promise<{ success: boolean }>;
 
+  speakNativeText(options: { text: string; rate?: number; pitch?: number }): Promise<{ success: boolean; reason?: string }>;
+
+  stopNativeSpeech(): Promise<{ success: boolean }>;
+
   getPermissionStatus(): Promise<{
     notifications: boolean;
     exactAlarms: boolean;
@@ -52,6 +56,34 @@ export async function openNativeVoiceMatchSettings(): Promise<boolean> {
     return res.success;
   } catch (err) {
     console.warn('Failed to open voice match settings:', err);
+    return false;
+  }
+}
+
+/**
+ * High-quality Native Arabic Speech Synthesis (Google TTS Engine on Android).
+ * Completely immune to Chromium WebView garbage collection or voice lag.
+ */
+export async function speakNativeVoice(text: string, rate = 1.0, pitch = 1.0): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.speakNativeText({ text, rate, pitch });
+    return res.success;
+  } catch (err) {
+    console.warn('Native speak failed, falling back to Web Speech:', err);
+    return false;
+  }
+}
+
+/**
+ * Stop any ongoing native speech.
+ */
+export async function stopNativeVoice(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.stopNativeSpeech();
+    return res.success;
+  } catch {
     return false;
   }
 }
