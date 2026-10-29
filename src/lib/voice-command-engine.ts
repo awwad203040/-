@@ -9,6 +9,7 @@ import {
   startNativeSpeechRecognition,
   stopNativeSpeechRecognition,
   addNativeSpeechListener,
+  launchNativeVoiceDialog,
 } from './athkar-native-bridge';
 
 export interface VoiceCommandResult {
@@ -502,7 +503,11 @@ export function startVoiceListening(options: VoiceListenerOptions): boolean {
 
       activeNativeSpeechListeners = [lStart, lPartial, lResult, lError, lEnd];
 
-      startNativeSpeechRecognition({ language: 'ar-SA', forceDialog: options.forceDialog }).then((started) => {
+      const starterPromise = options.forceDialog
+        ? launchNativeVoiceDialog({ language: 'ar-SA' })
+        : startNativeSpeechRecognition({ language: 'ar-SA' });
+
+      starterPromise.then((started) => {
         if (!started) {
           options.onError?.('انتهى الاستماع، انقر على الميكروفون للتحدث مجدداً');
         }

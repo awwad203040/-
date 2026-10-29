@@ -43,6 +43,8 @@ interface AthkarNativePlugin {
 
   startSpeechRecognition(options?: { language?: string; forceDialog?: boolean }): Promise<{ success: boolean; reason?: string }>;
 
+  launchGoogleVoiceDialog(options?: { language?: string; prompt?: string }): Promise<{ success: boolean; reason?: string }>;
+
   stopSpeechRecognition(): Promise<{ success: boolean }>;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,6 +186,20 @@ export async function startNativeSpeechRecognition(options?: { language?: string
     return res?.success ?? true;
   } catch (err) {
     console.warn('Native speech recognition start failed:', err);
+    return false;
+  }
+}
+
+export async function launchNativeVoiceDialog(options?: { language?: string; prompt?: string }): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const res = await AthkarNative.launchGoogleVoiceDialog({
+      language: options?.language || 'ar-SA',
+      prompt: options?.prompt || 'انطق اسم السورة للاستماع فوراً (مثل: سورة الكهف)',
+    });
+    return res?.success ?? true;
+  } catch (err) {
+    console.warn('Native voice dialog launch failed:', err);
     return false;
   }
 }

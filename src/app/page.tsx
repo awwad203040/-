@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReadingProgress, Bookmark } from '@/types/quran';
 import { getReadingProgress, saveReadingProgress, getBookmarks, getPagesVisited, getSettings, saveSettings, isAutoVoiceAssistantOnLaunch } from '@/lib/storage';
@@ -254,23 +254,35 @@ export default function HomePage() {
     }
   }, [selectedReciterId, currentReciter.name, audio]);
 
+  // Keep a stable ref for handleVoiceCommandResult to avoid re-triggering effects
+  const handleVoiceCommandResultRef = useRef(handleVoiceCommandResult);
+  useEffect(() => {
+    handleVoiceCommandResultRef.current = handleVoiceCommandResult;
+  }, [handleVoiceCommandResult]);
+
+  // Track if auto-launch has already been evaluated for this session
+  const hasAutoVoiceCheckedRef = useRef(false);
+
   // Listen for native voice commands triggered by Android intents (Google Assistant / Voice Match)
   useEffect(() => {
-    // 1. Check if the app was launched by Google Assistant / Gemini voice intent
-    consumeNativeVoiceLaunch().then(({ isVoiceLaunch, query }) => {
-      if (isVoiceLaunch) {
-        if (query) {
-          import('@/lib/voice-command-engine').then(({ parseVoiceCommand }) => {
-            const res = parseVoiceCommand(query);
-            handleVoiceCommandResult(res);
-          });
-        } else {
+    // 1. Check if the app was launched by Google Assistant or auto-launch setting (ONLY ONCE per session)
+    if (!hasAutoVoiceCheckedRef.current) {
+      hasAutoVoiceCheckedRef.current = true;
+      consumeNativeVoiceLaunch().then(({ isVoiceLaunch, query }) => {
+        if (isVoiceLaunch) {
+          if (query) {
+            import('@/lib/voice-command-engine').then(({ parseVoiceCommand }) => {
+              const res = parseVoiceCommand(query);
+              handleVoiceCommandResultRef.current(res);
+            });
+          } else {
+            setShowVoiceAssistantModal(true);
+          }
+        } else if (isAutoVoiceAssistantOnLaunch()) {
           setShowVoiceAssistantModal(true);
         }
-      } else if (isAutoVoiceAssistantOnLaunch()) {
-        setShowVoiceAssistantModal(true);
-      }
-    });
+      });
+    }
 
     // 2. Also listen for custom events if already mounted
     const handleVoiceTrigger = () => {
@@ -283,7 +295,7 @@ export default function HomePage() {
       if (query) {
         import('@/lib/voice-command-engine').then(({ parseVoiceCommand }) => {
           const res = parseVoiceCommand(query);
-          handleVoiceCommandResult(res);
+          handleVoiceCommandResultRef.current(res);
         });
       } else {
         setShowVoiceAssistantModal(true);
@@ -297,7 +309,7 @@ export default function HomePage() {
       window.removeEventListener('noor-voice-command-trigger', handleVoiceTrigger);
       window.removeEventListener('noor-voice-play-search', handleVoiceSearch);
     };
-  }, [handleVoiceCommandResult]);
+  }, []);
 
   // Select reciter from modal
   const handleSelectReciterFromModal = useCallback((id: number, name: string) => {

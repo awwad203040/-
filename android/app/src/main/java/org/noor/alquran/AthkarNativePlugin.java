@@ -59,6 +59,32 @@ public class AthkarNativePlugin extends Plugin {
     private Runnable speechWatchdogRunnable = null;
     private boolean hasReceivedSpeechAudio = false;
 
+    private static AthkarNativePlugin instance;
+
+    public static void onSpeechRecognitionResult(ArrayList<String> matches) {
+        if (instance != null) {
+            String text = (matches != null && !matches.isEmpty()) ? matches.get(0) : "";
+            JSArray arr = new JSArray();
+            if (matches != null) {
+                for (String s : matches) arr.put(s);
+            }
+            Log.i(TAG, "onSpeechRecognitionResult via MainActivity: " + text);
+            JSObject ret = new JSObject();
+            ret.put("text", text);
+            ret.put("matches", arr);
+            instance.notifyListeners("onSpeechResult", ret);
+        }
+    }
+
+    public static void onSpeechRecognitionCancelled() {
+        if (instance != null) {
+            Log.i(TAG, "onSpeechRecognitionCancelled via MainActivity");
+            JSObject ret = new JSObject();
+            ret.put("message", "تم إيقاف الاستماع");
+            instance.notifyListeners("onSpeechEnd", ret);
+        }
+    }
+
     @PluginMethod
     public void consumeVoiceLaunch(PluginCall call) {
         JSObject ret = new JSObject();
@@ -73,6 +99,7 @@ public class AthkarNativePlugin extends Plugin {
     @Override
     public void load() {
         super.load();
+        instance = this;
         initNativeTts();
     }
 
@@ -480,7 +507,7 @@ public class AthkarNativePlugin extends Plugin {
     }
 
     @PermissionCallback
-    private void audioPermissionCallback(PluginCall call) {
+    public void audioPermissionCallback(PluginCall call) {
         Context context = getContext();
         if (context == null && getActivity() != null) {
             context = getActivity().getApplicationContext();
@@ -514,7 +541,7 @@ public class AthkarNativePlugin extends Plugin {
     }
 
     @PermissionCallback
-    private void audioPermissionCallbackForStart(PluginCall call) {
+    public void audioPermissionCallbackForStart(PluginCall call) {
         Context context = getContext();
         if (context != null && ContextCompat.checkSelfPermission(
             context,
@@ -817,11 +844,23 @@ public class AthkarNativePlugin extends Plugin {
                 intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "انطق اسم السورة (مثل: سورة الكهف)");
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
 
-                startActivityForResult(call, intent, "speechIntentResult");
+                Intent googleIntent = new Intent(intent);
+                googleIntent.setPackage("com.google.android.googlequicksearchbox");
+                if (activity.getPackageManager().resolveActivity(googleIntent, 0) != null) {
+                    activity.startActivityForResult(googleIntent, MainActivity.REQUEST_CODE_SPEECH);
+                } else {
+                    activity.startActivityForResult(intent, MainActivity.REQUEST_CODE_SPEECH);
+                }
 
                 JSObject data = new JSObject();
                 data.put("status", "ready");
                 notifyListeners("onSpeechStart", data);
+
+                if (call != null) {
+                    JSObject ret = new JSObject();
+                    ret.put("success", true);
+                    call.resolve(ret);
+                }
             } catch (Exception ex) {
                 Log.e(TAG, "Failed to launch speech intent fallback: " + ex.getMessage(), ex);
                 JSObject errObj = new JSObject();
@@ -839,8 +878,72 @@ public class AthkarNativePlugin extends Plugin {
         });
     }
 
+    @PluginMethod
+    public void launchGoogleVoiceDialog(final PluginCall call) {
+        final Activity activity = getActivity();
+        if (activity == null || activity.isFinishing()) {
+            call.reject("Activity is null");
+            return;
+        }
+
+        // Stop any active TTS so mic is clean
+        try {
+            if (nativeTts != null) nativeTts.stop();
+        } catch (Exception ignored) {}
+
+        final String lang = call.getString("language", "ar-SA");
+        final String prompt = call.getString("prompt", "انطق اسم السورة للاستماع فوراً (مثل: سورة الكهف)");
+
+        activity.runOnUiThread(() -> {
+            try {
+                if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {
+                    speechWatchdogHandler.removeCallbacks(speechWatchdogRunnable);
+                }
+                if (speechRecognizer != null) {
+                    try { speechRecognizer.destroy(); } catch (Exception ignored) {}
+                    speechRecognizer = null;
+                }
+                isSpeechListening = false;
+
+                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang != null ? lang : "ar-SA");
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lang != null ? lang : "ar-SA");
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, prompt);
+                intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+
+                Intent googleIntent = new Intent(intent);
+                googleIntent.setPackage("com.google.android.googlequicksearchbox");
+                if (activity.getPackageManager().resolveActivity(googleIntent, 0) != null) {
+                    activity.startActivityForResult(googleIntent, MainActivity.REQUEST_CODE_SPEECH);
+                } else {
+                    activity.startActivityForResult(intent, MainActivity.REQUEST_CODE_SPEECH);
+                }
+
+                JSObject data = new JSObject();
+                data.put("status", "ready");
+                notifyListeners("onSpeechStart", data);
+
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                call.resolve(ret);
+            } catch (Exception ex) {
+                Log.e(TAG, "Failed to launch Google voice dialog: " + ex.getMessage(), ex);
+                JSObject errObj = new JSObject();
+                errObj.put("error", "not_supported");
+                errObj.put("message", "تعذر تشغيل المساعد الصوتي، يرجى تفعيل تطبيق Google بهاتفك");
+                notifyListeners("onSpeechError", errObj);
+
+                JSObject ret = new JSObject();
+                ret.put("success", false);
+                ret.put("reason", ex.getMessage());
+                call.resolve(ret);
+            }
+        });
+    }
+
     @ActivityCallback
-    private void speechIntentResult(PluginCall call, ActivityResult result) {
+    public void speechIntentResult(PluginCall call, ActivityResult result) {
         if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
             ArrayList<String> matches = result.getData().getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             String text = (matches != null && !matches.isEmpty()) ? matches.get(0) : "";

@@ -22,9 +22,23 @@ public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQ_CORE = 100;
     private static final String PREFS_PERMS = "noor_permissions_prefs";
+    public static final int REQUEST_CODE_SPEECH = 9999;
 
     private boolean requestedExactAlarmThisSession = false;
     private boolean requestedBatteryExemptionThisSession = false;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_SPEECH) {
+            if (resultCode == RESULT_OK && data != null) {
+                java.util.ArrayList<String> matches = data.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
+                AthkarNativePlugin.onSpeechRecognitionResult(matches);
+            } else {
+                AthkarNativePlugin.onSpeechRecognitionCancelled();
+            }
+        }
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

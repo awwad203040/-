@@ -149,7 +149,7 @@ export default function BlindVoiceAssistantModal({
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         if (!isCancelled) {
-          startListeningSession();
+          startListeningSession(true);
         }
       }, 1900);
 
@@ -211,8 +211,11 @@ export default function BlindVoiceAssistantModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="voice-assistant-title"
-      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
-      onClick={onClose}
+      onClick={() => {
+        stopVoiceListening();
+        stopAccessibilitySpeech();
+        onClose();
+      }}
     >
       <div
         className="bg-gradient-to-b from-[#123B2A] to-[#0A2318] border-2 border-[#C8A85B] rounded-3xl w-full max-w-md p-6 text-white shadow-2xl flex flex-col items-center gap-5 relative overflow-hidden"
@@ -400,6 +403,8 @@ export default function BlindVoiceAssistantModal({
             type="button"
             onClick={() => {
               stopVoiceListening();
+              stopAccessibilitySpeech();
+              triggerHaptic('tap');
               onClose();
             }}
             className="text-xs text-[#C8A85B] font-bold underline cursor-pointer"
