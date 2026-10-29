@@ -38,15 +38,15 @@ export default function SettingsPanel({
           الإعدادات
         </h3>
 
-        {/* Font Size */}
+        {/* Font Size (for verse mode) */}
         <div className="mb-6">
           <label className="block text-sm font-medium mb-3" style={{ color: '#17231D', fontFamily: "'Tajawal', sans-serif" }}>
-            حجم الخط
+            حجم الخط (عرض آية آية)
           </label>
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={() => onUpdateSettings({ fontSize: Math.max(18, settings.fontSize - 2) })}
-              className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold"
+              className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold cursor-pointer"
               style={{ backgroundColor: 'rgba(18,59,42,0.1)', color: '#123B2A' }}
               aria-label="تصغير الخط"
             >
@@ -57,7 +57,7 @@ export default function SettingsPanel({
             </span>
             <button
               onClick={() => onUpdateSettings({ fontSize: Math.min(48, settings.fontSize + 2) })}
-              className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold"
+              className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold cursor-pointer"
               style={{ backgroundColor: 'rgba(18,59,42,0.1)', color: '#123B2A' }}
               aria-label="تكبير الخط"
             >
@@ -65,10 +65,52 @@ export default function SettingsPanel({
             </button>
             <button
               onClick={() => onUpdateSettings({ fontSize: 28 })}
-              className="px-3 py-1 text-xs rounded-lg"
+              className="px-3 py-1 text-xs rounded-lg cursor-pointer"
               style={{ backgroundColor: 'rgba(200,168,91,0.2)', color: '#C8A85B' }}
             >
               إعادة ضبط
+            </button>
+          </div>
+        </div>
+
+        {/* Page Zoom (for Mushaf and landscape mode) */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium" style={{ color: '#17231D', fontFamily: "'Tajawal', sans-serif" }}>
+              مقياس تكبير صفحة المصحف (الوضع الأفقي والرأسي)
+            </label>
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#C8A85B]/20 text-[#123B2A]">
+              {settings.pageZoom || 100}%
+            </span>
+          </div>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => onUpdateSettings({ pageZoom: Math.max(70, (settings.pageZoom || 100) - 15) })}
+              className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold cursor-pointer"
+              style={{ backgroundColor: 'rgba(18,59,42,0.1)', color: '#123B2A' }}
+              aria-label="تصغير الصفحة"
+              title="تصغير مقياس الصفحة"
+            >
+              −
+            </button>
+            <span className="text-lg font-bold min-w-[3.5rem] text-center" style={{ color: '#123B2A' }}>
+              {settings.pageZoom || 100}%
+            </span>
+            <button
+              onClick={() => onUpdateSettings({ pageZoom: Math.min(250, (settings.pageZoom || 100) + 15) })}
+              className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold cursor-pointer"
+              style={{ backgroundColor: 'rgba(18,59,42,0.1)', color: '#123B2A' }}
+              aria-label="تكبير الصفحة"
+              title="تكبير مقياس الصفحة"
+            >
+              +
+            </button>
+            <button
+              onClick={() => onUpdateSettings({ pageZoom: 100 })}
+              className="px-3 py-1 text-xs rounded-lg cursor-pointer font-bold"
+              style={{ backgroundColor: 'rgba(200,168,91,0.2)', color: '#C8A85B' }}
+            >
+              إعادة ضبط (100%)
             </button>
           </div>
         </div>

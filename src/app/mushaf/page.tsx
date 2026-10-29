@@ -123,7 +123,38 @@ function MushafReaderInner() {
     readingMode: 'mushaf',
     selectedReciterId: 7,
     selectedTafsirId: 169,
+    pageZoom: 100,
   });
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [pageZoom, setPageZoom] = useState<number>(100);
+  const touchStartDistRef = useRef<number | null>(null);
+  const initialZoomRef = useRef<number>(100);
+  const lastTapTimeRef = useRef<number>(0);
+
+  // Monitor orientation changes (Portrait vs Landscape)
+  useEffect(() => {
+    const checkOrientation = () => {
+      if (typeof window !== 'undefined') {
+        const isLand = window.innerWidth > window.innerHeight;
+        setIsLandscape(isLand);
+      }
+    };
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
+
+  // Sync zoom from settings
+  useEffect(() => {
+    if (settings.pageZoom && settings.pageZoom !== pageZoom) {
+      setPageZoom(settings.pageZoom);
+    }
+  }, [settings.pageZoom]);
+
   const [selectedVerse, setSelectedVerse] = useState<Verse | null>(null);
   const [showTafsir, setShowTafsir] = useState(false);
   const [tafsirVerse, setTafsirVerse] = useState<Verse | null>(null);
@@ -251,6 +282,68 @@ function MushafReaderInner() {
       return updated;
     });
   }, []);
+
+  // Zoom handlers for Mushaf and Landscape mode
+  const handleZoomIn = useCallback(() => {
+    setPageZoom((prev) => {
+      const next = Math.min(250, prev + 15);
+      handleUpdateSettings({ pageZoom: next });
+      return next;
+    });
+  }, [handleUpdateSettings]);
+
+  const handleZoomOut = useCallback(() => {
+    setPageZoom((prev) => {
+      const next = Math.max(70, prev - 15);
+      handleUpdateSettings({ pageZoom: next });
+      return next;
+    });
+  }, [handleUpdateSettings]);
+
+  const handleZoomReset = useCallback(() => {
+    setPageZoom(100);
+    handleUpdateSettings({ pageZoom: 100 });
+  }, [handleUpdateSettings]);
+
+  const handleTouchStartZoom = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchStartDistRef.current = dist;
+      initialZoomRef.current = pageZoom;
+    }
+  };
+
+  const handleTouchMoveZoom = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && touchStartDistRef.current !== null) {
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const scale = currentDist / touchStartDistRef.current;
+      const next = Math.min(250, Math.max(70, Math.round(initialZoomRef.current * scale)));
+      setPageZoom(next);
+    }
+  };
+
+  const handleTouchEndZoom = () => {
+    if (touchStartDistRef.current !== null) {
+      touchStartDistRef.current = null;
+      handleUpdateSettings({ pageZoom });
+    }
+  };
+
+  const handleDoubleTapZoom = () => {
+    const now = Date.now();
+    if (now - lastTapTimeRef.current < 320) {
+      const target = pageZoom > 115 ? 100 : 150;
+      setPageZoom(target);
+      handleUpdateSettings({ pageZoom: target });
+    }
+    lastTapTimeRef.current = now;
+  };
 
   // Reciter selection handler
   const handleSelectReciter = useCallback((id: number, name: string) => {
@@ -538,7 +631,11 @@ function MushafReaderInner() {
       {/* Quran Content */}
       <main
         ref={swipeRef}
-        className="flex-1 px-2 sm:px-4 py-3 sm:py-6 md:px-8 lg:px-16 max-w-4xl mx-auto w-full page-transition"
+        className={`flex-1 w-full page-transition ${
+          isLandscape
+            ? 'px-0 sm:px-1 py-1 max-w-none'
+            : 'px-2 sm:px-4 py-3 sm:py-6 md:px-8 lg:px-16 max-w-4xl mx-auto'
+        }`}
         role="main"
         aria-label={`صفحة ${currentPage} من المصحف`}
       >
@@ -650,7 +747,7 @@ function MushafReaderInner() {
                     <p
                       className="quran-text"
                       style={{
-                        fontSize: `${settings.fontSize}px`,
+                        fontSize: `${Math.round((settings.fontSize * pageZoom) / 100)}px`,
                         color: textColor,
                       }}
                     >
@@ -689,12 +786,17 @@ function MushafReaderInner() {
           /* Madinah Mushaf Page View - Identical to King Fahd Complex / User's Uploaded Image */
           <div className="relative w-full flex flex-col items-center justify-center select-none py-1">
             {/* Quick Top Info Bar */}
-            <div className="w-full max-w-2xl mb-2 flex items-center justify-between text-xs font-bold px-2" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+            <div
+              className={`w-full mb-1.5 flex items-center justify-between text-xs font-bold px-2.5 transition-all ${
+                isLandscape ? 'max-w-none bg-[#123B2A]/5 py-1 rounded-lg' : 'max-w-2xl mx-auto'
+              }`}
+              style={{ fontFamily: "'Tajawal', sans-serif" }}
+            >
               <span className="px-3 py-1 rounded-full bg-[#123B2A]/10 text-[#123B2A] border border-[#123B2A]/20">
                 {mainSurahName}
               </span>
               <span className="text-[#C8A85B] font-bold">
-                صفحة {currentPage} من 604
+                صفحة {currentPage} من 604 {pageZoom !== 100 ? `(${pageZoom}%)` : ''}
               </span>
               {juzNumber && (
                 <span className="px-3 py-1 rounded-full bg-[#C8A85B]/20 text-[#123B2A] border border-[#C8A85B]/30">
@@ -703,32 +805,60 @@ function MushafReaderInner() {
               )}
             </div>
 
-            {/* Page Container with Screen Tap Navigation */}
-            <div className="relative w-full max-w-2xl mx-auto flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF]">
-              {/* Authentic Madinah Mushaf Page Image - uses offline IndexedDB blob first, then local proxy, then direct CDN */}
-              <img
-                src={offlineBlobUrl || `/api/quran/page-image?page=${currentPage}`}
-                alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
-                onError={() => {
-                  if (!offlineBlobUrl) {
-                    const directUrl = `https://files.quran.app/hafs/madani/width_1024/page${currentPage.toString().padStart(3, '0')}.png`;
-                    const testImg = new Image();
-                    testImg.src = directUrl;
-                    testImg.onload = () => {
-                      setOfflineBlobUrl(directUrl);
-                    };
-                    testImg.onerror = () => {
-                      setPageImageError(true);
-                    };
-                  } else {
-                    setPageImageError(true);
-                  }
+            {/* Zoomable & Horizontally Scrollable Page Wrapper */}
+            <div
+              className={`w-full overflow-x-auto overflow-y-visible flex justify-center scrollbar-none transition-all ${
+                isLandscape ? 'px-0' : 'px-1'
+              }`}
+              onTouchStart={handleTouchStartZoom}
+              onTouchMove={handleTouchMoveZoom}
+              onTouchEnd={handleTouchEndZoom}
+              style={{
+                touchAction: pageZoom > 100 ? 'pan-x pan-y pinch-zoom' : 'manipulation',
+              }}
+            >
+              <div
+                style={{
+                  width: `${pageZoom}%`,
+                  maxWidth: pageZoom <= 100 && !isLandscape ? '42rem' : undefined,
+                  minWidth: pageZoom < 100 ? `${pageZoom}%` : '100%',
+                  transition: touchStartDistRef.current ? 'none' : 'width 0.2s ease-out',
                 }}
-                className={`w-full h-auto max-h-[85vh] object-contain transition-all duration-200 pointer-events-none ${
-                  settings.nightMode ? 'invert-[0.92] hue-rotate-180 brightness-95 contrast-125' : ''
-                }`}
-                loading="eager"
-              />
+                className="relative flex flex-col items-center justify-center origin-top"
+              >
+                {/* Page Container with Screen Tap Navigation */}
+                <div
+                  className={`relative w-full mx-auto flex items-center justify-center overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] transition-all ${
+                    isLandscape ? 'rounded-none sm:rounded-xl border-x-0 sm:border-x-2' : 'rounded-2xl'
+                  }`}
+                  onDoubleClick={handleDoubleTapZoom}
+                >
+                  {/* Authentic Madinah Mushaf Page Image - in landscape mode it spans full screen width like King Fahd Complex layout */}
+                  <img
+                    src={offlineBlobUrl || `/api/quran/page-image?page=${currentPage}`}
+                    alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
+                    onError={() => {
+                      if (!offlineBlobUrl) {
+                        const directUrl = `https://files.quran.app/hafs/madani/width_1024/page${currentPage.toString().padStart(3, '0')}.png`;
+                        const testImg = new Image();
+                        testImg.src = directUrl;
+                        testImg.onload = () => {
+                          setOfflineBlobUrl(directUrl);
+                        };
+                        testImg.onerror = () => {
+                          setPageImageError(true);
+                        };
+                      } else {
+                        setPageImageError(true);
+                      }
+                    }}
+                    className={`w-full h-auto transition-all duration-200 pointer-events-none ${
+                      isLandscape ? 'object-cover' : 'max-h-[85vh] object-contain'
+                    } ${
+                      settings.nightMode ? 'invert-[0.92] hue-rotate-180 brightness-95 contrast-125' : ''
+                    }`}
+                    loading="eager"
+                  />
 
               {/* Interactive Screen Tap Navigation Zones */}
               <div className="absolute inset-0 z-20 flex select-none">
@@ -783,9 +913,15 @@ function MushafReaderInner() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
             {/* Bottom Page Navigation Controls */}
-            <div className="w-full max-w-2xl mt-3 flex items-center justify-between px-1 gap-2 text-xs font-bold">
+            <div
+              className={`w-full mt-3 flex items-center justify-between px-1 gap-2 text-xs font-bold transition-all ${
+                isLandscape ? 'max-w-none' : 'max-w-2xl'
+              }`}
+            >
               {/* Next Page Button */}
               <button
                 type="button"
@@ -906,7 +1042,7 @@ function MushafReaderInner() {
                 <p
                   className="quran-text-mushaf"
                   style={{
-                    fontSize: `${settings.fontSize}px`,
+                    fontSize: `${Math.round((settings.fontSize * pageZoom) / 100)}px`,
                     color: textColor,
                   }}
                 >
@@ -975,6 +1111,45 @@ function MushafReaderInner() {
           isOpenModal={showPageJumpModal}
           onCloseModal={() => setShowPageJumpModal(false)}
         />
+      )}
+
+      {/* Floating Zoom Controls Widget (تكبير وتصغير الصفحة) */}
+      {controlsVisible && (
+        <div
+          className="fixed bottom-20 left-3 md:bottom-24 md:left-6 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#123B2A]/90 text-white backdrop-blur-md shadow-2xl border border-[#C8A85B]/60 transition-all select-none"
+          style={{ direction: 'ltr' }}
+          title="تكبير أو تصغير الصفحة (أو استخدم إصبعين للمس والتكبير)"
+        >
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            disabled={pageZoom <= 70}
+            aria-label="تصغير الصفحة"
+            title="تصغير الصفحة (-)"
+            className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-lg hover:bg-white/20 active:scale-90 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          >
+            −
+          </button>
+          <button
+            type="button"
+            onClick={handleZoomReset}
+            title="اضغط لإعادة مقياس الصفحة الافتراضي 100%"
+            className="px-2 py-0.5 rounded-lg text-xs font-bold text-[#C8A85B] hover:bg-white/10 active:scale-95 transition cursor-pointer"
+            style={{ fontFamily: "'Tajawal', sans-serif" }}
+          >
+            {pageZoom}%
+          </button>
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            disabled={pageZoom >= 250}
+            aria-label="تكبير الصفحة"
+            title="تكبير الصفحة (+)"
+            className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-lg hover:bg-white/20 active:scale-90 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          >
+            +
+          </button>
+        </div>
       )}
 
       {/* Floating Toast Notification when Reading Stop Mark is saved */}

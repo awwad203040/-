@@ -132,6 +132,7 @@ export type UserSettings = {
   readingMode: 'mushaf' | 'verse';
   selectedReciterId?: number;
   selectedTafsirId?: number;
+  pageZoom?: number;
 };
 
 export type SearchResult = {

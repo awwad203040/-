@@ -92,7 +92,9 @@ public class MainActivity extends BridgeActivity {
                 ws.setTextZoom(100);
                 ws.setUseWideViewPort(true);
                 ws.setLoadWithOverviewMode(true);
-                ws.setSupportZoom(false);
+                ws.setSupportZoom(true);
+                ws.setBuiltInZoomControls(true);
+                ws.setDisplayZoomControls(false);
                 ws.setDomStorageEnabled(true);
                 ws.setDatabaseEnabled(true);
                 ws.setAllowFileAccess(true);

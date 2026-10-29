@@ -167,13 +167,16 @@ export function setManualPagesReadCount(count: number): void {
 
 // Settings
 export function getSettings(): UserSettings {
-  return getItem<UserSettings>(STORAGE_KEYS.SETTINGS, {
+  const defaults: UserSettings = {
     fontSize: 28,
     nightMode: false,
     readingMode: 'mushaf',
     selectedReciterId: 7,
     selectedTafsirId: 169,
-  });
+    pageZoom: 100,
+  };
+  const stored = getItem<UserSettings>(STORAGE_KEYS.SETTINGS, defaults);
+  return { ...defaults, ...stored };
 }
 
 export function saveSettings(settings: Partial<UserSettings>): void {
