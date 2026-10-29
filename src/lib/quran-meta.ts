@@ -196,17 +196,17 @@ export const POPULAR_RECITERS: ReciterInfo[] = [
 ];
 
 export const RECITER_AUDIO_SERVERS: Record<number, string> = {
-  7: 'https://server8.mp3quran.net/afs', // Mishari Rashid Alafasy
-  1: 'https://server7.mp3quran.net/basit', // AbdulBaset Murattal
-  2: 'https://server7.mp3quran.net/basit/Almusshaf-Al-Mojawwad', // AbdulBaset Mujawwad
-  3: 'https://server11.mp3quran.net/sds', // Abdur-Rahman as-Sudais
-  4: 'https://server11.mp3quran.net/shatri', // Abu Bakr al-Shatri
-  5: 'https://server8.mp3quran.net/rifai', // Hani ar-Rifai
-  6: 'https://server13.mp3quran.net/husr', // Mahmoud Khalil Al-Husary
-  8: 'https://server12.mp3quran.net/maher', // Maher al-Muaiqly
-  9: 'https://server10.mp3quran.net/minsh', // Mohamed Siddiq al-Minshawi
-  10: 'https://server7.mp3quran.net/shur', // Saud ash-Shuraym
-  12: 'https://server7.mp3quran.net/s_gmd', // Saad Al-Ghamdi
+  7: 'https://cdn.mp3quran.net/audio/mishary-alafasy/r1', // Mishari Rashid Alafasy
+  1: 'https://cdn.mp3quran.net/audio/abdulbasit-abdulsamad/r3', // AbdulBaset Murattal
+  2: 'https://cdn.mp3quran.net/audio/abdulbasit-abdulsamad/r1', // AbdulBaset Mujawwad
+  3: 'https://cdn.mp3quran.net/audio/abdulrahman-sudais/r1', // Abdur-Rahman as-Sudais
+  4: 'https://cdn.mp3quran.net/audio/abubakr-shatri/r1', // Abu Bakr al-Shatri
+  5: 'https://cdn.mp3quran.net/audio/hani-rifai/r1', // Hani ar-Rifai
+  6: 'https://cdn.mp3quran.net/audio/mahmoud-husary/r1', // Mahmoud Khalil Al-Husary
+  8: 'https://cdn.mp3quran.net/audio/maher-muaiqly/r1', // Maher al-Muaiqly
+  9: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1', // Mohamed Siddiq al-Minshawi
+  10: 'https://cdn.mp3quran.net/audio/saud-shuraim/r1', // Saud ash-Shuraym
+  12: 'https://cdn.mp3quran.net/audio/saad-ghamdi/r1', // Saad Al-Ghamdi
 };
 
 export function getDirectReciterAudioUrl(reciterId: number, surahNumber: number): string {

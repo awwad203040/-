@@ -43,6 +43,11 @@ export default function BlindVoiceAssistantModal({
   const openTimeRef = useRef<number>(0);
   const isActionExecutedRef = useRef<boolean>(false);
 
+  const onExecuteCommandRef = useRef(onExecuteCommand);
+  const onCloseRef = useRef(onClose);
+  onExecuteCommandRef.current = onExecuteCommand;
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     setAutoLaunch(isAutoVoiceAssistantOnLaunch());
     if (isOpen) {
@@ -99,8 +104,8 @@ export default function BlindVoiceAssistantModal({
         timeoutRef.current = setTimeout(() => {
           isActionExecutedRef.current = true;
           stopAccessibilitySpeech();
-          onExecuteCommand(result);
-          onClose();
+          onExecuteCommandRef.current(result);
+          onCloseRef.current();
         }, 1200);
       },
       onError: (errMsg) => {
@@ -123,7 +128,7 @@ export default function BlindVoiceAssistantModal({
       setIsListening(false);
       setStatusText('انقر على الميكروفون للتحدث');
     }
-  }, [onExecuteCommand, onClose]);
+  }, []);
 
   const handleRequestPermission = useCallback(async () => {
     triggerHaptic('tap');
