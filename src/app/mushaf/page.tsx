@@ -37,6 +37,7 @@ import OfflineAudioModal from '@/components/mushaf/OfflineAudioModal';
 import RecitationCorrectionModal from '@/components/mushaf/RecitationCorrectionModal';
 import OfflineDownloadModal from '@/components/mushaf/OfflineDownloadModal';
 import MushafSkeleton from '@/components/mushaf/MushafSkeleton';
+import PageVersesTafsirDrawer from '@/components/mushaf/PageVersesTafsirDrawer';
 import { useAutoAthkar } from '@/hooks/useAutoAthkar';
 import AthkarToast from '@/components/common/AthkarToast';
 import { getPageFromIDB } from '@/lib/offline-manager';
@@ -122,7 +123,7 @@ function MushafReaderInner() {
     nightMode: false,
     readingMode: 'mushaf',
     selectedReciterId: 7,
-    selectedTafsirId: 169,
+    selectedTafsirId: 16,
     pageZoom: 100,
   });
   const [isLandscape, setIsLandscape] = useState(false);
@@ -903,39 +904,17 @@ function MushafReaderInner() {
               </button>
             </div>
 
-            {/* Expandable Verses List for Tafsir & Audio Interaction */}
-            {showPageVersesDrawer && (
-              <div className="w-full max-w-2xl mt-4 bg-white/95 rounded-2xl p-4 border border-[#C8A85B]/50 shadow-xl space-y-3 animate-fadeIn">
-                <div className="flex items-center justify-between pb-2 border-b border-[#123B2A]/10">
-                  <span className="font-bold text-sm text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                    آيات الصفحة {currentPage} ({verses.length} آية)
-                  </span>
-                  <span className="text-xs text-gray-500 font-sans">
-                    اضغط على أي آية للاستماع أو التفسير
-                  </span>
-                </div>
-                <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                  {verses.map((verse) => (
-                    <div
-                      key={verse.id || verse.verseKey}
-                      onClick={() => setSelectedVerse(verse)}
-                      className="p-3 rounded-xl bg-black/5 hover:bg-[#123B2A]/10 transition-colors cursor-pointer border border-transparent hover:border-[#C8A85B]/40"
-                    >
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                        <span className="font-bold text-[#123B2A]">الآية {verse.verseKey}</span>
-                        <span className="text-[#C8A85B]">اضغط للخيارات والتفسير ▾</span>
-                      </div>
-                      <p className="text-base text-[#17231D] leading-relaxed font-bold" style={{ fontFamily: "'Amiri', serif" }} dir="rtl">
-                        {verse.textUthmani}
-                        <span className="verse-number inline-flex mr-1" style={{ backgroundColor: verseNumberBg }}>
-                          {verse.verseNumber}
-                        </span>
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* نافذة آيات وتفسير الصفحة مع قائمة التفاسير على اليسار واختيار المفسر المباشر */}
+            <PageVersesTafsirDrawer
+              isOpen={showPageVersesDrawer}
+              onClose={() => setShowPageVersesDrawer(false)}
+              currentPage={currentPage}
+              verses={verses}
+              selectedTafsirId={settings.selectedTafsirId || 16}
+              onSelectTafsirId={(id) => handleUpdateSettings({ selectedTafsirId: id })}
+              onPlayVerse={(v) => handlePlayVerse(v)}
+              nightMode={settings.nightMode}
+            />
           </div>
         ) : (
           /* Mushaf Mode Fallback - Page-oriented continuous text */

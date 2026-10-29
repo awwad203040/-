@@ -8,7 +8,10 @@ export async function GET(
   try {
     const { verseKey } = await params;
     const searchParams = request.nextUrl.searchParams;
-    const tafsirId = parseInt(searchParams.get('tafsir_id') || '169', 10);
+    let tafsirId = parseInt(searchParams.get('tafsir_id') || '16', 10);
+    // Auto-map legacy or misconfigured IDs
+    if (tafsirId === 169 || isNaN(tafsirId)) tafsirId = 16; // Arabic Muyassar
+    if (tafsirId === 92) tafsirId = 14; // Arabic Ibn Kathir
     const tafsir = await getTafsir(tafsirId, verseKey);
     return NextResponse.json({ tafsir });
   } catch (error) {

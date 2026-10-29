@@ -2,6 +2,7 @@
 
 import type { UserSettings } from '@/types/quran';
 import { POPULAR_RECITERS } from '@/lib/quran-meta';
+import { TAFSIR_RESOURCES } from '@/components/mushaf/PageVersesTafsirDrawer';
 
 interface SettingsPanelProps {
   settings: UserSettings;
@@ -187,6 +188,30 @@ export default function SettingsPanel({
               تغيير ▾
             </span>
           </button>
+        </div>
+
+        {/* Preferred Tafsir Selector */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium mb-2" style={{ color: '#17231D', fontFamily: "'Tajawal', sans-serif" }}>
+            كتاب التفسير المفضل
+          </label>
+          <select
+            value={settings.selectedTafsirId || 16}
+            onChange={(e) => onUpdateSettings({ selectedTafsirId: parseInt(e.target.value, 10) })}
+            className="w-full px-4 py-3 rounded-xl border text-sm font-bold shadow-xs cursor-pointer focus:outline-none"
+            style={{
+              backgroundColor: 'white',
+              borderColor: '#C8A85B',
+              color: '#17231D',
+              fontFamily: "'Tajawal', sans-serif",
+            }}
+          >
+            {TAFSIR_RESOURCES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} — {t.author}
+              </option>
+            ))}
+          </select>
         </div>
 
         <button

@@ -172,11 +172,15 @@ export function getSettings(): UserSettings {
     nightMode: false,
     readingMode: 'mushaf',
     selectedReciterId: 7,
-    selectedTafsirId: 169,
+    selectedTafsirId: 16,
     pageZoom: 100,
   };
   const stored = getItem<UserSettings>(STORAGE_KEYS.SETTINGS, defaults);
-  return { ...defaults, ...stored };
+  const result = { ...defaults, ...stored };
+  if (result.selectedTafsirId === 169) {
+    result.selectedTafsirId = 16;
+  }
+  return result;
 }
 
 export function saveSettings(settings: Partial<UserSettings>): void {

@@ -13,11 +13,21 @@ interface TafsirData {
   resourceName?: string;
 }
 
+export const AVAILABLE_TAFSIRS = [
+  { id: 16, name: 'التفسير الميسر', author: 'مجمع الملك فهد لطباعة المصحف الشريف' },
+  { id: 91, name: 'تفسير السعدي', author: 'الشيخ عبد الرحمن بن ناصر السعدي' },
+  { id: 14, name: 'تفسير ابن كثير', author: 'الإمام الحافظ ابن كثير' },
+  { id: 15, name: 'تفسير الطبري', author: 'الإمام محمد بن جرير الطبري' },
+  { id: 90, name: 'تفسير القرطبي', author: 'الإمام شمس الدين القرطبي' },
+  { id: 94, name: 'تفسير البغوي', author: 'الإمام الحسين بن مسعود البغوي' },
+  { id: 93, name: 'التفسير الوسيط', author: 'د. محمد سيد طنطاوي' },
+];
+
 export default function TafsirModal({ verse, onClose }: TafsirModalProps) {
   const [tafsir, setTafsir] = useState<TafsirData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tafsirId, setTafsirId] = useState(169);
+  const [tafsirId, setTafsirId] = useState(16);
 
   useEffect(() => {
     setIsLoading(true);
@@ -81,7 +91,7 @@ export default function TafsirModal({ verse, onClose }: TafsirModalProps) {
           <select
             value={tafsirId}
             onChange={(e) => setTafsirId(parseInt(e.target.value, 10))}
-            className="w-full px-3 py-2 rounded-lg border text-sm"
+            className="w-full px-3 py-2 rounded-lg border text-sm font-bold"
             style={{
               borderColor: '#C8A85B',
               color: '#17231D',
@@ -89,10 +99,11 @@ export default function TafsirModal({ verse, onClose }: TafsirModalProps) {
               fontFamily: "'Tajawal', sans-serif",
             }}
           >
-            <option value={169}>تفسير الميسر</option>
-            <option value={91}>تفسير الطبري</option>
-            <option value={92}>تفسير ابن كثير</option>
-            <option value={93}>تفسير القرطبي</option>
+            {AVAILABLE_TAFSIRS.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} — {t.author}
+              </option>
+            ))}
           </select>
         </div>
 
