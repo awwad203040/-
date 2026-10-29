@@ -914,6 +914,9 @@ function MushafReaderInner() {
               onSelectTafsirId={(id) => handleUpdateSettings({ selectedTafsirId: id })}
               onPlayVerse={(v) => handlePlayVerse(v)}
               nightMode={settings.nightMode}
+              onNextPage={nextPage}
+              onPrevPage={previousPage}
+              onGoToPage={goToPage}
             />
           </div>
         ) : (

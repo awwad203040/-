@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Verse } from '@/types/quran';
+import { SURAH_METADATA } from '@/lib/quran-meta';
 
 export interface TafsirOption {
   id: number;
@@ -64,6 +65,9 @@ interface PageVersesTafsirDrawerProps {
   onSelectTafsirId: (id: number) => void;
   onPlayVerse?: (verse: Verse) => void;
   nightMode?: boolean;
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
+  onGoToPage?: (page: number) => void;
 }
 
 // In-memory cache for fast verse switching on the page
@@ -122,6 +126,9 @@ export default function PageVersesTafsirDrawer({
   onSelectTafsirId,
   onPlayVerse,
   nightMode = false,
+  onNextPage,
+  onPrevPage,
+  onGoToPage,
 }: PageVersesTafsirDrawerProps) {
   const [selectedVerseIndex, setSelectedVerseIndex] = useState(0);
   const [activeTafsirId, setActiveTafsirId] = useState(selectedTafsirId || 16);
@@ -130,6 +137,9 @@ export default function PageVersesTafsirDrawer({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Track pending selection when transitioning across pages
+  const pendingSelectRef = useRef<'first' | 'last' | null>(null);
+
   // Sync activeTafsirId when prop changes
   useEffect(() => {
     if (selectedTafsirId) {
@@ -137,12 +147,29 @@ export default function PageVersesTafsirDrawer({
     }
   }, [selectedTafsirId]);
 
-  // Reset selected verse index when verses or page changes
+  // Handle page transitions and verse list updates
   useEffect(() => {
-    setSelectedVerseIndex(0);
+    if (!verses || verses.length === 0) return;
+
+    if (pendingSelectRef.current === 'last') {
+      setSelectedVerseIndex(verses.length - 1);
+    } else if (pendingSelectRef.current === 'first') {
+      setSelectedVerseIndex(0);
+    } else {
+      setSelectedVerseIndex((prev) => (prev >= verses.length ? 0 : prev));
+    }
+    pendingSelectRef.current = null;
   }, [currentPage, verses]);
 
   const selectedVerse: Verse | undefined = verses[selectedVerseIndex] || verses[0];
+
+  // Derive Surah name for display
+  const surahNameDisplay = useMemo(() => {
+    if (!selectedVerse) return '';
+    const ch = selectedVerse.chapterId || selectedVerse.chapterNumber || (selectedVerse.verseKey ? parseInt(selectedVerse.verseKey.split(':')[0], 10) : 1);
+    const meta = SURAH_METADATA[ch];
+    return meta ? `سورة ${meta.name}` : `سورة ${ch}`;
+  }, [selectedVerse]);
 
   // Fetch tafsir whenever selectedVerse or activeTafsirId changes
   useEffect(() => {
@@ -169,20 +196,53 @@ export default function PageVersesTafsirDrawer({
     };
   }, [selectedVerse, activeTafsirId, isOpen]);
 
+  // Scroll active verse card smoothly into view in the right column
+  useEffect(() => {
+    if (!isOpen) return;
+    const el = document.getElementById(`drawer-verse-${selectedVerseIndex}`);
+    if (el) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [selectedVerseIndex, isOpen]);
+
   const handleTafsirChange = (id: number) => {
     setActiveTafsirId(id);
     onSelectTafsirId(id);
   };
 
+  // Continuous verse navigation: advances to next page if reaching end of current page's verses
   const handleNextAyah = () => {
     if (selectedVerseIndex < verses.length - 1) {
       setSelectedVerseIndex((prev) => prev + 1);
+    } else if (onNextPage && currentPage < 604) {
+      pendingSelectRef.current = 'first';
+      onNextPage();
     }
   };
 
+  // Continuous verse navigation: retreats to previous page if reaching start of current page's verses
   const handlePrevAyah = () => {
     if (selectedVerseIndex > 0) {
       setSelectedVerseIndex((prev) => prev - 1);
+    } else if (onPrevPage && currentPage > 1) {
+      pendingSelectRef.current = 'last';
+      onPrevPage();
+    }
+  };
+
+  // Direct batch navigation (jump to next page / next set of verses)
+  const handleNextBatch = () => {
+    if (onNextPage && currentPage < 604) {
+      pendingSelectRef.current = 'first';
+      onNextPage();
+    }
+  };
+
+  // Direct batch navigation (jump to previous page / previous set of verses)
+  const handlePrevBatch = () => {
+    if (onPrevPage && currentPage > 1) {
+      pendingSelectRef.current = 'first';
+      onPrevPage();
     }
   };
 
@@ -216,35 +276,68 @@ export default function PageVersesTafsirDrawer({
       >
         {/* Header Bar */}
         <div
-          className="px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between border-b border-[#C8A85B]/40 shrink-0 select-none"
+          className="px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between border-b border-[#C8A85B]/40 shrink-0 select-none"
           style={{ backgroundColor: '#123B2A', color: 'white' }}
         >
-          <div className="flex items-center gap-2">
-            <span className="text-xl text-[#C8A85B]">📖</span>
-            <div>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xl text-[#C8A85B] shrink-0">📖</span>
+            <div className="min-w-0">
               <h2
-                className="text-sm sm:text-lg font-bold leading-tight flex items-center gap-2"
+                className="text-xs sm:text-base md:text-lg font-bold leading-tight flex items-center gap-1.5 sm:gap-2 flex-wrap"
                 style={{ fontFamily: "'Tajawal', sans-serif" }}
               >
                 <span>آيات وتفسير صفحة {currentPage}</span>
-                <span className="text-[11px] sm:text-xs px-2 py-0.5 rounded-full bg-[#C8A85B] text-[#123B2A] font-bold">
+                {surahNameDisplay && (
+                  <span className="text-[11px] sm:text-xs text-[#C8A85B] font-bold">
+                    ({surahNameDisplay})
+                  </span>
+                )}
+                <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-[#C8A85B] text-[#123B2A] font-bold">
                   {verses.length} آيات
                 </span>
               </h2>
-              <p className="text-[10px] sm:text-xs text-white/75 mt-0.5 hidden xs:block" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                الآيات يميناً، وقائمة التفاسير المعتمدة ونَصّ التفسير يساراً
+              <p className="text-[10px] sm:text-xs text-white/75 mt-0.5 hidden xs:block truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                تنقل حر بين آيات السورة: الآيات يميناً، والتفاسير المعتمدة ونَصّ التفسير يساراً
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-white/80 hover:bg-white/15 active:scale-95 text-lg transition cursor-pointer"
-            aria-label="إغلاق النافذة"
-            title="إغلاق (✕)"
-          >
-            ✕
-          </button>
+
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Quick Page Jump Buttons in Header */}
+            <div className="flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded-xl border border-white/20">
+              <button
+                type="button"
+                onClick={handleNextBatch}
+                disabled={currentPage >= 604}
+                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white hover:bg-white/20 active:scale-95 disabled:opacity-20 cursor-pointer"
+                title="الانتقال لصفحة تالية (الآيات التالية)"
+              >
+                ◀
+              </button>
+              <span className="text-[10px] sm:text-xs font-bold px-1" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                صـ {currentPage}
+              </span>
+              <button
+                type="button"
+                onClick={handlePrevBatch}
+                disabled={currentPage <= 1}
+                className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white hover:bg-white/20 active:scale-95 disabled:opacity-20 cursor-pointer"
+                title="الانتقال لصفحة سابقة (الآيات السابقة)"
+              >
+                ▶
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-white/80 hover:bg-white/15 active:scale-95 text-lg transition cursor-pointer"
+              aria-label="إغلاق النافذة"
+              title="إغلاق (✕)"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* ========================================================================= */}
@@ -253,65 +346,90 @@ export default function PageVersesTafsirDrawer({
         <div className="flex-1 flex flex-row overflow-hidden min-h-0 divide-x divide-x-reverse divide-[#C8A85B]/30">
           
           {/* ======================================================================= */}
-          {/* RIGHT COLUMN (اليمين): قائمة آيات الصفحة                                */}
+          {/* RIGHT COLUMN (اليمين): قائمة آيات الصفحة مع أزرار التنقل السريع           */}
           {/* ======================================================================= */}
           <div className="w-[38%] xs:w-[40%] sm:w-[42%] md:w-[35%] lg:w-[32%] flex flex-col h-full bg-black/5 shrink-0 overflow-hidden">
-            {/* Column Header */}
-            <div className="px-2.5 sm:px-3 py-2 bg-[#123B2A]/10 border-b border-[#C8A85B]/30 flex items-center justify-between text-[11px] sm:text-xs font-bold text-[#123B2A] select-none shrink-0">
-              <span className="flex items-center gap-1" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+            {/* Column Header with Batch Nav Buttons */}
+            <div className="px-1.5 sm:px-2.5 py-1.5 sm:py-2 bg-[#123B2A]/10 border-b border-[#C8A85B]/30 flex items-center justify-between text-[10px] sm:text-xs font-bold text-[#123B2A] select-none shrink-0 gap-1">
+              <button
+                type="button"
+                onClick={handleNextBatch}
+                disabled={currentPage >= 604}
+                className="px-1.5 py-0.5 rounded-md bg-[#123B2A]/10 hover:bg-[#123B2A]/20 active:scale-95 disabled:opacity-20 text-[9px] sm:text-[10px] font-bold cursor-pointer transition"
+                title={`الآيات التالية (صفحة ${currentPage + 1})`}
+              >
+                ◀ التالية
+              </button>
+
+              <span className="flex items-center gap-1 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                 <span>📜</span>
                 <span>الآيات ({verses.length})</span>
               </span>
-              <span className="text-[10px] text-gray-500 font-sans hidden sm:inline">
-                اضغط للتحديد
-              </span>
+
+              <button
+                type="button"
+                onClick={handlePrevBatch}
+                disabled={currentPage <= 1}
+                className="px-1.5 py-0.5 rounded-md bg-[#123B2A]/10 hover:bg-[#123B2A]/20 active:scale-95 disabled:opacity-20 text-[9px] sm:text-[10px] font-bold cursor-pointer transition"
+                title={`الآيات السابقة (صفحة ${currentPage - 1})`}
+              >
+                السابقة ▶
+              </button>
             </div>
 
             {/* Scrollable Verses List */}
             <div className="flex-1 overflow-y-auto p-1.5 sm:p-2.5 space-y-1.5 sm:space-y-2">
-              {verses.map((verse, idx) => {
-                const isSelected = idx === selectedVerseIndex;
-                return (
-                  <div
-                    key={verse.id || verse.verseKey}
-                    onClick={() => setSelectedVerseIndex(idx)}
-                    role="button"
-                    tabIndex={0}
-                    className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all cursor-pointer border text-right select-none ${
-                      isSelected
-                        ? 'bg-[#123B2A] text-white border-[#C8A85B] shadow-md scale-[1.01]'
-                        : nightMode
-                        ? 'bg-[#142A1F] text-[#E8E4D9] border-[#C8A85B]/20 hover:border-[#C8A85B]/60'
-                        : 'bg-white text-[#17231D] border-[#C8A85B]/30 hover:border-[#C8A85B]/70 shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span
-                        className={`font-bold px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
-                          isSelected
-                            ? 'bg-[#C8A85B] text-[#123B2A]'
-                            : 'bg-[#123B2A]/10 text-[#123B2A]'
-                        }`}
-                        style={{ fontFamily: "'Tajawal', sans-serif" }}
-                      >
-                        الآية {verse.verseKey}
-                      </span>
-                      {isSelected && (
-                        <span className="text-[10px] text-[#C8A85B] font-bold">
-                          ✓ نشطة
-                        </span>
-                      )}
-                    </div>
-
-                    <p
-                      className="text-xs sm:text-sm md:text-base leading-relaxed font-bold line-clamp-3"
-                      style={{ fontFamily: "'Amiri', serif" }}
+              {verses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-6 text-center text-xs text-gray-500">
+                  <div className="w-5 h-5 border-2 border-[#C8A85B] border-t-transparent rounded-full animate-spin mb-2" />
+                  <span>جارٍ تحميل آيات الصفحة...</span>
+                </div>
+              ) : (
+                verses.map((verse, idx) => {
+                  const isSelected = idx === selectedVerseIndex;
+                  return (
+                    <div
+                      key={verse.id || verse.verseKey}
+                      id={`drawer-verse-${idx}`}
+                      onClick={() => setSelectedVerseIndex(idx)}
+                      role="button"
+                      tabIndex={0}
+                      className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all cursor-pointer border text-right select-none ${
+                        isSelected
+                          ? 'bg-[#123B2A] text-white border-[#C8A85B] shadow-md scale-[1.01]'
+                          : nightMode
+                          ? 'bg-[#142A1F] text-[#E8E4D9] border-[#C8A85B]/20 hover:border-[#C8A85B]/60'
+                          : 'bg-white text-[#17231D] border-[#C8A85B]/30 hover:border-[#C8A85B]/70 shadow-2xs'
+                      }`}
                     >
-                      {verse.textUthmani}
-                    </p>
-                  </div>
-                );
-              })}
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
+                            isSelected
+                              ? 'bg-[#C8A85B] text-[#123B2A]'
+                              : 'bg-[#123B2A]/10 text-[#123B2A]'
+                          }`}
+                          style={{ fontFamily: "'Tajawal', sans-serif" }}
+                        >
+                          الآية {verse.verseKey}
+                        </span>
+                        {isSelected && (
+                          <span className="text-[10px] text-[#C8A85B] font-bold">
+                            ✓ نشطة
+                          </span>
+                        )}
+                      </div>
+
+                      <p
+                        className="text-xs sm:text-sm md:text-base leading-relaxed font-bold line-clamp-3"
+                        style={{ fontFamily: "'Amiri', serif" }}
+                      >
+                        {verse.textUthmani}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -480,31 +598,66 @@ export default function PageVersesTafsirDrawer({
               )}
             </div>
 
-            {/* Bottom Verse Navigation Controls */}
-            <div className="p-2 sm:p-2.5 bg-white/80 border-t border-[#C8A85B]/30 flex items-center justify-between gap-2 shrink-0 select-none">
-              <button
-                type="button"
-                onClick={handleNextAyah}
-                disabled={selectedVerseIndex >= verses.length - 1}
-                className="flex-1 py-1.5 sm:py-2 px-2 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
-                style={{ fontFamily: "'Tajawal', sans-serif" }}
-              >
-                <span>◀ الآية التالية</span>
-              </button>
+            {/* Bottom Verse & Batch Navigation Controls */}
+            <div className="p-2 sm:p-2.5 bg-white/90 border-t border-[#C8A85B]/30 flex flex-col gap-1.5 shrink-0 select-none">
+              {/* Row 1: Verse-by-verse continuous navigation */}
+              <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+                <button
+                  type="button"
+                  onClick={handleNextAyah}
+                  disabled={currentPage >= 604 && selectedVerseIndex >= verses.length - 1}
+                  className="flex-1 py-1.5 sm:py-2 px-2 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed shadow-2xs"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title="الآية التالية (ينتقل تلقائياً للآيات التالية عند نهاية الصفحة)"
+                >
+                  <span>◀ الآية التالية</span>
+                </button>
 
-              <span className="text-[11px] sm:text-xs font-bold text-[#123B2A] px-2 select-none" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                {selectedVerseIndex + 1} / {verses.length}
-              </span>
+                <div className="flex flex-col items-center justify-center px-1 shrink-0">
+                  <span className="text-[11px] sm:text-xs font-bold text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                    {verses.length > 0 ? selectedVerseIndex + 1 : 0} / {verses.length}
+                  </span>
+                  <span className="text-[9px] text-[#C8A85B] font-bold">
+                    صـ {currentPage}
+                  </span>
+                </div>
 
-              <button
-                type="button"
-                onClick={handlePrevAyah}
-                disabled={selectedVerseIndex <= 0}
-                className="flex-1 py-1.5 sm:py-2 px-2 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
-                style={{ fontFamily: "'Tajawal', sans-serif" }}
-              >
-                <span>الآية السابقة ▶</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={handlePrevAyah}
+                  disabled={currentPage <= 1 && selectedVerseIndex <= 0}
+                  className="flex-1 py-1.5 sm:py-2 px-2 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed shadow-2xs"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title="الآية السابقة (ينتقل تلقائياً للآيات السابقة عند بداية الصفحة)"
+                >
+                  <span>الآية السابقة ▶</span>
+                </button>
+              </div>
+
+              {/* Row 2: Batch Jump (الـ 8 آيات التالية / القبلية) */}
+              <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-1 border-t border-[#C8A85B]/20">
+                <button
+                  type="button"
+                  onClick={handleNextBatch}
+                  disabled={currentPage >= 604}
+                  className="flex-1 py-1 px-2 rounded-lg bg-[#C8A85B]/15 hover:bg-[#C8A85B]/30 active:scale-95 border border-[#C8A85B]/40 text-[#123B2A] text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title={`الانتقال للآيات التالية (صفحة ${currentPage + 1})`}
+                >
+                  <span>◀ الآيات التالية (صـ {currentPage < 604 ? currentPage + 1 : 604})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrevBatch}
+                  disabled={currentPage <= 1}
+                  className="flex-1 py-1 px-2 rounded-lg bg-[#C8A85B]/15 hover:bg-[#C8A85B]/30 active:scale-95 border border-[#C8A85B]/40 text-[#123B2A] text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title={`الانتقال للآيات السابقة (صفحة ${currentPage - 1})`}
+                >
+                  <span>(صـ {currentPage > 1 ? currentPage - 1 : 1}) الآيات السابقة ▶</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
