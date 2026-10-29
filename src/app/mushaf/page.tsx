@@ -263,6 +263,13 @@ function MushafReaderInner() {
     }
   }, [currentPage]);
 
+  // Scroll to top on page change (crucial for reading in landscape orientation)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [currentPage]);
+
   // Night mode
   useEffect(() => {
     if (settings.nightMode) {
@@ -589,7 +596,11 @@ function MushafReaderInner() {
       {/* Quran Content */}
       <main
         ref={swipeRef}
-        className="flex-1 px-2 sm:px-4 py-2 sm:py-6 md:px-8 lg:px-16 max-w-4xl mx-auto w-full page-transition"
+        className={`flex-1 ${
+          isLandscape
+            ? 'px-0 sm:px-1 py-1 max-w-none w-full'
+            : 'px-2 sm:px-4 py-2 sm:py-6 md:px-8 lg:px-16 max-w-4xl'
+        } mx-auto w-full page-transition landscape:px-0 landscape:py-1 landscape:max-w-none`}
         role="main"
         aria-label={`صفحة ${currentPage} من المصحف`}
       >
@@ -759,15 +770,17 @@ function MushafReaderInner() {
               )}
             </div>
 
-            {/* Page Container with Screen Tap Navigation - Identical characteristics in Portrait & Landscape */}
+            {/* Page Container with Screen Tap Navigation */}
             <div
-              className="relative w-full max-w-2xl mx-auto flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] transition-transform duration-200"
+              className={`relative w-full ${
+                isLandscape ? 'max-w-none w-full rounded-none sm:rounded-2xl' : 'max-w-2xl rounded-2xl'
+              } mx-auto flex items-center justify-center overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] transition-transform duration-200 landscape:max-w-none`}
               style={{
                 transform: pageZoom !== 100 ? `scale(${pageZoom / 100})` : undefined,
                 transformOrigin: 'top center',
               }}
             >
-              {/* Authentic Madinah Mushaf Page Image - object-contain fits viewport height in all orientations */}
+              {/* Authentic Madinah Mushaf Page Image - in landscape fills full screen width for clear readability */}
               <img
                 src={offlineBlobUrl || `/api/quran/page-image?page=${currentPage}`}
                 alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
@@ -786,15 +799,17 @@ function MushafReaderInner() {
                     setPageImageError(true);
                   }
                 }}
-                className={`w-full h-auto max-h-[85vh] object-contain transition-all duration-200 pointer-events-none ${
+                className={`w-full h-auto ${
+                  isLandscape ? 'max-h-none' : 'max-h-[85vh]'
+                } object-contain transition-all duration-200 pointer-events-none landscape:max-h-none ${
                   settings.nightMode ? 'invert-[0.92] hue-rotate-180 brightness-95 contrast-125' : ''
                 }`}
                 loading="eager"
               />
 
-              {/* Interactive Screen Tap Navigation Zones (Absolute Physical Positioning for 100% Reliability) */}
+              {/* Interactive Screen Tap Navigation Zones (Absolute Physical Positioning across the page) */}
               <div className="absolute inset-0 z-20 pointer-events-none select-none">
-                {/* Physical Left 40%: Next Page (◀ التالي) in Arabic reading */}
+                {/* Physical Left 35%: Next Page (◀ التالي) in Arabic reading */}
                 <div
                   role="button"
                   tabIndex={0}
@@ -803,17 +818,17 @@ function MushafReaderInner() {
                     e.stopPropagation();
                     nextPage();
                   }}
-                  className="absolute left-0 top-0 bottom-0 w-[40%] cursor-pointer flex items-center justify-start pl-3 pointer-events-auto group active:bg-white/10 transition-colors"
+                  className="absolute left-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-start pl-2 sm:pl-3 pointer-events-auto group active:bg-white/10 transition-colors"
                   aria-label="الانتقال للصفحة التالية"
                   title="اضغط هنا للذهاب للصفحة التالية (◀)"
                   style={{ touchAction: 'manipulation' }}
                 >
-                  <span className="p-3 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                  <span className="p-2 sm:p-2.5 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity shadow-lg">
                     ◀ التالي ({currentPage < 604 ? currentPage + 1 : 604})
                   </span>
                 </div>
 
-                {/* Physical Center 20%: Toggle Menu & Toolbar Controls */}
+                {/* Physical Center 30%: Toggle Menu & Toolbar Controls */}
                 <div
                   role="button"
                   tabIndex={0}
@@ -822,13 +837,13 @@ function MushafReaderInner() {
                     e.stopPropagation();
                     setControlsVisible((prev) => !prev);
                   }}
-                  className="absolute left-[40%] top-0 bottom-0 w-[20%] cursor-pointer pointer-events-auto"
+                  className="absolute left-[35%] top-0 bottom-0 w-[30%] cursor-pointer pointer-events-auto"
                   aria-label="إظهار أو إخفاء القوائم والأشرطة"
                   title="اضغط في الوسط لإظهار أو إخفاء الأشرطة"
                   style={{ touchAction: 'manipulation' }}
                 />
 
-                {/* Physical Right 40%: Previous Page (السابق ▶) in Arabic reading */}
+                {/* Physical Right 35%: Previous Page (السابق ▶) in Arabic reading */}
                 <div
                   role="button"
                   tabIndex={0}
@@ -837,12 +852,12 @@ function MushafReaderInner() {
                     e.stopPropagation();
                     previousPage();
                   }}
-                  className="absolute right-0 top-0 bottom-0 w-[40%] cursor-pointer flex items-center justify-end pr-3 pointer-events-auto group active:bg-white/10 transition-colors"
+                  className="absolute right-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-end pr-2 sm:pr-3 pointer-events-auto group active:bg-white/10 transition-colors"
                   aria-label="الانتقال للصفحة السابقة"
                   title="اضغط هنا للرجوع للصفحة السابقة (▶)"
                   style={{ touchAction: 'manipulation' }}
                 >
-                  <span className="p-3 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                  <span className="p-2 sm:p-2.5 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity shadow-lg">
                     ({currentPage > 1 ? currentPage - 1 : 1}) السابق ▶
                   </span>
                 </div>
@@ -850,7 +865,7 @@ function MushafReaderInner() {
             </div>
 
             {/* Bottom Page Navigation Controls */}
-            <div className="w-full max-w-2xl mt-3 flex items-center justify-between px-1 gap-2 text-xs font-bold">
+            <div className={`w-full ${isLandscape ? 'max-w-none' : 'max-w-2xl'} mt-3 flex items-center justify-between px-1 gap-2 text-xs font-bold landscape:max-w-none`}>
               {/* Next Page Button */}
               <button
                 type="button"
@@ -1080,6 +1095,41 @@ function MushafReaderInner() {
           </button>
         </div>
       )}
+
+      {/* Floating Side Navigation Buttons (أزرار جانبية عائمة للتنقل السريع بالإبهام في الوضع الأفقي والرأسي) */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          nextPage();
+        }}
+        disabled={currentPage >= 604}
+        aria-label="الانتقال للصفحة التالية"
+        title="الصفحة التالية (◀)"
+        style={{ touchAction: 'manipulation' }}
+        className="fixed left-1.5 sm:left-3 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-2.5 rounded-full bg-[#123B2A]/90 hover:bg-[#0B5B43] active:scale-90 text-white shadow-2xl border-2 border-[#C8A85B] flex items-center justify-center cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          previousPage();
+        }}
+        disabled={currentPage <= 1}
+        aria-label="الانتقال للصفحة السابقة"
+        title="الصفحة السابقة (▶)"
+        style={{ touchAction: 'manipulation' }}
+        className="fixed right-1.5 sm:right-3 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-2.5 rounded-full bg-[#123B2A]/90 hover:bg-[#0B5B43] active:scale-90 text-white shadow-2xl border-2 border-[#C8A85B] flex items-center justify-center cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
 
       {/* Floating Toast Notification when Reading Stop Mark is saved */}
       {stopMarkToast && (
