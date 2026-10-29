@@ -263,28 +263,36 @@ export default function HomePage() {
   // Track if auto-launch has already been evaluated for this session
   const hasAutoVoiceCheckedRef = useRef(false);
 
+  // Stable callback to close the voice assistant modal
+  const handleCloseVoiceModal = useCallback(() => {
+    setShowVoiceAssistantModal(false);
+  }, []);
+
   // Listen for native voice commands triggered by Android intents (Google Assistant / Voice Match)
   useEffect(() => {
-    // 1. Check if the app was launched by Google Assistant or auto-launch setting (ONLY ONCE per session)
+    // 1. Immediately check if auto voice assistant is enabled for this session
     if (!hasAutoVoiceCheckedRef.current) {
       hasAutoVoiceCheckedRef.current = true;
-      consumeNativeVoiceLaunch().then(({ isVoiceLaunch, query }) => {
-        if (isVoiceLaunch) {
-          if (query) {
-            import('@/lib/voice-command-engine').then(({ parseVoiceCommand }) => {
-              const res = parseVoiceCommand(query);
-              handleVoiceCommandResultRef.current(res);
-            });
-          } else {
-            setShowVoiceAssistantModal(true);
-          }
-        } else if (isAutoVoiceAssistantOnLaunch()) {
-          setShowVoiceAssistantModal(true);
-        }
-      });
+      if (isAutoVoiceAssistantOnLaunch()) {
+        setShowVoiceAssistantModal(true);
+      }
     }
 
-    // 2. Also listen for custom events if already mounted
+    // 2. Check if launched by Google Assistant intent
+    consumeNativeVoiceLaunch().then(({ isVoiceLaunch, query }) => {
+      if (isVoiceLaunch) {
+        if (query) {
+          import('@/lib/voice-command-engine').then(({ parseVoiceCommand }) => {
+            const res = parseVoiceCommand(query);
+            handleVoiceCommandResultRef.current(res);
+          });
+        } else {
+          setShowVoiceAssistantModal(true);
+        }
+      }
+    }).catch(() => {});
+
+    // 3. Also listen for custom events if already mounted
     const handleVoiceTrigger = () => {
       setShowVoiceAssistantModal(true);
     };
@@ -1474,7 +1482,7 @@ export default function HomePage() {
       {/* Blind Voice Assistant Modal (Speech Recognition & Hands-Free Player) */}
       <BlindVoiceAssistantModal
         isOpen={showVoiceAssistantModal}
-        onClose={() => setShowVoiceAssistantModal(false)}
+        onClose={handleCloseVoiceModal}
         onExecuteCommand={handleVoiceCommandResult}
       />
     </div>

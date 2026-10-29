@@ -1,5 +1,6 @@
 package org.noor.alquran;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -844,12 +845,11 @@ public class AthkarNativePlugin extends Plugin {
                 intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "انطق اسم السورة (مثل: سورة الكهف)");
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
 
-                Intent googleIntent = new Intent(intent);
-                googleIntent.setPackage("com.google.android.googlequicksearchbox");
-                if (activity.getPackageManager().resolveActivity(googleIntent, 0) != null) {
-                    activity.startActivityForResult(googleIntent, MainActivity.REQUEST_CODE_SPEECH);
-                } else {
+                try {
                     activity.startActivityForResult(intent, MainActivity.REQUEST_CODE_SPEECH);
+                } catch (ActivityNotFoundException anf) {
+                    Intent chooser = Intent.createChooser(intent, "اختر محرك الصوت");
+                    activity.startActivityForResult(chooser, MainActivity.REQUEST_CODE_SPEECH);
                 }
 
                 JSObject data = new JSObject();
@@ -912,12 +912,11 @@ public class AthkarNativePlugin extends Plugin {
                 intent.putExtra(RecognizerIntent.EXTRA_PROMPT, prompt);
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
 
-                Intent googleIntent = new Intent(intent);
-                googleIntent.setPackage("com.google.android.googlequicksearchbox");
-                if (activity.getPackageManager().resolveActivity(googleIntent, 0) != null) {
-                    activity.startActivityForResult(googleIntent, MainActivity.REQUEST_CODE_SPEECH);
-                } else {
+                try {
                     activity.startActivityForResult(intent, MainActivity.REQUEST_CODE_SPEECH);
+                } catch (ActivityNotFoundException anf) {
+                    Intent chooser = Intent.createChooser(intent, "اختر محرك الصوت");
+                    activity.startActivityForResult(chooser, MainActivity.REQUEST_CODE_SPEECH);
                 }
 
                 JSObject data = new JSObject();

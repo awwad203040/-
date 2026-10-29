@@ -40,10 +40,23 @@ export default function BlindVoiceAssistantModal({
   const [supported, setSupported] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const openTimeRef = useRef<number>(0);
 
   useEffect(() => {
     setAutoLaunch(isAutoVoiceAssistantOnLaunch());
+    if (isOpen) {
+      openTimeRef.current = Date.now();
+    }
   }, [isOpen]);
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget && Date.now() - openTimeRef.current > 400) {
+      stopVoiceListening();
+      stopAccessibilitySpeech();
+      triggerHaptic('tap');
+      onClose();
+    }
+  };
 
   const startListeningSession = useCallback((forceDialog = false) => {
     // Stop any ongoing speech synthesis so the mic doesn't capture the app's own voice
@@ -145,11 +158,11 @@ export default function BlindVoiceAssistantModal({
         }
       });
 
-      // Start listening session smoothly after greeting
+      // Start listening session smoothly in background after greeting
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         if (!isCancelled) {
-          startListeningSession(true);
+          startListeningSession(false);
         }
       }, 1900);
 
@@ -211,11 +224,8 @@ export default function BlindVoiceAssistantModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="voice-assistant-title"
-      onClick={() => {
-        stopVoiceListening();
-        stopAccessibilitySpeech();
-        onClose();
-      }}
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
+      onClick={handleBackdropClick}
     >
       <div
         className="bg-gradient-to-b from-[#123B2A] to-[#0A2318] border-2 border-[#C8A85B] rounded-3xl w-full max-w-md p-6 text-white shadow-2xl flex flex-col items-center gap-5 relative overflow-hidden"
