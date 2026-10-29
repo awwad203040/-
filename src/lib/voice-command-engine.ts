@@ -129,7 +129,7 @@ const SURAH_ALIASES: Record<number, string[]> = {
   65: ['الطلاق'],
   66: ['التحريم', 'يا ايها النبي لم تحرم'],
   67: ['الملك', 'تبارك', 'تبارك الذي بيده الملك', 'المنجيه', 'الواقيه'],
-  68: ['القلم', 'ن', 'نون', 'ن والقلم'],
+  68: ['القلم', 'نون', 'ن والقلم'],
   69: ['الحاقه'],
   70: ['المعارج', 'سال سائل'],
   71: ['نوح'],
@@ -310,64 +310,115 @@ export function parseVoiceCommand(rawInput: string): VoiceCommandResult {
   }
 
   // ط. تنظيف كلمات الطلب المعتادة للوصول إلى اسم السورة الصافي
-  let cleanName = normalized
+  // فصل نص السورة عن جزء القارئ عند ورود كلمات "بصوت" أو "صوت"
+  const splitParts = normalized.split(/(?:^|\s)(?:بصوت|صوت|للقارئ|لقارئ|للشيخ)(?:\s|$)/);
+  const surahClause = (splitParts[0] || '').trim();
+
+  let cleanName = surahClause
     .replace(/^(شغل لي|شغل|تشغيل|استمع الى|استمع لـ|استمع ل|استمع|اسمعني|اسمع|اقرا لي|اقرا|تلاوة|تلاوه|افتح لي|افتح|اريد|ابغى|ابغي|ابي|ودي اسمع|ممكن سورة|ممكن سوره|القران|القران الكريم)\s*/g, '')
-    .replace(/^سوره\s+/g, '')
-    .replace(/^سورة\s+/g, '')
+    .replace(/^(?:سوره|سورة)\s+/g, '')
     .replace(/\s+(كامله|كاملة|كاملا)$/g, '')
     .trim();
 
-  // إزالة اسم القارئ من العبارة للمطابقة النقية
-  if (detectedReciter) {
-    for (const r of RECITER_VOICE_KEYS) {
-      for (const k of r.keys) {
-        cleanName = cleanName.replace(new RegExp(`(?:بصوت|صوت|الشيخ|قارئ)?\\s*${normalizeArabicSpeech(k)}`, 'g'), '').trim();
-      }
+  // إزالة اسم القارئ من العبارة إن وجد بدون كلمة "بصوت"
+  for (const r of RECITER_VOICE_KEYS) {
+    for (const k of r.keys) {
+      const normKey = normalizeArabicSpeech(k);
+      cleanName = cleanName.replace(new RegExp(`(?:^|\\s)(?:الشيخ|قارئ|القارئ)?\\s*${normKey}(?:\\s|$)`, 'g'), ' ').trim();
     }
-    cleanName = cleanName.replace(/(?:بصوت|صوت|الشيخ|قارئ)/g, '').trim();
   }
+  cleanName = cleanName.replace(/(?:^|\s)(?:الشيخ|قارئ|القارئ)(?:\s|$)/g, ' ').replace(/\s+/g, ' ').trim();
 
-  // ي. مطابقة اسم السورة النقي مع الأسماء الرسمية والبدائل (114 سورة)
+  const cleanTokens = cleanName.split(/\s+/).filter(Boolean);
+  const cleanWithoutAl = cleanName.startsWith('ال') && cleanName.length > 2 ? cleanName.substring(2) : cleanName;
+
+  // ي. مطابقة اسم السورة النقي بأعلى درجات الدقة والتمييز بين السور المتشابهة
+  let bestMatch: { surahNumber: number; surahName: string; score: number } | null = null;
+  let highestScore = 0;
+
   for (let s = 1; s <= 114; s++) {
     const meta = SURAH_METADATA[s];
-    const normMetaName = normalizeArabicSpeech(meta.name);
+    if (!meta) continue;
 
-    // مطابقة تامة مع الاسم الرسمي (مع أو بدون "ال")
-    if (cleanName === normMetaName || cleanName === normMetaName.replace(/^ال/, '') || normalized.includes(normMetaName)) {
-      const reciterMsg = detectedReciter ? ` بصوت الشيخ ${detectedReciter.name}` : '';
-      return {
-        action: 'play_surah',
-        surahNumber: s,
-        surahName: meta.name,
-        reciterId: detectedReciter?.id,
-        reciterName: detectedReciter?.name,
-        originalText: rawInput,
-        feedbackMessage: `جاري تشغيل سورة ${meta.name}${reciterMsg}.`,
-      };
-    }
+    const normOfficial = normalizeArabicSpeech(meta.name);
+    const normOfficialWithoutAl = normOfficial.startsWith('ال') && normOfficial.length > 2
+      ? normOfficial.substring(2)
+      : normOfficial;
 
-    // مطابقة مع القاموس الموسع للأسماء والآيات المشهورة
-    const aliases = SURAH_ALIASES[s] || [];
-    for (const alias of aliases) {
-      const normAlias = normalizeArabicSpeech(alias);
-      if (
-        cleanName === normAlias ||
-        cleanName === normAlias.replace(/^ال/, '') ||
-        cleanName.includes(normAlias) ||
-        normalized.includes(normAlias)
-      ) {
-        const reciterMsg = detectedReciter ? ` بصوت الشيخ ${detectedReciter.name}` : '';
-        return {
-          action: 'play_surah',
-          surahNumber: s,
-          surahName: meta.name,
-          reciterId: detectedReciter?.id,
-          reciterName: detectedReciter?.name,
-          originalText: rawInput,
-          feedbackMessage: `جاري تشغيل سورة ${meta.name}${reciterMsg}.`,
-        };
+    const aliases = (SURAH_ALIASES[s] || []).map((a) => normalizeArabicSpeech(a)).filter((a) => a.length > 1 || a === 'ص' || a === 'ق');
+    const candidateNames = [normOfficial, ...aliases];
+
+    for (const name of candidateNames) {
+      if (!name) continue;
+      const nameWithoutAl = name.startsWith('ال') && name.length > 2 ? name.substring(2) : name;
+
+      let score = 0;
+
+      // معاملة خاصة للسور ذات الحرف الواحد (ص: 38، ق: 50) لمنع تطابقها مع حروف الكلمات الأخرى
+      if (name.length === 1) {
+        if (cleanName === name) {
+          score = 1500;
+        } else if (cleanTokens.includes(name) && cleanTokens.length <= 2) {
+          score = 1200;
+        }
+      } else {
+        // السور متعددة الحروف:
+        // 1. تطابق تام مع الاسم النقي (مع أو بدون "ال")
+        if (cleanName === name) {
+          score = 2000 + name.length * 10;
+        } else if (cleanName === nameWithoutAl) {
+          score = 1900 + name.length * 10;
+        } else if (cleanWithoutAl === name) {
+          score = 1850 + name.length * 10;
+        } else if (cleanWithoutAl === nameWithoutAl) {
+          score = 1800 + name.length * 10;
+        }
+        // 2. تطابق ككلمة مستقلة كاملة
+        else if (cleanTokens.includes(name)) {
+          score = 1400 + name.length * 10;
+        } else if (cleanTokens.includes(nameWithoutAl)) {
+          score = 1350 + name.length * 10;
+        }
+        // 3. تطابق عبارة بديلة متعددة الكلمات (مثل "قل هو الله احد")
+        else if (name.includes(' ') && cleanName.includes(name)) {
+          score = 1600 + name.length * 10;
+        }
+        // 4. تطابق ككلمة كاملة بحدود فراغية
+        else {
+          const wordRegexWithAl = new RegExp(`(?:^|\\s)${name}(?:\\s|$)`, 'u');
+          const wordRegexNoAl = new RegExp(`(?:^|\\s)${nameWithoutAl}(?:\\s|$)`, 'u');
+
+          if (wordRegexWithAl.test(cleanName)) {
+            score = 1000 + name.length * 10;
+          } else if (wordRegexNoAl.test(cleanName)) {
+            score = 950 + name.length * 10;
+          } else if (wordRegexWithAl.test(normalized)) {
+            score = 700 + name.length * 5;
+          } else if (wordRegexNoAl.test(normalized)) {
+            score = 650 + name.length * 5;
+          }
+        }
+      }
+
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = { surahNumber: s, surahName: meta.name, score };
       }
     }
+  }
+
+  if (bestMatch && bestMatch.surahNumber >= 1 && bestMatch.surahNumber <= 114) {
+    const meta = SURAH_METADATA[bestMatch.surahNumber];
+    const reciterMsg = detectedReciter ? ` بصوت الشيخ ${detectedReciter.name}` : '';
+    return {
+      action: 'play_surah',
+      surahNumber: bestMatch.surahNumber,
+      surahName: meta.name,
+      reciterId: detectedReciter?.id,
+      reciterName: detectedReciter?.name,
+      originalText: rawInput,
+      feedbackMessage: `جاري تشغيل سورة ${meta.name}${reciterMsg}.`,
+    };
   }
 
   // لم يتم التعرف على اسم سورة محدد
