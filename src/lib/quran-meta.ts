@@ -215,6 +215,29 @@ export function getDirectReciterAudioUrl(reciterId: number, surahNumber: number)
   return `${server}/${pad3}.mp3`;
 }
 
+export const RECITER_AUDIO_FALLBACK_SERVERS: Record<number, string> = {
+  7: 'https://download.quranicaudio.com/qdc/mishari_al_afasy/murattal',
+  1: 'https://download.quranicaudio.com/qdc/abdul_baset/mujawwad',
+  2: 'https://download.quranicaudio.com/qdc/abdul_baset/murattal',
+  3: 'https://download.quranicaudio.com/qdc/abdurrahmaan_as_sudais/murattal',
+  4: 'https://download.quranicaudio.com/qdc/abu_bakr_shatri/murattal',
+  5: 'https://download.quranicaudio.com/qdc/hani_ar_rifai/murattal',
+  6: 'https://download.quranicaudio.com/qdc/khalil_al_husary/murattal',
+  8: 'https://server12.mp3quran.net/maher',
+  9: 'https://download.quranicaudio.com/qdc/siddiq_minshawi/murattal',
+  10: 'https://download.quranicaudio.com/qdc/saud_ash-shuraym/murattal',
+  12: 'https://download.quranicaudio.com/qdc/khalil_al_husary/muallim',
+};
+
+export function getFallbackReciterAudioUrl(reciterId: number, surahNumber: number): string {
+  const pad3 = surahNumber.toString().padStart(3, '0');
+  const server = RECITER_AUDIO_FALLBACK_SERVERS[reciterId] || RECITER_AUDIO_FALLBACK_SERVERS[7];
+  if (reciterId === 8 || reciterId === 10) {
+    return `${server}/${pad3}.mp3`;
+  }
+  return `${server}/${surahNumber}.mp3`;
+}
+
 export function getSurahMeta(surahNumber: number): SurahMeta | undefined {
   return SURAH_METADATA[surahNumber];
 }

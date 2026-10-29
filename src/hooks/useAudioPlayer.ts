@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { getSurahName, getDirectReciterAudioUrl } from '@/lib/quran-meta';
+import { getSurahName, getDirectReciterAudioUrl, getFallbackReciterAudioUrl } from '@/lib/quran-meta';
 import { getOfflineAudioBlob, isAudioDownloaded } from '@/lib/offline-audio-manager';
 import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
 
@@ -50,6 +50,9 @@ export function useAudioPlayer() {
       ) => Promise<void>)
     | null
   >(null);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fallbackUrlRef = useRef<string | null>(null);
+  const fallbackTriedRef = useRef<boolean>(false);
 
   const [state, setState] = useState<AudioPlayerState>(() => {
     let initialMultiLoop = false;
@@ -163,7 +166,43 @@ export function useAudioPlayer() {
     };
 
     const onLoadedMetadata = () => {
-      setState((prev) => ({ ...prev, duration: audio.duration, isLoading: false }));
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      setState((prev) => ({
+        ...prev,
+        duration: audio.duration && !isNaN(audio.duration) ? audio.duration : prev.duration,
+        isLoading: false,
+      }));
+    };
+
+    const onCanPlay = () => {
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        duration: audio.duration && !isNaN(audio.duration) ? audio.duration : prev.duration,
+      }));
+    };
+
+    const onPlaying = () => {
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      setState((prev) => ({
+        ...prev,
+        isPlaying: true,
+        isLoading: false,
+        error: null,
+      }));
+    };
+
+    const onWaiting = () => {
+      setState((prev) => ({ ...prev, isLoading: true }));
+    };
+
+    const onPause = () => {
+      setState((prev) => ({ ...prev, isPlaying: false, isLoading: false }));
+    };
+
+    const onStalled = () => {
+      setState((prev) => ({ ...prev, isLoading: false }));
     };
 
     const onEnded = () => {
@@ -318,6 +357,22 @@ export function useAudioPlayer() {
     };
 
     const onError = () => {
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      if (fallbackUrlRef.current && !fallbackTriedRef.current) {
+        fallbackTriedRef.current = true;
+        const fbUrl = fallbackUrlRef.current;
+        console.warn('Primary audio stream failed, auto-switching to backup CDN:', fbUrl);
+        audio.src = fbUrl;
+        audio.play().catch(() => {
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            isPlaying: false,
+            error: 'تعذر تشغيل الصوت. يرجى التحقق من الاتصال بالإنترنت.',
+          }));
+        });
+        return;
+      }
       setState((prev) => ({
         ...prev,
         isLoading: false,
@@ -328,12 +383,23 @@ export function useAudioPlayer() {
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('canplay', onCanPlay);
+    audio.addEventListener('playing', onPlaying);
+    audio.addEventListener('pause', onPause);
+    audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('stalled', onStalled);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onError);
 
     return () => {
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('canplay', onCanPlay);
+      audio.removeEventListener('playing', onPlaying);
+      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('waiting', onWaiting);
+      audio.removeEventListener('stalled', onStalled);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
     };
@@ -384,6 +450,17 @@ export function useAudioPlayer() {
         loopRef.current.currentAyahNumber = null;
       }
 
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+      fallbackTriedRef.current = false;
+      fallbackUrlRef.current = !verseKey ? getFallbackReciterAudioUrl(reciterId, surahNumber) : null;
+
+      // Watchdog: Clear loading state if playback is delayed over 4.5 seconds
+      loadTimeoutRef.current = setTimeout(() => {
+        setState((prev) => (prev.isLoading ? { ...prev, isLoading: false } : prev));
+      }, 4500);
+
       try {
         let playableAudioSrc: string | null = null;
         let isOffline = false;
@@ -403,18 +480,10 @@ export function useAudioPlayer() {
 
         // 2. If not offline, resolve online URL
         if (!playableAudioSrc) {
-          // If on Native Capacitor or whole Surah is requested, use verified direct CDN URL immediately
-          if ((Capacitor.isNativePlatform() || !verseKey) && reciterId && surahNumber) {
+          if (!verseKey && reciterId && surahNumber) {
             playableAudioSrc = getDirectReciterAudioUrl(reciterId, surahNumber);
-          }
-
-          // Fallback to API if not resolved or specific verseKey requested
-          if (!playableAudioSrc) {
-            let url = `/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}`;
-            if (verseKey) {
-              url += `&verse=${verseKey}`;
-            }
-
+          } else if (verseKey) {
+            let url = `/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}&verse=${verseKey}`;
             try {
               const res = await fetch(url);
               if (res.ok) {
@@ -428,12 +497,11 @@ export function useAudioPlayer() {
             } catch {
               // Network fallback
             }
-
-            // Secondary fallback to verified CDN
-            if (!playableAudioSrc && !verseKey) {
-              playableAudioSrc = getDirectReciterAudioUrl(reciterId, surahNumber);
-            }
           }
+        }
+
+        if (!playableAudioSrc) {
+          playableAudioSrc = getDirectReciterAudioUrl(reciterId, surahNumber);
         }
 
         if (!playableAudioSrc) {
@@ -444,45 +512,52 @@ export function useAudioPlayer() {
           audioRef.current = new Audio();
         }
         const audio = audioRef.current;
-        audio.src = playableAudioSrc;
+        if (audio.src !== playableAudioSrc) {
+          audio.src = playableAudioSrc;
+        }
         audio.playbackRate = state.playbackRate;
-        try {
-          audio.load();
-        } catch {}
 
-        try {
-          await audio.play();
-          setState((prev) => ({
-            ...prev,
-            isPlaying: true,
-            isLoading: false,
-            isCurrentSurahOffline: isOffline,
-          }));
-        } catch (playErr) {
-          console.warn('First audio.play() attempt rejected, retrying with fresh instance:', playErr);
-          try {
-            const fresh = new Audio(playableAudioSrc);
-            fresh.playbackRate = state.playbackRate;
-            fresh.load();
-            audioRef.current = fresh;
-            await fresh.play();
-            setState((prev) => ({
-              ...prev,
-              isPlaying: true,
-              isLoading: false,
-              isCurrentSurahOffline: isOffline,
-            }));
-          } catch (retryErr) {
-            console.error('Audio play retry failed:', retryErr);
-            setState((prev) => ({
-              ...prev,
-              isPlaying: false,
-              isLoading: false,
-              isCurrentSurahOffline: isOffline,
-            }));
-          }
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+              setState((prev) => ({
+                ...prev,
+                isPlaying: true,
+                isLoading: false,
+                isCurrentSurahOffline: isOffline,
+                error: null,
+              }));
+            })
+            .catch((playErr) => {
+              console.warn('Audio play() error:', playErr);
+              if (fallbackUrlRef.current && !fallbackTriedRef.current) {
+                fallbackTriedRef.current = true;
+                const fbUrl = fallbackUrlRef.current;
+                console.log('Attempting playback with backup CDN URL:', fbUrl);
+                audio.src = fbUrl;
+                audio.play().catch((fbErr) => {
+                  console.error('Fallback playback also rejected:', fbErr);
+                  setState((prev) => ({
+                    ...prev,
+                    isPlaying: false,
+                    isLoading: false,
+                    isCurrentSurahOffline: isOffline,
+                  }));
+                });
+              } else {
+                setState((prev) => ({
+                  ...prev,
+                  isPlaying: false,
+                  isLoading: false,
+                  isCurrentSurahOffline: isOffline,
+                }));
+              }
+            });
         }
       } catch (err: unknown) {
+        if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
         const message = err instanceof Error ? err.message : 'خطأ غير معروف';
         setState((prev) => ({
           ...prev,
@@ -559,25 +634,40 @@ export function useAudioPlayer() {
   }, []);
 
   const play = useCallback(() => {
-    audioRef.current
-      ?.play()
-      .then(() => {
-        setState((prev) => ({ ...prev, isPlaying: true }));
-      })
-      .catch((err) => {
+    if (!audioRef.current) return;
+    const audio = audioRef.current;
+    if (!audio.src) {
+      const sNum = state.currentSurah || 1;
+      const recId = state.currentReciter || 7;
+      loadAndPlay(sNum, recId, getSurahName(sNum), state.reciterName || 'مشاري العفاسي');
+      return;
+    }
+    const p = audio.play();
+    if (p !== undefined) {
+      p.then(() => {
+        setState((prev) => ({ ...prev, isPlaying: true, isLoading: false }));
+      }).catch((err) => {
         console.error('Audio play error:', err);
+        setState((prev) => ({ ...prev, isPlaying: false, isLoading: false }));
       });
-  }, []);
+    }
+  }, [state.currentSurah, state.currentReciter, state.reciterName, loadAndPlay]);
 
   const pause = useCallback(() => {
+    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     audioRef.current?.pause();
-    setState((prev) => ({ ...prev, isPlaying: false }));
+    setState((prev) => ({ ...prev, isPlaying: false, isLoading: false }));
   }, []);
 
   const togglePlayPause = useCallback(() => {
-    if (state.isPlaying) pause();
-    else play();
-  }, [state.isPlaying, play, pause]);
+    if (state.isLoading) {
+      pause();
+    } else if (state.isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  }, [state.isLoading, state.isPlaying, pause, play]);
 
   const seek = useCallback((time: number) => {
     if (audioRef.current) {
@@ -721,10 +811,11 @@ export function useAudioPlayer() {
   }, []);
 
   const stop = useCallback(() => {
+    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      audioRef.current.src = '';
+      audioRef.current.removeAttribute('src');
     }
     loopRef.current.isAyahRangeLooping = false;
     loopRef.current.ayahRangeStart = null;
@@ -733,6 +824,7 @@ export function useAudioPlayer() {
     setState((prev) => ({
       ...prev,
       isPlaying: false,
+      isLoading: false,
       currentTime: 0,
       duration: 0,
       currentSurah: 0,

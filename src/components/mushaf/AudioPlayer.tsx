@@ -332,11 +332,10 @@ export default function AudioPlayer({
           <button
             type="button"
             onClick={onTogglePlay}
-            disabled={isLoading}
-            className="w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer disabled:opacity-50"
+            className="w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer"
             style={{ backgroundColor: '#C8A85B', color: '#123B2A' }}
-            title={isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
-            aria-label={isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
+            title={isLoading ? 'جاري التحميل - اضغط للإيقاف' : isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
+            aria-label={isLoading ? 'جاري التحميل - اضغط للإيقاف' : isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
           >
             {isLoading ? (
               <span className="w-5 h-5 border-2 border-[#123B2A] border-t-transparent rounded-full animate-spin" />

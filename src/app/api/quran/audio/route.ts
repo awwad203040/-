@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChapterRecitation, getAyahRecitation } from '@/lib/quran-foundation';
-import { getDirectReciterAudioUrl } from '@/lib/quran-meta';
+import { getDirectReciterAudioUrl, getFallbackReciterAudioUrl } from '@/lib/quran-meta';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     const directUrl = getDirectReciterAudioUrl(reciterId, chapterId);
+    const fallbackUrl = getFallbackReciterAudioUrl(reciterId, chapterId);
 
     let audioFile: Record<string, unknown> | null = null;
     try {
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       audioUrl,
+      fallbackUrl,
       audio_file: audioFile || { audio_url: audioUrl },
     });
   } catch (error) {

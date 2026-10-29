@@ -146,6 +146,11 @@ export default function HomePage() {
   // Toggle audio playback
   const handleTogglePlay = useCallback(() => {
     const sName = getSurahName(selectedSurahForAudio);
+    if (audio.isLoading) {
+      triggerHaptic('pause');
+      audio.pause();
+      return;
+    }
     if (audio.isPlaying) {
       triggerHaptic('pause');
       speakAccessibility('إيقاف مؤقت');
@@ -707,14 +712,15 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={handleTogglePlay}
-                disabled={audio.isLoading}
                 className={`w-13 h-13 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-95 shadow-lg flex-shrink-0 cursor-pointer border ${
                   audio.isPlaying
                     ? 'bg-[#0B5B43] text-white border-emerald-400/50 ring-4 ring-emerald-500/25 animate-pulse'
+                    : audio.isLoading
+                    ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] animate-pulse'
                     : 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] hover:bg-[#d4b66d]'
                 }`}
-                aria-label={audio.isPlaying ? 'إيقاف الاستماع' : 'استمع الآن للقرآن الكريم'}
-                title={audio.isPlaying ? 'إيقاف التلاوة' : `استمع الآن بصوت الشيخ ${currentReciter.name}`}
+                aria-label={audio.isLoading ? 'جاري التحميل - اضغط للإيقاف' : audio.isPlaying ? 'إيقاف الاستماع' : 'استمع الآن للقرآن الكريم'}
+                title={audio.isLoading ? 'جاري التحميل - اضغط للإيقاف' : audio.isPlaying ? 'إيقاف التلاوة' : `استمع الآن بصوت الشيخ ${currentReciter.name}`}
               >
                 {audio.isLoading ? (
                   <div className="w-5 h-5 border-2 border-[#123B2A] border-t-transparent rounded-full animate-spin" />

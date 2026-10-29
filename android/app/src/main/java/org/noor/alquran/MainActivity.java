@@ -85,6 +85,9 @@ public class MainActivity extends BridgeActivity {
                 android.webkit.WebView wv = getBridge().getWebView();
                 android.webkit.WebSettings ws = wv.getSettings();
                 ws.setMediaPlaybackRequiresUserGesture(false);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    ws.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+                }
                 ws.setGeolocationEnabled(true);
                 ws.setTextZoom(100);
                 ws.setUseWideViewPort(true);
