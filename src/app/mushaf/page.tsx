@@ -127,9 +127,6 @@ function MushafReaderInner() {
   });
   const [isLandscape, setIsLandscape] = useState(false);
   const [pageZoom, setPageZoom] = useState<number>(100);
-  const touchStartDistRef = useRef<number | null>(null);
-  const initialZoomRef = useRef<number>(100);
-  const lastTapTimeRef = useRef<number>(0);
 
   // Monitor orientation changes (Portrait vs Landscape)
   useEffect(() => {
@@ -305,45 +302,6 @@ function MushafReaderInner() {
     handleUpdateSettings({ pageZoom: 100 });
   }, [handleUpdateSettings]);
 
-  const handleTouchStartZoom = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      touchStartDistRef.current = dist;
-      initialZoomRef.current = pageZoom;
-    }
-  };
-
-  const handleTouchMoveZoom = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && touchStartDistRef.current !== null) {
-      const currentDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const scale = currentDist / touchStartDistRef.current;
-      const next = Math.min(250, Math.max(70, Math.round(initialZoomRef.current * scale)));
-      setPageZoom(next);
-    }
-  };
-
-  const handleTouchEndZoom = () => {
-    if (touchStartDistRef.current !== null) {
-      touchStartDistRef.current = null;
-      handleUpdateSettings({ pageZoom });
-    }
-  };
-
-  const handleDoubleTapZoom = () => {
-    const now = Date.now();
-    if (now - lastTapTimeRef.current < 320) {
-      const target = pageZoom > 115 ? 100 : 150;
-      setPageZoom(target);
-      handleUpdateSettings({ pageZoom: target });
-    }
-    lastTapTimeRef.current = now;
-  };
 
   // Reciter selection handler
   const handleSelectReciter = useCallback((id: number, name: string) => {
@@ -631,11 +589,7 @@ function MushafReaderInner() {
       {/* Quran Content */}
       <main
         ref={swipeRef}
-        className={`flex-1 w-full page-transition ${
-          isLandscape
-            ? 'px-0 sm:px-1 py-1 max-w-none'
-            : 'px-2 sm:px-4 py-3 sm:py-6 md:px-8 lg:px-16 max-w-4xl mx-auto'
-        }`}
+        className="flex-1 px-2 sm:px-4 py-2 sm:py-6 md:px-8 lg:px-16 max-w-4xl mx-auto w-full page-transition"
         role="main"
         aria-label={`صفحة ${currentPage} من المصحف`}
       >
@@ -805,74 +759,53 @@ function MushafReaderInner() {
               )}
             </div>
 
-            {/* Zoomable & Horizontally Scrollable Page Wrapper */}
+            {/* Page Container with Screen Tap Navigation - Identical characteristics in Portrait & Landscape */}
             <div
-              className={`w-full overflow-x-auto overflow-y-visible flex justify-center scrollbar-none transition-all ${
-                isLandscape ? 'px-0' : 'px-1'
-              }`}
-              onTouchStart={handleTouchStartZoom}
-              onTouchMove={handleTouchMoveZoom}
-              onTouchEnd={handleTouchEndZoom}
+              className="relative w-full max-w-2xl mx-auto flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] transition-transform duration-200"
               style={{
-                touchAction: pageZoom > 100 ? 'pan-x pan-y pinch-zoom' : 'manipulation',
+                transform: pageZoom !== 100 ? `scale(${pageZoom / 100})` : undefined,
+                transformOrigin: 'top center',
               }}
             >
-              <div
-                style={{
-                  width: `${pageZoom}%`,
-                  maxWidth: pageZoom <= 100 && !isLandscape ? '42rem' : undefined,
-                  minWidth: pageZoom < 100 ? `${pageZoom}%` : '100%',
-                  transition: touchStartDistRef.current ? 'none' : 'width 0.2s ease-out',
+              {/* Authentic Madinah Mushaf Page Image - object-contain fits viewport height in all orientations */}
+              <img
+                src={offlineBlobUrl || `/api/quran/page-image?page=${currentPage}`}
+                alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
+                onError={() => {
+                  if (!offlineBlobUrl) {
+                    const directUrl = `https://files.quran.app/hafs/madani/width_1024/page${currentPage.toString().padStart(3, '0')}.png`;
+                    const testImg = new Image();
+                    testImg.src = directUrl;
+                    testImg.onload = () => {
+                      setOfflineBlobUrl(directUrl);
+                    };
+                    testImg.onerror = () => {
+                      setPageImageError(true);
+                    };
+                  } else {
+                    setPageImageError(true);
+                  }
                 }}
-                className="relative flex flex-col items-center justify-center origin-top"
-              >
-                {/* Page Container with Screen Tap Navigation */}
-                <div
-                  className={`relative w-full mx-auto flex items-center justify-center overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] transition-all ${
-                    isLandscape ? 'rounded-none sm:rounded-xl border-x-0 sm:border-x-2' : 'rounded-2xl'
-                  }`}
-                  onDoubleClick={handleDoubleTapZoom}
-                >
-                  {/* Authentic Madinah Mushaf Page Image - in landscape mode it spans full screen width like King Fahd Complex layout */}
-                  <img
-                    src={offlineBlobUrl || `/api/quran/page-image?page=${currentPage}`}
-                    alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
-                    onError={() => {
-                      if (!offlineBlobUrl) {
-                        const directUrl = `https://files.quran.app/hafs/madani/width_1024/page${currentPage.toString().padStart(3, '0')}.png`;
-                        const testImg = new Image();
-                        testImg.src = directUrl;
-                        testImg.onload = () => {
-                          setOfflineBlobUrl(directUrl);
-                        };
-                        testImg.onerror = () => {
-                          setPageImageError(true);
-                        };
-                      } else {
-                        setPageImageError(true);
-                      }
-                    }}
-                    className={`w-full h-auto transition-all duration-200 pointer-events-none ${
-                      isLandscape ? 'object-cover' : 'max-h-[85vh] object-contain'
-                    } ${
-                      settings.nightMode ? 'invert-[0.92] hue-rotate-180 brightness-95 contrast-125' : ''
-                    }`}
-                    loading="eager"
-                  />
+                className={`w-full h-auto max-h-[85vh] object-contain transition-all duration-200 pointer-events-none ${
+                  settings.nightMode ? 'invert-[0.92] hue-rotate-180 brightness-95 contrast-125' : ''
+                }`}
+                loading="eager"
+              />
 
-              {/* Interactive Screen Tap Navigation Zones */}
-              <div className="absolute inset-0 z-20 flex select-none">
-                {/* Left 40%: Next Page (RTL) */}
+              {/* Interactive Screen Tap Navigation Zones (Absolute Physical Positioning for 100% Reliability) */}
+              <div className="absolute inset-0 z-20 pointer-events-none select-none">
+                {/* Physical Left 40%: Next Page (◀ التالي) in Arabic reading */}
                 <div
                   role="button"
                   tabIndex={0}
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     nextPage();
                   }}
-                  className="w-[40%] h-full cursor-pointer flex items-center justify-start pl-3 group active:bg-white/10 transition-colors"
+                  className="absolute left-0 top-0 bottom-0 w-[40%] cursor-pointer flex items-center justify-start pl-3 pointer-events-auto group active:bg-white/10 transition-colors"
                   aria-label="الانتقال للصفحة التالية"
-                  title="اضغط هنا للذهاب للصفحة التالية (▶)"
+                  title="اضغط هنا للذهاب للصفحة التالية (◀)"
                   style={{ touchAction: 'manipulation' }}
                 >
                   <span className="p-3 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
@@ -880,31 +813,33 @@ function MushafReaderInner() {
                   </span>
                 </div>
 
-                {/* Center 20%: Toggle Menu & Toolbar Controls */}
+                {/* Physical Center 20%: Toggle Menu & Toolbar Controls */}
                 <div
                   role="button"
                   tabIndex={0}
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     setControlsVisible((prev) => !prev);
                   }}
-                  className="w-[20%] h-full cursor-pointer"
+                  className="absolute left-[40%] top-0 bottom-0 w-[20%] cursor-pointer pointer-events-auto"
                   aria-label="إظهار أو إخفاء القوائم والأشرطة"
                   title="اضغط في الوسط لإظهار أو إخفاء الأشرطة"
                   style={{ touchAction: 'manipulation' }}
                 />
 
-                {/* Right 40%: Previous Page (RTL) */}
+                {/* Physical Right 40%: Previous Page (السابق ▶) in Arabic reading */}
                 <div
                   role="button"
                   tabIndex={0}
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     previousPage();
                   }}
-                  className="w-[40%] h-full cursor-pointer flex items-center justify-end pr-3 group active:bg-white/10 transition-colors"
+                  className="absolute right-0 top-0 bottom-0 w-[40%] cursor-pointer flex items-center justify-end pr-3 pointer-events-auto group active:bg-white/10 transition-colors"
                   aria-label="الانتقال للصفحة السابقة"
-                  title="اضغط هنا للرجوع للصفحة السابقة (◀)"
+                  title="اضغط هنا للرجوع للصفحة السابقة (▶)"
                   style={{ touchAction: 'manipulation' }}
                 >
                   <span className="p-3 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
@@ -913,15 +848,9 @@ function MushafReaderInner() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
             {/* Bottom Page Navigation Controls */}
-            <div
-              className={`w-full mt-3 flex items-center justify-between px-1 gap-2 text-xs font-bold transition-all ${
-                isLandscape ? 'max-w-none' : 'max-w-2xl'
-              }`}
-            >
+            <div className="w-full max-w-2xl mt-3 flex items-center justify-between px-1 gap-2 text-xs font-bold">
               {/* Next Page Button */}
               <button
                 type="button"
@@ -1113,12 +1042,12 @@ function MushafReaderInner() {
         />
       )}
 
-      {/* Floating Zoom Controls Widget (تكبير وتصغير الصفحة) */}
+      {/* Floating Zoom Controls Widget (تكبير وتصغير الصفحة - أعلى اليسار لتفادي تغطية أزرار التنقل) */}
       {controlsVisible && (
         <div
-          className="fixed bottom-20 left-3 md:bottom-24 md:left-6 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#123B2A]/90 text-white backdrop-blur-md shadow-2xl border border-[#C8A85B]/60 transition-all select-none"
+          className="fixed top-16 left-3 md:top-20 md:left-6 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#123B2A]/90 text-white backdrop-blur-md shadow-2xl border border-[#C8A85B]/60 transition-all select-none"
           style={{ direction: 'ltr' }}
-          title="تكبير أو تصغير الصفحة (أو استخدم إصبعين للمس والتكبير)"
+          title="تكبير أو تصغير الصفحة"
         >
           <button
             type="button"
