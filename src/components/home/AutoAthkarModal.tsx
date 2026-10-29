@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import type { AutoAthkarSettings, VoiceThikr, ThikrCategory } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST, ATHKAR_CATEGORIES, ATHKAR_INTERVALS } from '@/lib/athkar-data';
 import { requestNotificationPermission, showSingleThikrNotification } from '@/lib/athkar-notifications';
@@ -64,9 +65,14 @@ export default function AutoAthkarModal({
       await requestNotificationPermission();
       setTestActive(true);
       setTestCountdown(5);
-      testNativeAthkar(5).catch(() => {});
-      const testThikr = VOICE_ATHKAR_LIST[0];
-      showSingleThikrNotification(testThikr, 5).catch(() => {});
+      if (Capacitor.isNativePlatform()) {
+        // Native Android: AthkarAlarmReceiver handles waking the phone and playing the authentic voice via MediaPlayer
+        testNativeAthkar(5).catch(() => {});
+      } else {
+        // Web PWA: Show single notification
+        const testThikr = VOICE_ATHKAR_LIST[0];
+        showSingleThikrNotification(testThikr, 5, true).catch(() => {});
+      }
 
       let remaining = 5;
       const timer = setInterval(() => {

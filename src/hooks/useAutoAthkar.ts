@@ -106,7 +106,8 @@ export function useAutoAthkar() {
 
       setIsSpeaking(true);
       setCurrentToast(selected);
-      showSingleThikrNotification(selected).catch(() => {});
+      // Show visual notification only (silent) so Android doesn't play a notification sound over playThikrVoice!
+      showSingleThikrNotification(selected, 0, false).catch(() => {});
 
       // Auto dismiss toast after 9 seconds
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);

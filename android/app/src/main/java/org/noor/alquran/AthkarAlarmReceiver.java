@@ -41,7 +41,7 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
     private static final String TAG = "AthkarAlarmReceiver";
     public static final String PREFS_NAME = "noor_athkar_prefs";
     public static final String ACTION_ATHKAR_ALARM = "org.noor.alquran.ATHKAR_ALARM";
-    public static final String CHANNEL_ID = "noor_athkar_v16_wakeup";
+    public static final String CHANNEL_ID = "noor_athkar_v18_single_voice";
     public static final int NOTIFICATION_ID = 777;
     public static final int ALARM_REQ_CODE = 1001;
 
@@ -230,6 +230,7 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
                     .setContentIntent(contentIntent)
                     .setFullScreenIntent(contentIntent, true)
                     .setAutoCancel(true)
+                    .setSound(null)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setCategory(NotificationCompat.CATEGORY_ALARM)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);

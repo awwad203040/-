@@ -4,18 +4,8 @@ import { Capacitor } from '@capacitor/core';
 import type { AutoAthkarSettings, VoiceThikr } from '@/types/athkar';
 import { VOICE_ATHKAR_LIST } from '@/lib/athkar-data';
 
-const DEFAULT_ATHKAR_CHANNEL_ID = 'noor_athkar_v9_general';
-
-/**
- * Get the channel ID for a specific thikr (version 9 ensures fresh high-importance channel with audio & sleep wakeup)
- */
-export function getThikrChannelId(thikr: VoiceThikr): string {
-  if (thikr.rawSound) {
-    const base = thikr.rawSound.replace(/\.[^/.]+$/, '');
-    return `noor_athkar_v9_${base}`;
-  }
-  return DEFAULT_ATHKAR_CHANNEL_ID;
-}
+const SILENT_ATHKAR_CHANNEL_ID = 'noor_athkar_v10_silent';
+const AUDIO_ATHKAR_CHANNEL_ID = 'noor_athkar_v10_audio';
 
 /**
  * Request notification permissions across Native Capacitor and Web browsers
@@ -53,40 +43,36 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 /**
- * Create dedicated Android Notification Channels for each Thikr sound.
- * This guarantees that Android plays the exact custom MP3 voice clip even when the app is completely closed.
+ * Ensure silent and audio notification channels exist on Android
  */
-async function ensureNotificationChannels(pool: VoiceThikr[]): Promise<void> {
+async function ensureNotificationChannels(soundBase?: string): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
 
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
 
-    // Default channel
+    // 1. Silent Channel for visual-only notifications (avoids overlapping with in-app audio or MediaPlayer)
     await LocalNotifications.createChannel({
-      id: DEFAULT_ATHKAR_CHANNEL_ID,
-      name: 'أذكار نور القرآن',
-      description: 'تنبيهات الأذكار اليومية بصوت واضح',
-      importance: 5, // IMPORTANCE_HIGH (displays heads-up and plays audio)
-      visibility: 1, // VISIBILITY_PUBLIC
+      id: SILENT_ATHKAR_CHANNEL_ID,
+      name: 'أذكار نور القرآن (إشعارات هادئة)',
+      description: 'عرض نص الذكر المبارك دون تشغيل صوت مكرر',
+      importance: 4, // High importance (heads-up banner) without sound
+      visibility: 1, // Public on lockscreen
       vibration: true,
       lights: true,
       lightColor: '#C8A85B',
+      sound: undefined,
     });
 
-    // Create a high-priority channel for each thikr with its custom audio sound from res/raw
-    for (const thikr of pool) {
-      if (!thikr.rawSound) continue;
-      const chId = getThikrChannelId(thikr);
-      const soundBase = thikr.rawSound.replace(/\.[^/.]+$/, '');
-
+    // 2. Audio Channel when standalone notification sound is explicitly required
+    if (soundBase) {
       await LocalNotifications.createChannel({
-        id: chId,
-        name: `أذكار: ${thikr.categoryName} (${thikr.textDisplay.slice(0, 20)})`,
-        description: `تنبيه صوتي للذكر: ${thikr.textDisplay}`,
-        importance: 5, // IMPORTANCE_HIGH
-        visibility: 1, // VISIBILITY_PUBLIC
-        sound: soundBase, // Points to res/raw/<soundBase>.mp3
+        id: `${AUDIO_ATHKAR_CHANNEL_ID}_${soundBase}`,
+        name: 'أذكار نور القرآن الصوتية',
+        description: 'تنبيهات صوتية للأذكار اليومية',
+        importance: 5, // High importance with sound
+        visibility: 1,
+        sound: soundBase,
         vibration: true,
         lights: true,
         lightColor: '#C8A85B',
@@ -98,8 +84,10 @@ async function ensureNotificationChannels(pool: VoiceThikr[]): Promise<void> {
 }
 
 /**
- * Schedule recurring background Athkar notifications that fire with sound even when app is closed.
- * Pre-schedules upcoming notifications rotating through the active Athkar list.
+ * Synchronize background Athkar notifications:
+ * - On Native Android: AthkarAlarmReceiver via native AlarmManager is the single source of truth.
+ *   We purge and cancel any LocalNotifications to completely prevent duplicate concurrent playback!
+ * - On Web / PWA: Manages browser Notification permissions.
  */
 export async function syncBackgroundAthkarNotifications(
   settings: AutoAthkarSettings
@@ -110,78 +98,21 @@ export async function syncBackgroundAthkarNotifications(
     const isNative = Capacitor.isNativePlatform();
 
     if (isNative) {
+      // CRITICAL FIX: On native Android, background alarms and authentic voice playback
+      // are handled with 100% reliability by AthkarAlarmReceiver (AlarmManager + WakeLock + MediaPlayer).
+      // If LocalNotifications were also scheduled, both would trigger at the exact same minute
+      // and play TWO DIFFERENT THIKRS AT THE SAME TIME.
+      // We therefore cancel all pending LocalNotifications to ensure only ONE thikr plays.
       const { LocalNotifications } = await import('@capacitor/local-notifications');
-
-      // Cancel all previous scheduled notifications first
       const pending = await LocalNotifications.getPending();
-      if (pending.notifications.length > 0) {
+      if (pending && pending.notifications && pending.notifications.length > 0) {
         await LocalNotifications.cancel({
           notifications: pending.notifications.map((n) => ({ id: n.id })),
         });
       }
-
-      // If user disabled auto athkar, stop here
-      if (!settings.enabled) {
-        return;
-      }
-
-      // Ensure permission is granted
-      const hasPerm = await requestNotificationPermission();
-      if (!hasPerm) return;
-
-      // Determine active athkar
-      const activeIds = Array.isArray(settings.activeThikrIds) && settings.activeThikrIds.length > 0
-        ? settings.activeThikrIds
-        : VOICE_ATHKAR_LIST.map((t) => t.id);
-
-      const activeList = VOICE_ATHKAR_LIST.filter((t) => activeIds.includes(t.id));
-      const pool = activeList.length > 0 ? activeList : VOICE_ATHKAR_LIST;
-
-      // Create channels with custom sound for each active thikr
-      await ensureNotificationChannels(pool);
-
-      const intervalMs = Math.max(1, settings.intervalMinutes) * 60 * 1000;
-      const notificationsToSchedule = [];
-
-      // Pre-schedule up to 120 upcoming notifications covering long periods in sleep mode
-      const count = Math.min(120, Math.floor((120 * 60) / Math.max(1, settings.intervalMinutes)));
-      const now = Date.now();
-
-      for (let i = 1; i <= count; i++) {
-        const thikr = pool[(i - 1) % pool.length];
-        const triggerTime = new Date(now + i * intervalMs);
-        const channelId = getThikrChannelId(thikr);
-        const soundBase = thikr.rawSound ? thikr.rawSound.replace(/\.[^/.]+$/, '') : undefined;
-
-        notificationsToSchedule.push({
-          id: 1000 + i,
-          title: 'نور القرآن 📿',
-          body: thikr.textDisplay,
-          summaryText: thikr.categoryName,
-          channelId: channelId,
-          sound: soundBase,
-          smallIcon: 'ic_launcher',
-          largeIcon: 'ic_launcher',
-          iconColor: '#C8A85B',
-          foreground: true,
-          isExactNotification: true,
-          autoCancel: true,
-          ongoing: false,
-          schedule: { at: triggerTime, allowWhileIdle: true },
-          extra: {
-            thikrId: thikr.id,
-            audioUrl: thikr.audioUrl,
-          },
-        });
-      }
-
-      if (notificationsToSchedule.length > 0) {
-        await LocalNotifications.schedule({
-          notifications: notificationsToSchedule,
-        });
-      }
+      return;
     } else {
-      // For Web PWA: Check permission and show immediate or service worker notification
+      // For Web PWA: Check permission
       if (settings.enabled && 'Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().catch(() => {});
       }
@@ -192,20 +123,34 @@ export async function syncBackgroundAthkarNotifications(
 }
 
 /**
- * Display a test notification for a single Thikr after delay (used to test audio when closing app)
+ * Display a single Thikr notification.
+ * @param thikr The Thikr item to display
+ * @param delaySeconds Delay in seconds (0 = immediate)
+ * @param playSound If false, notification is silent (since playThikrVoice or MediaPlayer already plays audio)
  */
 export async function showSingleThikrNotification(
   thikr: VoiceThikr,
-  delaySeconds = 3
+  delaySeconds = 0,
+  playSound = false
 ): Promise<void> {
   if (typeof window === 'undefined') return;
 
   try {
     if (Capacitor.isNativePlatform()) {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
-      await ensureNotificationChannels([thikr]);
-      const channelId = getThikrChannelId(thikr);
-      const soundBase = thikr.rawSound ? thikr.rawSound.replace(/\.[^/.]+$/, '') : undefined;
+      const soundBase = playSound && thikr.rawSound ? thikr.rawSound.replace(/\.[^/.]+$/, '') : undefined;
+      await ensureNotificationChannels(soundBase);
+
+      const channelId = soundBase ? `${AUDIO_ATHKAR_CHANNEL_ID}_${soundBase}` : SILENT_ATHKAR_CHANNEL_ID;
+
+      // Cancel previous single test notification if any
+      try {
+        await LocalNotifications.cancel({ notifications: [{ id: 9999 }] });
+      } catch {}
+
+      const scheduleConfig = delaySeconds > 0
+        ? { at: new Date(Date.now() + delaySeconds * 1000), allowWhileIdle: true }
+        : undefined;
 
       await LocalNotifications.schedule({
         notifications: [
@@ -220,7 +165,7 @@ export async function showSingleThikrNotification(
             foreground: true,
             isExactNotification: true,
             autoCancel: true,
-            schedule: { at: new Date(Date.now() + delaySeconds * 1000), allowWhileIdle: true },
+            schedule: scheduleConfig,
           },
         ],
       });
