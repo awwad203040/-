@@ -30,21 +30,58 @@ export default function TafsirModal({ verse, onClose }: TafsirModalProps) {
   const [tafsirId, setTafsirId] = useState(16);
 
   useEffect(() => {
+    let isMounted = true;
     setIsLoading(true);
     setError(null);
-    fetch(`/api/quran/tafsir/${verse.verseKey}?tafsir_id=${tafsirId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load tafsir');
-        return res.json() as Promise<{ tafsir: TafsirData }>;
-      })
-      .then((data) => {
-        setTafsir(data.tafsir);
+
+    // Direct fetch from official Quran API (works natively on Capacitor Mobile APK)
+    const loadTafsir = async () => {
+      try {
+        const directRes = await fetch(
+          `https://api.quran.com/api/v4/tafsirs/${tafsirId}/by_ayah/${verse.verseKey}?language=ar`
+        );
+        if (directRes.ok) {
+          const data = await directRes.json();
+          if (data?.tafsir?.text) {
+            if (isMounted) {
+              setTafsir({ text: data.tafsir.text, resourceName: data.tafsir.resource_name });
+              setIsLoading(false);
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Direct fetch failed, trying local proxy:', err);
+      }
+
+      // Fallback to local proxy
+      try {
+        const proxyRes = await fetch(`/api/quran/tafsir/${verse.verseKey}?tafsir_id=${tafsirId}`);
+        if (proxyRes.ok) {
+          const data = await proxyRes.json();
+          if (data?.tafsir?.text) {
+            if (isMounted) {
+              setTafsir(data.tafsir);
+              setIsLoading(false);
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('All fetch attempts failed:', err);
+      }
+
+      if (isMounted) {
+        setError('تعذر تحميل التفسير، تأكد من الاتصال بالإنترنت.');
         setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : 'تعذر تحميل التفسير');
-        setIsLoading(false);
-      });
+      }
+    };
+
+    loadTafsir();
+
+    return () => {
+      isMounted = false;
+    };
   }, [verse.verseKey, tafsirId]);
 
   return (
