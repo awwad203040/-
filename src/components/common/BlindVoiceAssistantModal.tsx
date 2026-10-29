@@ -41,11 +41,13 @@ export default function BlindVoiceAssistantModal({
   const [autoLaunch, setAutoLaunch] = useState<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const openTimeRef = useRef<number>(0);
+  const isActionExecutedRef = useRef<boolean>(false);
 
   useEffect(() => {
     setAutoLaunch(isAutoVoiceAssistantOnLaunch());
     if (isOpen) {
       openTimeRef.current = Date.now();
+      isActionExecutedRef.current = false;
     }
   }, [isOpen]);
 
@@ -95,9 +97,11 @@ export default function BlindVoiceAssistantModal({
 
         // Execute action after short pause to let speech synthesis start
         timeoutRef.current = setTimeout(() => {
+          isActionExecutedRef.current = true;
+          stopAccessibilitySpeech();
           onExecuteCommand(result);
           onClose();
-        }, 1100);
+        }, 1200);
       },
       onError: (errMsg) => {
         setIsListening(false);
@@ -130,7 +134,7 @@ export default function BlindVoiceAssistantModal({
       triggerHaptic('success');
       setStatusText('تم تفعيل الميكروفون بنجاح، أستمع إليك الآن...');
       speakAccessibility('تم تفعيل الميكروفون بنجاح، تفضل بنطق اسم السورة', { force: true });
-      startListeningSession();
+      startListeningSession(true);
     } else {
       setPermissionGranted(false);
       setStatusText('يرجى تفعيل صلاحية الميكروفون من إعدادات الهاتف');
@@ -158,24 +162,28 @@ export default function BlindVoiceAssistantModal({
         }
       });
 
-      // Start listening session smoothly in background after greeting
+      // Start listening session automatically with Google voice dialog after greeting
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         if (!isCancelled) {
-          startListeningSession(false);
+          startListeningSession(true);
         }
-      }, 1900);
+      }, 1800);
 
       return () => {
         isCancelled = true;
         stopVoiceListening();
-        stopAccessibilitySpeech();
+        if (!isActionExecutedRef.current) {
+          stopAccessibilitySpeech();
+        }
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
       };
     } else {
       isCancelled = true;
       stopVoiceListening();
-      stopAccessibilitySpeech();
+      if (!isActionExecutedRef.current) {
+        stopAccessibilitySpeech();
+      }
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     }
   }, [isOpen, startListeningSession]);

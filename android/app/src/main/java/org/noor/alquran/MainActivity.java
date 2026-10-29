@@ -60,13 +60,9 @@ public class MainActivity extends BridgeActivity {
         } catch (Exception ignored) {}
 
         try {
+            configureWebViewSettings();
             if (getBridge() != null && getBridge().getWebView() != null) {
-                android.webkit.WebSettings ws = getBridge().getWebView().getSettings();
-                ws.setGeolocationEnabled(true);
-                ws.setTextZoom(100);
-                ws.setUseWideViewPort(true);
-                ws.setLoadWithOverviewMode(true);
-                ws.setSupportZoom(false);
+                getBridge().getWebView().post(this::configureWebViewSettings);
             }
         } catch (Exception ignored) {}
 
@@ -80,6 +76,27 @@ public class MainActivity extends BridgeActivity {
         // Check if app was opened via Voice Command intent or Google Assistant
         if (getIntent() != null) {
             handleVoiceIntent(getIntent());
+        }
+    }
+
+    private void configureWebViewSettings() {
+        try {
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                android.webkit.WebView wv = getBridge().getWebView();
+                android.webkit.WebSettings ws = wv.getSettings();
+                ws.setMediaPlaybackRequiresUserGesture(false);
+                ws.setGeolocationEnabled(true);
+                ws.setTextZoom(100);
+                ws.setUseWideViewPort(true);
+                ws.setLoadWithOverviewMode(true);
+                ws.setSupportZoom(false);
+                ws.setDomStorageEnabled(true);
+                ws.setDatabaseEnabled(true);
+                ws.setAllowFileAccess(true);
+                Log.i(TAG, "Configured WebView: setMediaPlaybackRequiresUserGesture(false)");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error configuring webview: " + e.getMessage());
         }
     }
 
@@ -171,6 +188,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        configureWebViewSettings();
         // Continue permissions flow if user just returned from system settings
         checkAndPromptNextPermission();
     }

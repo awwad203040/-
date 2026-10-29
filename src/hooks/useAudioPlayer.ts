@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { getSurahName, getDirectReciterAudioUrl } from '@/lib/quran-meta';
 import { getOfflineAudioBlob, isAudioDownloaded } from '@/lib/offline-audio-manager';
 import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
@@ -402,28 +403,36 @@ export function useAudioPlayer() {
 
         // 2. If not offline, resolve online URL
         if (!playableAudioSrc) {
-          let url = `/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}`;
-          if (verseKey) {
-            url += `&verse=${verseKey}`;
-          }
-
-          try {
-            const res = await fetch(url);
-            if (res.ok) {
-              const data = await res.json();
-              playableAudioSrc =
-                data.audioUrl ||
-                data.audio_file?.audio_url ||
-                data.audio_file?.url ||
-                (typeof data.audio_file === 'string' ? data.audio_file : null);
-            }
-          } catch {
-            // Network fallback
-          }
-
-          // Fallback directly to verified fast CDN
-          if (!playableAudioSrc && !verseKey) {
+          // If on Native Capacitor or whole Surah is requested, use verified direct CDN URL immediately
+          if ((Capacitor.isNativePlatform() || !verseKey) && reciterId && surahNumber) {
             playableAudioSrc = getDirectReciterAudioUrl(reciterId, surahNumber);
+          }
+
+          // Fallback to API if not resolved or specific verseKey requested
+          if (!playableAudioSrc) {
+            let url = `/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}`;
+            if (verseKey) {
+              url += `&verse=${verseKey}`;
+            }
+
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                playableAudioSrc =
+                  data.audioUrl ||
+                  data.audio_file?.audio_url ||
+                  data.audio_file?.url ||
+                  (typeof data.audio_file === 'string' ? data.audio_file : null);
+              }
+            } catch {
+              // Network fallback
+            }
+
+            // Secondary fallback to verified CDN
+            if (!playableAudioSrc && !verseKey) {
+              playableAudioSrc = getDirectReciterAudioUrl(reciterId, surahNumber);
+            }
           }
         }
 
@@ -437,6 +446,9 @@ export function useAudioPlayer() {
         const audio = audioRef.current;
         audio.src = playableAudioSrc;
         audio.playbackRate = state.playbackRate;
+        try {
+          audio.load();
+        } catch {}
 
         try {
           await audio.play();
@@ -446,13 +458,29 @@ export function useAudioPlayer() {
             isLoading: false,
             isCurrentSurahOffline: isOffline,
           }));
-        } catch {
-          setState((prev) => ({
-            ...prev,
-            isPlaying: false,
-            isLoading: false,
-            isCurrentSurahOffline: isOffline,
-          }));
+        } catch (playErr) {
+          console.warn('First audio.play() attempt rejected, retrying with fresh instance:', playErr);
+          try {
+            const fresh = new Audio(playableAudioSrc);
+            fresh.playbackRate = state.playbackRate;
+            fresh.load();
+            audioRef.current = fresh;
+            await fresh.play();
+            setState((prev) => ({
+              ...prev,
+              isPlaying: true,
+              isLoading: false,
+              isCurrentSurahOffline: isOffline,
+            }));
+          } catch (retryErr) {
+            console.error('Audio play retry failed:', retryErr);
+            setState((prev) => ({
+              ...prev,
+              isPlaying: false,
+              isLoading: false,
+              isCurrentSurahOffline: isOffline,
+            }));
+          }
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'خطأ غير معروف';
