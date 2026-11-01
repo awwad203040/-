@@ -23,7 +23,7 @@ import {
   updateKhatmahProgress,
   recordWirdProgress,
 } from '@/lib/storage';
-import { SURAH_NAMES, POPULAR_RECITERS, getSurahMeta, getSurahForPage, parseArabicOrWesternNumber } from '@/lib/quran-meta';
+import { SURAH_NAMES, POPULAR_RECITERS, getSurahMeta, getSurahForPage, parseArabicOrWesternNumber, getJuzForPage, getHizbForPage } from '@/lib/quran-meta';
 import MushafToolbar from '@/components/mushaf/MushafToolbar';
 import PageNavigator from '@/components/mushaf/PageNavigator';
 import AyahActions from '@/components/mushaf/AyahActions';
@@ -128,6 +128,10 @@ function MushafReaderInner() {
   });
   const [isLandscape, setIsLandscape] = useState(false);
   const [pageZoom, setPageZoom] = useState<number>(100);
+  const pinchStartDistRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef<number>(100);
+  const lastPinchTimeRef = useRef<number>(0);
+  const lastTapTimeRef = useRef<number>(0);
 
   // Monitor orientation changes (Portrait vs Landscape)
   useEffect(() => {
@@ -288,27 +292,60 @@ function MushafReaderInner() {
     });
   }, []);
 
-  // Zoom handlers for Mushaf and Landscape mode
-  const handleZoomIn = useCallback(() => {
-    setPageZoom((prev) => {
-      const next = Math.min(250, prev + 15);
-      handleUpdateSettings({ pageZoom: next });
-      return next;
-    });
-  }, [handleUpdateSettings]);
-
-  const handleZoomOut = useCallback(() => {
-    setPageZoom((prev) => {
-      const next = Math.max(70, prev - 15);
-      handleUpdateSettings({ pageZoom: next });
-      return next;
-    });
-  }, [handleUpdateSettings]);
-
-  const handleZoomReset = useCallback(() => {
+  // Reset zoom on page flip so user starts each page at standard 100%
+  useEffect(() => {
     setPageZoom(100);
-    handleUpdateSettings({ pageZoom: 100 });
-  }, [handleUpdateSettings]);
+  }, [currentPage]);
+
+  // Touch handlers for manual pinch-to-zoom (تكبير وتصغير الصفحة باليد بالتوسيع والتضييق)
+  const handlePageTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      pinchStartDistRef.current = dist;
+      pinchStartZoomRef.current = pageZoom;
+      lastPinchTimeRef.current = Date.now();
+    }
+  }, [pageZoom]);
+
+  const handlePageTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2 && pinchStartDistRef.current && pinchStartDistRef.current > 0) {
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const scale = currentDist / pinchStartDistRef.current;
+      const calculatedZoom = Math.min(260, Math.max(70, Math.round(pinchStartZoomRef.current * scale)));
+      setPageZoom(calculatedZoom);
+      lastPinchTimeRef.current = Date.now();
+    }
+  }, []);
+
+  const handlePageTouchEnd = useCallback(() => {
+    if (pinchStartDistRef.current !== null) {
+      pinchStartDistRef.current = null;
+      lastPinchTimeRef.current = Date.now();
+      setPageZoom((prev) => {
+        if (prev >= 92 && prev <= 108) {
+          return 100;
+        }
+        return prev;
+      });
+    }
+  }, []);
+
+  const handlePageDoubleTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapTimeRef.current < 350) {
+      // Double tap detected: toggle between 100% and 150%
+      setPageZoom((prev) => (prev > 105 ? 100 : 150));
+      lastTapTimeRef.current = 0;
+    } else {
+      lastTapTimeRef.current = now;
+    }
+  }, []);
 
 
   // Reciter selection handler
@@ -361,6 +398,7 @@ function MushafReaderInner() {
     onSwipeLeft: nextPage,
     onSwipeRight: previousPage,
     threshold: 50,
+    disabled: pageZoom > 110,
   });
 
   // Get unique chapter numbers on this page
@@ -375,7 +413,8 @@ function MushafReaderInner() {
     ? SURAH_NAMES[chaptersOnPage[0]] || `سورة ${chaptersOnPage[0]}`
     : pageMeta ? `سورة ${pageMeta.name}` : '';
 
-  const juzNumber = verses.length > 0 ? verses[0].juzNumber : (pageMeta ? Math.min(30, Math.ceil(currentPage / 20)) : undefined);
+  const juzNumber = verses.length > 0 && verses[0].juzNumber ? verses[0].juzNumber : getJuzForPage(currentPage);
+  const hizbNumber = verses.length > 0 && verses[0].hizbNumber ? verses[0].hizbNumber : getHizbForPage(currentPage);
 
   const isPageBookmarked = bookmarks.some((b) => b.pageNumber === currentPage);
 
@@ -571,7 +610,7 @@ function MushafReaderInner() {
           currentPage={currentPage}
           surahName={mainSurahName}
           juzNumber={juzNumber}
-          hizbNumber={verses.length > 0 ? verses[0].hizbNumber : undefined}
+          hizbNumber={hizbNumber}
           onBack={() => router.push('/')}
           onSettings={() => setShowSettings(true)}
           onSearch={() => setShowSearch(true)}
@@ -761,9 +800,14 @@ function MushafReaderInner() {
               <span className="px-3 py-1 rounded-full bg-[#123B2A]/10 text-[#123B2A] border border-[#123B2A]/20">
                 {mainSurahName}
               </span>
-              <span className="text-[#C8A85B] font-bold">
-                صفحة {currentPage} من 604 {pageZoom !== 100 ? `(${pageZoom}%)` : ''}
-              </span>
+              <button
+                type="button"
+                onClick={() => setPageZoom(100)}
+                className={`text-[#C8A85B] font-bold ${pageZoom !== 100 ? 'cursor-pointer hover:underline' : ''}`}
+                title={pageZoom !== 100 ? 'اضغط لإعادة مقياس الصفحة 100%' : undefined}
+              >
+                صفحة {currentPage} من 604 {pageZoom !== 100 ? `(تكبير ${pageZoom}%)` : ''}
+              </button>
               {juzNumber && (
                 <span className="px-3 py-1 rounded-full bg-[#C8A85B]/20 text-[#123B2A] border border-[#C8A85B]/30">
                   الجزء {juzNumber}
@@ -771,14 +815,20 @@ function MushafReaderInner() {
               )}
             </div>
 
-            {/* Page Container with Screen Tap Navigation */}
+            {/* Page Container with Touch Pinch-to-Zoom and Screen Tap Navigation */}
             <div
+              onTouchStart={handlePageTouchStart}
+              onTouchMove={handlePageTouchMove}
+              onTouchEnd={handlePageTouchEnd}
+              onTouchCancel={handlePageTouchEnd}
+              onClick={handlePageDoubleTap}
               className={`relative w-full ${
                 isLandscape ? 'max-w-none w-full rounded-none sm:rounded-2xl' : 'max-w-2xl rounded-2xl'
-              } mx-auto flex items-center justify-center overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] transition-transform duration-200 landscape:max-w-none`}
+              } mx-auto flex items-center justify-center overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] transition-transform duration-150 landscape:max-w-none select-none`}
               style={{
                 transform: pageZoom !== 100 ? `scale(${pageZoom / 100})` : undefined,
                 transformOrigin: 'top center',
+                touchAction: 'pan-y pinch-zoom',
               }}
             >
               {/* Authentic Madinah Mushaf Page Image - in landscape fills full screen width for clear readability */}
@@ -817,6 +867,8 @@ function MushafReaderInner() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (Date.now() - lastPinchTimeRef.current < 450) return;
+                    if (pageZoom > 115) return;
                     nextPage();
                   }}
                   className="absolute left-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-start pl-2 sm:pl-3 pointer-events-auto group active:bg-white/10 transition-colors"
@@ -836,6 +888,7 @@ function MushafReaderInner() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (Date.now() - lastPinchTimeRef.current < 450) return;
                     setControlsVisible((prev) => !prev);
                   }}
                   className="absolute left-[35%] top-0 bottom-0 w-[30%] cursor-pointer pointer-events-auto"
@@ -851,6 +904,8 @@ function MushafReaderInner() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (Date.now() - lastPinchTimeRef.current < 450) return;
+                    if (pageZoom > 115) return;
                     previousPage();
                   }}
                   className="absolute right-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-end pr-2 sm:pr-3 pointer-events-auto group active:bg-white/10 transition-colors"
@@ -1039,44 +1094,6 @@ function MushafReaderInner() {
         />
       )}
 
-      {/* Floating Zoom Controls Widget (تكبير وتصغير الصفحة - أعلى اليسار لتفادي تغطية أزرار التنقل) */}
-      {controlsVisible && (
-        <div
-          className="fixed top-16 left-3 md:top-20 md:left-6 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#123B2A]/90 text-white backdrop-blur-md shadow-2xl border border-[#C8A85B]/60 transition-all select-none"
-          style={{ direction: 'ltr' }}
-          title="تكبير أو تصغير الصفحة"
-        >
-          <button
-            type="button"
-            onClick={handleZoomOut}
-            disabled={pageZoom <= 70}
-            aria-label="تصغير الصفحة"
-            title="تصغير الصفحة (-)"
-            className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-lg hover:bg-white/20 active:scale-90 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-          >
-            −
-          </button>
-          <button
-            type="button"
-            onClick={handleZoomReset}
-            title="اضغط لإعادة مقياس الصفحة الافتراضي 100%"
-            className="px-2 py-0.5 rounded-lg text-xs font-bold text-[#C8A85B] hover:bg-white/10 active:scale-95 transition cursor-pointer"
-            style={{ fontFamily: "'Tajawal', sans-serif" }}
-          >
-            {pageZoom}%
-          </button>
-          <button
-            type="button"
-            onClick={handleZoomIn}
-            disabled={pageZoom >= 250}
-            aria-label="تكبير الصفحة"
-            title="تكبير الصفحة (+)"
-            className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-lg hover:bg-white/20 active:scale-90 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-          >
-            +
-          </button>
-        </div>
-      )}
 
       {/* Floating Side Navigation Buttons (أزرار جانبية عائمة للتنقل السريع بالإبهام في الوضع الأفقي والرأسي) */}
       <button

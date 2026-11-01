@@ -30,49 +30,53 @@ export default function MushafToolbar({
 }: MushafToolbarProps) {
   return (
     <header
-      className="sticky top-0 z-20 flex items-center justify-between px-4 py-3 shadow-sm"
+      className="sticky top-0 z-20 flex items-center justify-between px-3 sm:px-4 py-2.5 shadow-sm"
       style={{ backgroundColor: '#123B2A', color: 'white' }}
     >
-      {/* Right side (RTL: back button) */}
-      <div className="flex items-center gap-3">
+      {/* Right side (RTL: back button + Title + Horizontal Details underneath) */}
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
         <button
           onClick={onBack}
           aria-label="العودة"
-          className="p-2 rounded-full hover:bg-white/10 transition-colors"
+          className="p-2 rounded-full hover:bg-white/10 transition-colors shrink-0"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
-        <div className="flex items-center gap-2">
-          <AnimatedLogo size="sm" />
-          <h1 className="text-lg font-bold" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-            نور القرآن
-          </h1>
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <AnimatedLogo size="sm" />
+            <h1 className="text-base sm:text-lg font-bold leading-tight" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+              نور القرآن
+            </h1>
+          </div>
+          {/* Page Details in a horizontal row below 'نور القرآن' */}
+          <button
+            type="button"
+            onClick={onOpenPageJump}
+            className="flex items-center gap-1 text-[11px] sm:text-xs text-white/90 hover:text-white transition cursor-pointer text-right leading-tight mt-0.5 active:scale-95 group"
+            title="اضغط لاختيار أو كتابة رقم الصفحة والانتقال إليها"
+          >
+            <span className="font-bold text-[#C8A85B]">صفحة {currentPage}</span>
+            <span className="text-white/40">•</span>
+            <span className="font-medium text-white/95" style={{ fontFamily: "'Amiri', serif" }}>{surahName}</span>
+            {juzNumber && (
+              <>
+                <span className="text-white/40">•</span>
+                <span className="text-white/80">الجزء {juzNumber}</span>
+              </>
+            )}
+            {hizbNumber && (
+              <>
+                <span className="text-white/40">•</span>
+                <span className="text-white/80">الحزب {hizbNumber}</span>
+              </>
+            )}
+            <span className="text-[10px] text-[#C8A85B] group-hover:translate-y-0.5 transition-transform">▾</span>
+          </button>
         </div>
       </div>
-
-      {/* Center: Page info (Clickable to jump to specific page) */}
-      <button
-        type="button"
-        onClick={onOpenPageJump}
-        className="text-center px-3 py-1 rounded-xl hover:bg-white/10 active:scale-95 transition cursor-pointer"
-        title="اضغط لاختيار أو كتابة رقم الصفحة والانتقال إليها"
-      >
-        <div className="text-sm font-bold flex items-center justify-center gap-1 opacity-95">
-          <span>صفحة {currentPage}</span>
-          <span className="text-xs text-[#C8A85B]">▾</span>
-        </div>
-        <div className="text-xs opacity-75" style={{ fontFamily: "'Amiri', serif" }}>
-          {surahName}
-        </div>
-        {juzNumber && (
-          <div className="text-xs opacity-60">
-            الجزء {juzNumber}
-            {hizbNumber ? ` • الحزب ${hizbNumber}` : ''}
-          </div>
-        )}
-      </button>
 
       {/* Left side (RTL: offline download/correction/search/settings) */}
       <div className="flex items-center gap-1.5">

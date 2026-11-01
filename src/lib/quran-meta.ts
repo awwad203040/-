@@ -292,3 +292,24 @@ export function getSurahForPage(page: number): SurahMeta | undefined {
   return result;
 }
 
+/**
+ * Returns the Juz number (1-30) for the given page (1-604).
+ */
+export function getJuzForPage(page: number): number {
+  if (page < 1 || page > 604) return 1;
+  for (let i = JUZ_METADATA.length - 1; i >= 0; i--) {
+    if (page >= JUZ_METADATA[i].startPage) {
+      return JUZ_METADATA[i].juzNumber;
+    }
+  }
+  return 1;
+}
+
+/**
+ * Returns the estimated Hizb number (1-60) for the given page (1-604).
+ */
+export function getHizbForPage(page: number): number {
+  if (page < 1 || page > 604) return 1;
+  return Math.min(60, Math.max(1, Math.ceil(page / 10.06)));
+}
+

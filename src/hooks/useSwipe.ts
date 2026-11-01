@@ -10,22 +10,35 @@ interface UseSwipeOptions {
   onSwipeRight?: () => void;
   threshold?: number;
   preventScroll?: boolean;
+  disabled?: boolean;
 }
 
 export function useSwipe(options: UseSwipeOptions) {
-  const { onSwipeLeft, onSwipeRight, threshold = 35, preventScroll = false } = options;
+  const { onSwipeLeft, onSwipeRight, threshold = 35, preventScroll = false, disabled = false } = options;
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const touchEndX = useRef(0);
   const touchEndY = useRef(0);
+  const isMultiTouch = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (disabled) return;
+    if (e.touches.length > 1) {
+      isMultiTouch.current = true;
+      return;
+    }
+    isMultiTouch.current = false;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
-  }, []);
+  }, [disabled]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (disabled || isMultiTouch.current) return;
+    if (e.touches.length > 1) {
+      isMultiTouch.current = true;
+      return;
+    }
     touchEndX.current = e.touches[0].clientX;
     touchEndY.current = e.touches[0].clientY;
 
@@ -36,9 +49,18 @@ export function useSwipe(options: UseSwipeOptions) {
         e.preventDefault();
       }
     }
-  }, [preventScroll]);
+  }, [preventScroll, disabled]);
 
   const handleTouchEnd = useCallback(() => {
+    if (disabled || isMultiTouch.current) {
+      isMultiTouch.current = false;
+      touchStartX.current = 0;
+      touchStartY.current = 0;
+      touchEndX.current = 0;
+      touchEndY.current = 0;
+      return;
+    }
+
     const dx = touchStartX.current - touchEndX.current;
     const dy = touchStartY.current - touchEndY.current;
 
@@ -59,7 +81,7 @@ export function useSwipe(options: UseSwipeOptions) {
     touchStartY.current = 0;
     touchEndX.current = 0;
     touchEndY.current = 0;
-  }, [onSwipeLeft, onSwipeRight, threshold]);
+  }, [onSwipeLeft, onSwipeRight, threshold, disabled]);
 
   useEffect(() => {
     const el = containerRef.current;
