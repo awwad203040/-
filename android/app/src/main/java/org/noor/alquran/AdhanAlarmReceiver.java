@@ -169,7 +169,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
 
             android.media.AudioManager audioManager = (android.media.AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             AudioAttributes attrs = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build();
 
@@ -181,7 +181,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
                                 .build();
                         audioManager.requestAudioFocus(afr);
                     } else {
-                        audioManager.requestAudioFocus(null, android.media.AudioManager.STREAM_ALARM, android.media.AudioManager.AUDIOFOCUS_GAIN);
+                        audioManager.requestAudioFocus(null, android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.AUDIOFOCUS_GAIN);
                     }
                 } catch (Exception ignored) {}
             }
@@ -274,7 +274,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
                     .setFullScreenIntent(contentIntent, true)
                     .setAutoCancel(true)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setCategory(NotificationCompat.CATEGORY_REMINDER)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
             nm.notify(NOTIFICATION_FALLBACK_ID, builder.build());

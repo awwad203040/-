@@ -232,7 +232,7 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
                     .setAutoCancel(true)
                     .setSound(null)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setCategory(NotificationCompat.CATEGORY_REMINDER)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
             nm.notify(NOTIFICATION_ID, builder.build());
@@ -248,7 +248,7 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         AudioFocusRequest focusRequest = null;
         AudioAttributes attrs = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                 .build();
 
@@ -260,7 +260,7 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
                             .build();
                     audioManager.requestAudioFocus(focusRequest);
                 } else {
-                    audioManager.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+                    audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
                 }
             } catch (Exception ignored) {}
         }
@@ -301,7 +301,7 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
             player.prepare();
             player.start();
             activePlayer = player;
-            Log.i(TAG, "Athkar audio direct playback started successfully with static player, wake mode, and USAGE_ALARM.");
+            Log.i(TAG, "Athkar audio direct playback started successfully with static player, wake mode, and USAGE_MEDIA (music stream).");
         } catch (Exception e) {
             Log.e(TAG, "Failed to play athkar audio directly: " + e.getMessage(), e);
             abandonFocusQuietly(audioManager, finalFocusRequest);

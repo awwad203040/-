@@ -194,7 +194,7 @@ public class NoorAudioService extends Service {
         try {
             MediaPlayer player = new MediaPlayer();
             AudioAttributes attrs = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(isMusic ? AudioAttributes.CONTENT_TYPE_MUSIC : AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build();
             player.setAudioAttributes(attrs);
@@ -225,7 +225,7 @@ public class NoorAudioService extends Service {
             player.prepare();
             player.start();
             activePlayer = player;
-            Log.i(TAG, "MediaPlayer started successfully with USAGE_ALARM, volume: " + volume);
+            Log.i(TAG, "MediaPlayer started successfully with USAGE_MEDIA (music stream), volume: " + volume);
         } catch (Exception e) {
             Log.e(TAG, "Failed to start MediaPlayer: " + e.getMessage(), e);
             stopActivePlayerOnly();
@@ -261,7 +261,7 @@ public class NoorAudioService extends Service {
                 .setContentText(body)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setColor(Color.parseColor("#C8A85B"))
                 .setOngoing(true)
@@ -287,7 +287,7 @@ public class NoorAudioService extends Service {
                 .setContentText(body)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setColor(Color.parseColor("#C8A85B"))
                 .setAutoCancel(true)
@@ -331,7 +331,7 @@ public class NoorAudioService extends Service {
         try {
             if (audioManager == null) return;
             AudioAttributes attrs = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build();
 
@@ -341,7 +341,7 @@ public class NoorAudioService extends Service {
                         .build();
                 audioManager.requestAudioFocus(audioFocusRequest);
             } else {
-                audioManager.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+                audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
             }
         } catch (Exception e) {
             Log.w(TAG, "Audio focus request failed: " + e.getMessage());

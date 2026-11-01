@@ -45,6 +45,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AthkarNativePlugin.class);
         registerPlugin(AdhanNativePlugin.class);
         super.onCreate(savedInstanceState);
+        setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC);
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
