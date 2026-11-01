@@ -331,9 +331,12 @@ function MushafReaderInner() {
     }
   }, [pageZoom, panOffset]);
 
+  const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handlePageTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2 && pinchStartDistRef.current && pinchStartDistRef.current > 0) {
       // Pinch scaling
+      if (e.cancelable) e.preventDefault();
       const currentDist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -343,21 +346,24 @@ function MushafReaderInner() {
       setPageZoom(calculatedZoom);
       lastPinchTimeRef.current = Date.now();
     } else if (e.touches.length === 1 && panStartRef.current && pageZoom > 100) {
-      // 1-finger pan movement
+      // 1-finger pan movement: prevent default to allow effortless dragging in any direction
+      if (e.cancelable) e.preventDefault();
+
       const dx = e.touches[0].clientX - panStartRef.current.touchX;
       const dy = e.touches[0].clientY - panStartRef.current.touchY;
 
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
         hasMovedPanRef.current = true;
-        lastPinchTimeRef.current = Date.now(); // Suppress accidental tap navigation clicks
+        lastPinchTimeRef.current = Date.now();
       }
 
       const container = pageContainerRef.current;
       const width = container ? container.clientWidth : (typeof window !== 'undefined' ? window.innerWidth : 400);
       const height = container ? container.clientHeight : (typeof window !== 'undefined' ? window.innerHeight : 600);
       const scale = pageZoom / 100;
-      const maxPanX = Math.max(0, ((scale - 1) * width) / 2 + 60);
-      const maxPanY = Math.max(0, ((scale - 1) * height) / 2 + 80);
+      // Generous bounds for smooth and easy left/right panning
+      const maxPanX = Math.max(100, ((scale - 1) * width) / 2 + 150);
+      const maxPanY = Math.max(100, ((scale - 1) * height) / 2 + 150);
 
       const nextX = panStartRef.current.startX + dx;
       const nextY = panStartRef.current.startY + dy;
@@ -419,8 +425,8 @@ function MushafReaderInner() {
       const width = container ? container.clientWidth : 400;
       const height = container ? container.clientHeight : 600;
       const scale = pageZoom / 100;
-      const maxPanX = Math.max(0, ((scale - 1) * width) / 2 + 60);
-      const maxPanY = Math.max(0, ((scale - 1) * height) / 2 + 80);
+      const maxPanX = Math.max(100, ((scale - 1) * width) / 2 + 150);
+      const maxPanY = Math.max(100, ((scale - 1) * height) / 2 + 150);
 
       setPanOffset({
         x: Math.max(-maxPanX, Math.min(maxPanX, panStartRef.current.startX + dx)),
@@ -440,11 +446,21 @@ function MushafReaderInner() {
     }
   }, []);
 
-  const handlePageDoubleTap = useCallback(() => {
+  // Single tap toggles menu/toolbars, Double tap toggles zoom (100% <-> 150%)
+  // Never turns pages on page surface clicks!
+  const handlePageTap = useCallback(() => {
+    if (hasMovedPanRef.current || Date.now() - lastPinchTimeRef.current < 450) {
+      return;
+    }
+
     const now = Date.now();
-    if (hasMovedPanRef.current) return;
-    if (now - lastTapTimeRef.current < 350) {
-      // Double tap detected: toggle between 100% and 150%
+    if (now - lastTapTimeRef.current < 320) {
+      // Double tap detected: cancel single-tap toolbar toggle and toggle zoom
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
+      lastTapTimeRef.current = 0;
       setPageZoom((prev) => {
         if (prev > 105) {
           setPanOffset({ x: 0, y: 0 });
@@ -453,10 +469,24 @@ function MushafReaderInner() {
           return 150;
         }
       });
-      lastTapTimeRef.current = 0;
     } else {
       lastTapTimeRef.current = now;
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+      }
+      singleTapTimerRef.current = setTimeout(() => {
+        setControlsVisible((prev) => !prev);
+        singleTapTimerRef.current = null;
+      }, 330);
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+      }
+    };
   }, []);
 
 
@@ -505,12 +535,12 @@ function MushafReaderInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nextPage, previousPage, audio]);
 
-  // Swipe navigation (RTL: swipe right = previous, swipe left = next)
+  // Swipe navigation disabled to ensure page flipping only happens via explicit navigation buttons
   const swipeRef = useSwipe({
     onSwipeLeft: nextPage,
     onSwipeRight: previousPage,
     threshold: 50,
-    disabled: pageZoom > 110,
+    disabled: true,
   });
 
   // Get unique chapter numbers on this page
@@ -759,7 +789,6 @@ function MushafReaderInner() {
 
       {/* Quran Content */}
       <main
-        ref={swipeRef}
         className={`flex-1 ${
           isLandscape
             ? 'px-0 sm:px-1 py-1 max-w-none w-full'
@@ -952,7 +981,7 @@ function MushafReaderInner() {
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              onClick={handlePageDoubleTap}
+              onClick={handlePageTap}
               className={`relative w-full ${
                 isLandscape ? 'max-w-none w-full rounded-none sm:rounded-2xl' : 'max-w-2xl rounded-2xl'
               } mx-auto flex items-center justify-center overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] landscape:max-w-none select-none ${
@@ -999,73 +1028,6 @@ function MushafReaderInner() {
                   }`}
                   loading="eager"
                 />
-
-                {/* Interactive Screen Tap Navigation Zones (Absolute Physical Positioning across the page) */}
-                <div className={`absolute inset-0 z-20 select-none ${pageZoom > 115 || isPanning ? 'pointer-events-none' : 'pointer-events-none'}`}>
-                  {/* Physical Left 35%: Next Page (◀ التالي) in Arabic reading */}
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (Date.now() - lastPinchTimeRef.current < 450) return;
-                      if (pageZoom > 115) return;
-                      nextPage();
-                    }}
-                    className={`absolute left-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-start pl-2 sm:pl-3 group active:bg-white/10 transition-colors ${
-                      pageZoom > 115 || isPanning ? 'pointer-events-none' : 'pointer-events-auto'
-                    }`}
-                    aria-label="الانتقال للصفحة التالية"
-                    title="اضغط هنا للذهاب للصفحة التالية (◀)"
-                    style={{ touchAction: 'manipulation' }}
-                  >
-                    <span className="p-2 sm:p-2.5 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity shadow-lg">
-                      ◀ التالي ({currentPage < 604 ? currentPage + 1 : 604})
-                    </span>
-                  </div>
-
-                  {/* Physical Center 30%: Toggle Menu & Toolbar Controls */}
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (Date.now() - lastPinchTimeRef.current < 450) return;
-                      setControlsVisible((prev) => !prev);
-                    }}
-                    className={`absolute left-[35%] top-0 bottom-0 w-[30%] cursor-pointer ${
-                      isPanning ? 'pointer-events-none' : 'pointer-events-auto'
-                    }`}
-                    aria-label="إظهار أو إخفاء القوائم والأشرطة"
-                    title="اضغط في الوسط لإظهار أو إخفاء الأشرطة"
-                    style={{ touchAction: 'manipulation' }}
-                  />
-
-                  {/* Physical Right 35%: Previous Page (السابق ▶) in Arabic reading */}
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (Date.now() - lastPinchTimeRef.current < 450) return;
-                      if (pageZoom > 115) return;
-                      previousPage();
-                    }}
-                    className={`absolute right-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-end pr-2 sm:pr-3 group active:bg-white/10 transition-colors ${
-                      pageZoom > 115 || isPanning ? 'pointer-events-none' : 'pointer-events-auto'
-                    }`}
-                    aria-label="الانتقال للصفحة السابقة"
-                    title="اضغط هنا للرجوع للصفحة السابقة (▶)"
-                    style={{ touchAction: 'manipulation' }}
-                  >
-                    <span className="p-2 sm:p-2.5 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity shadow-lg">
-                      ({currentPage > 1 ? currentPage - 1 : 1}) السابق ▶
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
 
