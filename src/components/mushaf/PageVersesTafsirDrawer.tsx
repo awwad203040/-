@@ -68,6 +68,8 @@ interface PageVersesTafsirDrawerProps {
   onNextPage?: () => void;
   onPrevPage?: () => void;
   onGoToPage?: (page: number) => void;
+  isPlayingAudio?: boolean;
+  playingVerseKey?: string | null;
 }
 
 // In-memory cache for fast verse switching on the page
@@ -129,6 +131,8 @@ export default function PageVersesTafsirDrawer({
   onNextPage,
   onPrevPage,
   onGoToPage,
+  isPlayingAudio = false,
+  playingVerseKey = null,
 }: PageVersesTafsirDrawerProps) {
   const [selectedVerseIndex, setSelectedVerseIndex] = useState(0);
   const [activeTafsirId, setActiveTafsirId] = useState(selectedTafsirId || 16);
@@ -413,11 +417,19 @@ export default function PageVersesTafsirDrawer({
                         >
                           الآية {verse.verseKey}
                         </span>
-                        {isSelected && (
-                          <span className="text-[10px] text-[#C8A85B] font-bold">
-                            ✓ نشطة
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {isPlayingAudio && playingVerseKey === verse.verseKey && (
+                            <span className="text-[10px] text-[#C8A85B] font-bold animate-pulse flex items-center gap-0.5">
+                              <span>🔊</span>
+                              <span>تلاوة</span>
+                            </span>
+                          )}
+                          {isSelected && (
+                            <span className="text-[10px] text-[#C8A85B] font-bold">
+                              ✓ نشطة
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <p
@@ -515,19 +527,26 @@ export default function PageVersesTafsirDrawer({
                 </div>
 
                 {/* Actions: Play Verse Audio & Copy */}
-                <div className="flex items-center gap-1 self-end sm:self-center shrink-0">
-                  {onPlayVerse && (
-                    <button
-                      type="button"
-                      onClick={() => onPlayVerse(selectedVerse)}
-                      className="px-2.5 py-1 rounded-lg bg-[#123B2A] hover:bg-[#0B5B43] text-white text-[11px] font-bold flex items-center gap-1 active:scale-95 transition shadow-2xs cursor-pointer"
-                      style={{ fontFamily: "'Tajawal', sans-serif" }}
-                      title="استماع لتلاوة هذه الآية"
-                    >
-                      <span>▶</span>
-                      <span className="hidden xs:inline">استماع</span>
-                    </button>
-                  )}
+                <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                  {onPlayVerse && (() => {
+                    const isThisVersePlaying = isPlayingAudio && playingVerseKey === selectedVerse.verseKey;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => onPlayVerse(selectedVerse)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition shadow-sm cursor-pointer ${
+                          isThisVersePlaying
+                            ? 'bg-[#C8A85B] text-[#123B2A] ring-2 ring-[#C8A85B]/60 animate-pulse'
+                            : 'bg-[#123B2A] hover:bg-[#0B5B43] text-white'
+                        }`}
+                        style={{ fontFamily: "'Tajawal', sans-serif" }}
+                        title={isThisVersePlaying ? "إيقاف صوت القارئ" : "استماع لتلاوة هذه الآية"}
+                      >
+                        <span className="text-sm">{isThisVersePlaying ? '⏹' : '▶'}</span>
+                        <span>{isThisVersePlaying ? 'إيقاف التلاوة' : 'استماع للآية'}</span>
+                      </button>
+                    );
+                  })()}
                   <button
                     type="button"
                     onClick={handleCopy}

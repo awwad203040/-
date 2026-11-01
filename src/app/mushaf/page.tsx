@@ -128,6 +128,12 @@ function MushafReaderInner() {
   });
   const [isLandscape, setIsLandscape] = useState(false);
   const [pageZoom, setPageZoom] = useState<number>(100);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const pageContainerRef = useRef<HTMLDivElement | null>(null);
+  const panStartRef = useRef<{ touchX: number; touchY: number; startX: number; startY: number } | null>(null);
+  const hasMovedPanRef = useRef<boolean>(false);
+  const isMouseDownRef = useRef<boolean>(false);
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef<number>(100);
   const lastPinchTimeRef = useRef<number>(0);
@@ -292,14 +298,17 @@ function MushafReaderInner() {
     });
   }, []);
 
-  // Reset zoom on page flip so user starts each page at standard 100%
+  // Reset zoom and pan on page flip so user starts each page at standard 100%
   useEffect(() => {
     setPageZoom(100);
+    setPanOffset({ x: 0, y: 0 });
+    setIsPanning(false);
   }, [currentPage]);
 
-  // Touch handlers for manual pinch-to-zoom (تكبير وتصغير الصفحة باليد بالتوسيع والتضييق)
+  // Touch handlers for manual pinch-to-zoom (التوسيع والتضييق) and 1-finger panning (التحريك يمين ويسار بعد التكبير)
   const handlePageTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
+      // 2 fingers = Pinch to zoom
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -307,11 +316,24 @@ function MushafReaderInner() {
       pinchStartDistRef.current = dist;
       pinchStartZoomRef.current = pageZoom;
       lastPinchTimeRef.current = Date.now();
+      panStartRef.current = null;
+      setIsPanning(false);
+    } else if (e.touches.length === 1 && pageZoom > 100) {
+      // 1 finger = Pan / Drag the zoomed page
+      panStartRef.current = {
+        touchX: e.touches[0].clientX,
+        touchY: e.touches[0].clientY,
+        startX: panOffset.x,
+        startY: panOffset.y,
+      };
+      hasMovedPanRef.current = false;
+      setIsPanning(true);
     }
-  }, [pageZoom]);
+  }, [pageZoom, panOffset]);
 
   const handlePageTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2 && pinchStartDistRef.current && pinchStartDistRef.current > 0) {
+      // Pinch scaling
       const currentDist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -320,8 +342,32 @@ function MushafReaderInner() {
       const calculatedZoom = Math.min(260, Math.max(70, Math.round(pinchStartZoomRef.current * scale)));
       setPageZoom(calculatedZoom);
       lastPinchTimeRef.current = Date.now();
+    } else if (e.touches.length === 1 && panStartRef.current && pageZoom > 100) {
+      // 1-finger pan movement
+      const dx = e.touches[0].clientX - panStartRef.current.touchX;
+      const dy = e.touches[0].clientY - panStartRef.current.touchY;
+
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        hasMovedPanRef.current = true;
+        lastPinchTimeRef.current = Date.now(); // Suppress accidental tap navigation clicks
+      }
+
+      const container = pageContainerRef.current;
+      const width = container ? container.clientWidth : (typeof window !== 'undefined' ? window.innerWidth : 400);
+      const height = container ? container.clientHeight : (typeof window !== 'undefined' ? window.innerHeight : 600);
+      const scale = pageZoom / 100;
+      const maxPanX = Math.max(0, ((scale - 1) * width) / 2 + 60);
+      const maxPanY = Math.max(0, ((scale - 1) * height) / 2 + 80);
+
+      const nextX = panStartRef.current.startX + dx;
+      const nextY = panStartRef.current.startY + dy;
+
+      setPanOffset({
+        x: Math.max(-maxPanX, Math.min(maxPanX, nextX)),
+        y: Math.max(-maxPanY, Math.min(maxPanY, nextY)),
+      });
     }
-  }, []);
+  }, [pageZoom]);
 
   const handlePageTouchEnd = useCallback(() => {
     if (pinchStartDistRef.current !== null) {
@@ -329,18 +375,84 @@ function MushafReaderInner() {
       lastPinchTimeRef.current = Date.now();
       setPageZoom((prev) => {
         if (prev >= 92 && prev <= 108) {
+          setPanOffset({ x: 0, y: 0 });
           return 100;
         }
         return prev;
       });
     }
+    if (panStartRef.current !== null) {
+      panStartRef.current = null;
+      setIsPanning(false);
+      if (hasMovedPanRef.current) {
+        lastPinchTimeRef.current = Date.now();
+      }
+    }
+  }, []);
+
+  // Mouse pan handlers for desktop / mouse interactions
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (pageZoom > 100 && e.button === 0) {
+      isMouseDownRef.current = true;
+      panStartRef.current = {
+        touchX: e.clientX,
+        touchY: e.clientY,
+        startX: panOffset.x,
+        startY: panOffset.y,
+      };
+      hasMovedPanRef.current = false;
+      setIsPanning(true);
+    }
+  }, [pageZoom, panOffset]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMouseDownRef.current && panStartRef.current && pageZoom > 100) {
+      const dx = e.clientX - panStartRef.current.touchX;
+      const dy = e.clientY - panStartRef.current.touchY;
+
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasMovedPanRef.current = true;
+        lastPinchTimeRef.current = Date.now();
+      }
+
+      const container = pageContainerRef.current;
+      const width = container ? container.clientWidth : 400;
+      const height = container ? container.clientHeight : 600;
+      const scale = pageZoom / 100;
+      const maxPanX = Math.max(0, ((scale - 1) * width) / 2 + 60);
+      const maxPanY = Math.max(0, ((scale - 1) * height) / 2 + 80);
+
+      setPanOffset({
+        x: Math.max(-maxPanX, Math.min(maxPanX, panStartRef.current.startX + dx)),
+        y: Math.max(-maxPanY, Math.min(maxPanY, panStartRef.current.startY + dy)),
+      });
+    }
+  }, [pageZoom]);
+
+  const handleMouseUp = useCallback(() => {
+    if (isMouseDownRef.current) {
+      isMouseDownRef.current = false;
+      panStartRef.current = null;
+      setIsPanning(false);
+      if (hasMovedPanRef.current) {
+        lastPinchTimeRef.current = Date.now();
+      }
+    }
   }, []);
 
   const handlePageDoubleTap = useCallback(() => {
     const now = Date.now();
+    if (hasMovedPanRef.current) return;
     if (now - lastTapTimeRef.current < 350) {
       // Double tap detected: toggle between 100% and 150%
-      setPageZoom((prev) => (prev > 105 ? 100 : 150));
+      setPageZoom((prev) => {
+        if (prev > 105) {
+          setPanOffset({ x: 0, y: 0 });
+          return 100;
+        } else {
+          return 150;
+        }
+      });
       lastTapTimeRef.current = 0;
     } else {
       lastTapTimeRef.current = now;
@@ -489,6 +601,18 @@ function MushafReaderInner() {
     const reciterName = reciter?.name || 'مشاري راشد العفاسي';
     audio.loadAndPlay(chNum, settings.selectedReciterId || 7, surahName, reciterName, verse.verseKey);
     setSelectedVerse(null);
+  }, [audio, settings.selectedReciterId]);
+
+  const handleTogglePlayVerseFromDrawer = useCallback((verse: Verse) => {
+    const chNum = getChapterNumber(verse);
+    if (audio.isPlaying && (audio.currentVerseKey === verse.verseKey || (audio.currentSurah === chNum && !audio.currentVerseKey))) {
+      audio.stop();
+      return;
+    }
+    const surahName = SURAH_NAMES[chNum] || `سورة ${chNum}`;
+    const reciter = POPULAR_RECITERS.find((r) => r.id === (settings.selectedReciterId || 7));
+    const reciterName = reciter?.name || 'مشاري راشد العفاسي';
+    audio.loadAndPlay(chNum, settings.selectedReciterId || 7, surahName, reciterName, verse.verseKey);
   }, [audio, settings.selectedReciterId]);
 
   const handlePlayRepeatVerse = useCallback((verse: Verse, count: number = 3) => {
@@ -802,7 +926,10 @@ function MushafReaderInner() {
               </span>
               <button
                 type="button"
-                onClick={() => setPageZoom(100)}
+                onClick={() => {
+                  setPageZoom(100);
+                  setPanOffset({ x: 0, y: 0 });
+                }}
                 className={`text-[#C8A85B] font-bold ${pageZoom !== 100 ? 'cursor-pointer hover:underline' : ''}`}
                 title={pageZoom !== 100 ? 'اضغط لإعادة مقياس الصفحة 100%' : undefined}
               >
@@ -815,107 +942,129 @@ function MushafReaderInner() {
               )}
             </div>
 
-            {/* Page Container with Touch Pinch-to-Zoom and Screen Tap Navigation */}
+            {/* Page Container with Touch Pinch-to-Zoom, 1-Finger Panning and Screen Tap Navigation */}
             <div
+              ref={pageContainerRef}
               onTouchStart={handlePageTouchStart}
               onTouchMove={handlePageTouchMove}
               onTouchEnd={handlePageTouchEnd}
               onTouchCancel={handlePageTouchEnd}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
               onClick={handlePageDoubleTap}
               className={`relative w-full ${
                 isLandscape ? 'max-w-none w-full rounded-none sm:rounded-2xl' : 'max-w-2xl rounded-2xl'
-              } mx-auto flex items-center justify-center overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] transition-transform duration-150 landscape:max-w-none select-none`}
+              } mx-auto flex items-center justify-center overflow-hidden shadow-2xl border-2 border-[#C8A85B]/50 bg-[#FBF8EF] landscape:max-w-none select-none ${
+                pageZoom > 100 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''
+              }`}
               style={{
-                transform: pageZoom !== 100 ? `scale(${pageZoom / 100})` : undefined,
-                transformOrigin: 'top center',
-                touchAction: 'pan-y pinch-zoom',
+                touchAction: pageZoom > 100 ? 'none' : 'pan-y pinch-zoom',
               }}
             >
-              {/* Authentic Madinah Mushaf Page Image - in landscape fills full screen width for clear readability */}
-              <img
-                src={offlineBlobUrl || `/api/quran/page-image?page=${currentPage}`}
-                alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
-                onError={() => {
-                  if (!offlineBlobUrl) {
-                    const directUrl = `https://files.quran.app/hafs/madani/width_1024/page${currentPage.toString().padStart(3, '0')}.png`;
-                    const testImg = new Image();
-                    testImg.src = directUrl;
-                    testImg.onload = () => {
-                      setOfflineBlobUrl(directUrl);
-                    };
-                    testImg.onerror = () => {
-                      setPageImageError(true);
-                    };
-                  } else {
-                    setPageImageError(true);
-                  }
+              {/* Scaled and Panned Inner Content */}
+              <div
+                className="w-full flex items-center justify-center relative"
+                style={{
+                  transform: pageZoom !== 100
+                    ? `translate3d(${panOffset.x}px, ${panOffset.y}px, 0) scale(${pageZoom / 100})`
+                    : undefined,
+                  transformOrigin: 'center center',
+                  transition: isPanning ? 'none' : 'transform 180ms ease-out',
                 }}
-                className={`w-full h-auto ${
-                  isLandscape ? 'max-h-none' : 'max-h-[85vh]'
-                } object-contain transition-all duration-200 pointer-events-none landscape:max-h-none ${
-                  settings.nightMode ? 'invert-[0.92] hue-rotate-180 brightness-95 contrast-125' : ''
-                }`}
-                loading="eager"
-              />
-
-              {/* Interactive Screen Tap Navigation Zones (Absolute Physical Positioning across the page) */}
-              <div className="absolute inset-0 z-20 pointer-events-none select-none">
-                {/* Physical Left 35%: Next Page (◀ التالي) in Arabic reading */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (Date.now() - lastPinchTimeRef.current < 450) return;
-                    if (pageZoom > 115) return;
-                    nextPage();
+              >
+                {/* Authentic Madinah Mushaf Page Image - in landscape fills full screen width for clear readability */}
+                <img
+                  src={offlineBlobUrl || `/api/quran/page-image?page=${currentPage}`}
+                  alt={`مصحف المدينة المنورة - صفحة ${currentPage}`}
+                  onError={() => {
+                    if (!offlineBlobUrl) {
+                      const directUrl = `https://files.quran.app/hafs/madani/width_1024/page${currentPage.toString().padStart(3, '0')}.png`;
+                      const testImg = new Image();
+                      testImg.src = directUrl;
+                      testImg.onload = () => {
+                        setOfflineBlobUrl(directUrl);
+                      };
+                      testImg.onerror = () => {
+                        setPageImageError(true);
+                      };
+                    } else {
+                      setPageImageError(true);
+                    }
                   }}
-                  className="absolute left-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-start pl-2 sm:pl-3 pointer-events-auto group active:bg-white/10 transition-colors"
-                  aria-label="الانتقال للصفحة التالية"
-                  title="اضغط هنا للذهاب للصفحة التالية (◀)"
-                  style={{ touchAction: 'manipulation' }}
-                >
-                  <span className="p-2 sm:p-2.5 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity shadow-lg">
-                    ◀ التالي ({currentPage < 604 ? currentPage + 1 : 604})
-                  </span>
-                </div>
-
-                {/* Physical Center 30%: Toggle Menu & Toolbar Controls */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (Date.now() - lastPinchTimeRef.current < 450) return;
-                    setControlsVisible((prev) => !prev);
-                  }}
-                  className="absolute left-[35%] top-0 bottom-0 w-[30%] cursor-pointer pointer-events-auto"
-                  aria-label="إظهار أو إخفاء القوائم والأشرطة"
-                  title="اضغط في الوسط لإظهار أو إخفاء الأشرطة"
-                  style={{ touchAction: 'manipulation' }}
+                  className={`w-full h-auto ${
+                    isLandscape ? 'max-h-none' : 'max-h-[85vh]'
+                  } object-contain transition-all duration-200 pointer-events-none landscape:max-h-none ${
+                    settings.nightMode ? 'invert-[0.92] hue-rotate-180 brightness-95 contrast-125' : ''
+                  }`}
+                  loading="eager"
                 />
 
-                {/* Physical Right 35%: Previous Page (السابق ▶) in Arabic reading */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (Date.now() - lastPinchTimeRef.current < 450) return;
-                    if (pageZoom > 115) return;
-                    previousPage();
-                  }}
-                  className="absolute right-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-end pr-2 sm:pr-3 pointer-events-auto group active:bg-white/10 transition-colors"
-                  aria-label="الانتقال للصفحة السابقة"
-                  title="اضغط هنا للرجوع للصفحة السابقة (▶)"
-                  style={{ touchAction: 'manipulation' }}
-                >
-                  <span className="p-2 sm:p-2.5 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity shadow-lg">
-                    ({currentPage > 1 ? currentPage - 1 : 1}) السابق ▶
-                  </span>
+                {/* Interactive Screen Tap Navigation Zones (Absolute Physical Positioning across the page) */}
+                <div className={`absolute inset-0 z-20 select-none ${pageZoom > 115 || isPanning ? 'pointer-events-none' : 'pointer-events-none'}`}>
+                  {/* Physical Left 35%: Next Page (◀ التالي) in Arabic reading */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (Date.now() - lastPinchTimeRef.current < 450) return;
+                      if (pageZoom > 115) return;
+                      nextPage();
+                    }}
+                    className={`absolute left-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-start pl-2 sm:pl-3 group active:bg-white/10 transition-colors ${
+                      pageZoom > 115 || isPanning ? 'pointer-events-none' : 'pointer-events-auto'
+                    }`}
+                    aria-label="الانتقال للصفحة التالية"
+                    title="اضغط هنا للذهاب للصفحة التالية (◀)"
+                    style={{ touchAction: 'manipulation' }}
+                  >
+                    <span className="p-2 sm:p-2.5 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity shadow-lg">
+                      ◀ التالي ({currentPage < 604 ? currentPage + 1 : 604})
+                    </span>
+                  </div>
+
+                  {/* Physical Center 30%: Toggle Menu & Toolbar Controls */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (Date.now() - lastPinchTimeRef.current < 450) return;
+                      setControlsVisible((prev) => !prev);
+                    }}
+                    className={`absolute left-[35%] top-0 bottom-0 w-[30%] cursor-pointer ${
+                      isPanning ? 'pointer-events-none' : 'pointer-events-auto'
+                    }`}
+                    aria-label="إظهار أو إخفاء القوائم والأشرطة"
+                    title="اضغط في الوسط لإظهار أو إخفاء الأشرطة"
+                    style={{ touchAction: 'manipulation' }}
+                  />
+
+                  {/* Physical Right 35%: Previous Page (السابق ▶) in Arabic reading */}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (Date.now() - lastPinchTimeRef.current < 450) return;
+                      if (pageZoom > 115) return;
+                      previousPage();
+                    }}
+                    className={`absolute right-0 top-0 bottom-0 w-[35%] cursor-pointer flex items-center justify-end pr-2 sm:pr-3 group active:bg-white/10 transition-colors ${
+                      pageZoom > 115 || isPanning ? 'pointer-events-none' : 'pointer-events-auto'
+                    }`}
+                    aria-label="الانتقال للصفحة السابقة"
+                    title="اضغط هنا للرجوع للصفحة السابقة (▶)"
+                    style={{ touchAction: 'manipulation' }}
+                  >
+                    <span className="p-2 sm:p-2.5 rounded-full bg-black/60 text-white backdrop-blur-xs text-xs font-bold opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity shadow-lg">
+                      ({currentPage > 1 ? currentPage - 1 : 1}) السابق ▶
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -967,7 +1116,9 @@ function MushafReaderInner() {
               verses={verses}
               selectedTafsirId={settings.selectedTafsirId || 16}
               onSelectTafsirId={(id) => handleUpdateSettings({ selectedTafsirId: id })}
-              onPlayVerse={(v) => handlePlayVerse(v)}
+              onPlayVerse={(v) => handleTogglePlayVerseFromDrawer(v)}
+              isPlayingAudio={audio.isPlaying}
+              playingVerseKey={audio.isPlaying ? audio.currentVerseKey : null}
               nightMode={settings.nightMode}
               onNextPage={nextPage}
               onPrevPage={previousPage}
@@ -1095,7 +1246,7 @@ function MushafReaderInner() {
       )}
 
 
-      {/* Floating Side Navigation Buttons (أزرار جانبية عائمة للتنقل السريع بالإبهام في الوضع الأفقي والرأسي) */}
+      {/* Floating Side Navigation Buttons (أزرار جانبية شبه شفافة لتوضيح الحروف والآيات أسفل منها) */}
       <button
         type="button"
         onClick={(e) => {
@@ -1106,7 +1257,7 @@ function MushafReaderInner() {
         aria-label="الانتقال للصفحة التالية"
         title="الصفحة التالية (◀)"
         style={{ touchAction: 'manipulation' }}
-        className="fixed left-1.5 sm:left-3 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-2.5 rounded-full bg-[#123B2A]/90 hover:bg-[#0B5B43] active:scale-90 text-white shadow-2xl border-2 border-[#C8A85B] flex items-center justify-center cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+        className="fixed left-1 sm:left-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-full bg-[#123B2A]/25 hover:bg-[#123B2A]/70 active:bg-[#123B2A]/85 active:scale-90 text-white/80 hover:text-white backdrop-blur-[2px] shadow-sm border border-[#C8A85B]/50 hover:border-[#C8A85B] flex items-center justify-center cursor-pointer disabled:opacity-10 disabled:cursor-not-allowed transition-all"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
@@ -1123,7 +1274,7 @@ function MushafReaderInner() {
         aria-label="الانتقال للصفحة السابقة"
         title="الصفحة السابقة (▶)"
         style={{ touchAction: 'manipulation' }}
-        className="fixed right-1.5 sm:right-3 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-2.5 rounded-full bg-[#123B2A]/90 hover:bg-[#0B5B43] active:scale-90 text-white shadow-2xl border-2 border-[#C8A85B] flex items-center justify-center cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+        className="fixed right-1 sm:right-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-full bg-[#123B2A]/25 hover:bg-[#123B2A]/70 active:bg-[#123B2A]/85 active:scale-90 text-white/80 hover:text-white backdrop-blur-[2px] shadow-sm border border-[#C8A85B]/50 hover:border-[#C8A85B] flex items-center justify-center cursor-pointer disabled:opacity-10 disabled:cursor-not-allowed transition-all"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 18 15 12 9 6" />
