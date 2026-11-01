@@ -17,9 +17,9 @@ export const viewport: Viewport = {
   themeColor: "#123B2A",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 4,
+  maximumScale: 1,
   minimumScale: 1,
-  userScalable: true,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -30,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className="h-full">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

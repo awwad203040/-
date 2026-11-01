@@ -308,7 +308,8 @@ function MushafReaderInner() {
   // Touch handlers for manual pinch-to-zoom (التوسيع والتضييق) and 1-finger panning (التحريك يمين ويسار بعد التكبير)
   const handlePageTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
-      // 2 fingers = Pinch to zoom
+      // 2 fingers = Pinch to zoom ONLY the Mushaf page (keep the interface fixed)
+      if (e.cancelable) e.preventDefault();
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -330,6 +331,33 @@ function MushafReaderInner() {
       setIsPanning(true);
     }
   }, [pageZoom, panOffset]);
+
+  // Native non-passive touch listeners to block WebView / browser native viewport zoom
+  // ensuring ONLY the Mushaf reading page scales while the UI remains 100% stationary
+  useEffect(() => {
+    const el = pageContainerRef.current;
+    if (!el) return;
+
+    const onNativeTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2 && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    const onNativeTouchMove = (e: TouchEvent) => {
+      if ((e.touches.length === 2 || (e.touches.length === 1 && pageZoom > 100)) && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener('touchstart', onNativeTouchStart, { passive: false });
+    el.addEventListener('touchmove', onNativeTouchMove, { passive: false });
+
+    return () => {
+      el.removeEventListener('touchstart', onNativeTouchStart);
+      el.removeEventListener('touchmove', onNativeTouchMove);
+    };
+  }, [pageZoom]);
 
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -988,7 +1016,7 @@ function MushafReaderInner() {
                 pageZoom > 100 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''
               }`}
               style={{
-                touchAction: pageZoom > 100 ? 'none' : 'pan-y pinch-zoom',
+                touchAction: 'none',
               }}
             >
               {/* Scaled and Panned Inner Content */}
