@@ -61,7 +61,7 @@ export default function PrayerTimesModal({
         style={{ fontFamily: "'Tajawal', sans-serif" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#C8A85B]/30 pb-3">
+        <div className="flex items-center justify-between border-b border-[#C8A85B]/30 pb-3 shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">🕌</span>
             <div>
@@ -84,7 +84,7 @@ export default function PrayerTimesModal({
         </div>
 
         {/* Location & GPS Bar */}
-        <div className="bg-[#0D281C] p-3 rounded-2xl border border-[#C8A85B]/40 flex items-center justify-between gap-2">
+        <div className="bg-[#0D281C] p-3 rounded-2xl border border-[#C8A85B]/40 flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-lg shrink-0">📍</span>
             <div className="flex flex-col min-w-0">
@@ -118,33 +118,42 @@ export default function PrayerTimesModal({
         </div>
 
         {gpsError && (
-          <div className="bg-red-950/70 border border-red-500/40 text-red-200 text-xs p-2.5 rounded-xl text-center">
+          <div className="bg-red-950/70 border border-red-500/40 text-red-200 text-xs p-2.5 rounded-xl text-center shrink-0">
             {gpsError}
           </div>
         )}
 
         {/* Next Prayer Live Highlight Card */}
-        <div className="bg-gradient-to-br from-[#184E38] via-[#0E3827] to-[#0A261B] p-4 rounded-2xl border-2 border-[#C8A85B] shadow-lg text-center flex flex-col items-center gap-1.5 relative overflow-hidden">
-          <div className="absolute top-2 left-3 text-[10px] bg-[#C8A85B]/20 text-[#C8A85B] px-2 py-0.5 rounded-full border border-[#C8A85B]/30 font-bold">
-            الصلاة القادمة
+        <div className="bg-gradient-to-br from-[#184E38] via-[#0E3827] to-[#0A261B] p-4 rounded-2xl border-2 border-[#C8A85B] shadow-lg flex flex-col gap-2.5 shrink-0 min-h-fit">
+          {/* Top Row: Next Prayer Title & Badge */}
+          <div className="flex items-center justify-between w-full border-b border-[#C8A85B]/25 pb-2">
+            <div className="text-xs sm:text-sm text-white/90 font-medium flex items-center gap-1.5">
+              <span>⏳</span>
+              <span>
+                متبقي على صلاة <span className="font-extrabold text-[#C8A85B] text-sm sm:text-base">{prayerData.nextPrayer.name}</span>:
+              </span>
+            </div>
+            <span className="text-[10px] sm:text-[11px] bg-[#C8A85B]/25 text-[#F5D88A] px-2.5 py-0.5 rounded-full border border-[#C8A85B]/40 font-bold whitespace-nowrap shadow-xs">
+              الصلاة القادمة
+            </span>
           </div>
 
-          <div className="text-xs text-white/80 font-medium mt-1">
-            متبقي على صلاة <span className="font-extrabold text-[#C8A85B] text-sm">{prayerData.nextPrayer.name}</span>:
+          {/* Countdown Display */}
+          <div className="text-center my-1">
+            <div className="text-3xl sm:text-4xl font-extrabold text-[#F7EED8] tracking-widest font-mono drop-shadow-sm" dir="ltr">
+              {prayerData.nextPrayer.remainingFormatted}
+            </div>
           </div>
 
-          <div className="text-3xl font-extrabold text-[#F7EED8] tracking-wider my-0.5 font-mono" dir="ltr">
-            {prayerData.nextPrayer.remainingFormatted}
-          </div>
-
-          <div className="text-xs text-emerald-300 font-bold flex items-center gap-1.5">
-            <span>⏰ موعد الأذان:</span>
-            <span className="font-bold text-white text-sm">{prayerData.nextPrayer.time12}</span>
+          {/* Adhan Time Footer */}
+          <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-emerald-300 font-bold bg-black/30 px-3.5 py-1.5 rounded-xl border border-emerald-500/30">
+            <span>⏰ موعد أذان {prayerData.nextPrayer.name}:</span>
+            <span className="font-extrabold text-white text-sm sm:text-base font-mono" dir="ltr">{prayerData.nextPrayer.time12}</span>
           </div>
         </div>
 
         {/* Prayer Times Grid (All 6 Times) */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 shrink-0">
           {prayers.map((p) => {
             const isNext = prayerData.nextPrayer.key === p.key;
             const isAdhanActive = p.hasAdhan && settings.adhanEnabled && settings.enabledPrayers[p.key as keyof typeof settings.enabledPrayers];
@@ -198,7 +207,7 @@ export default function PrayerTimesModal({
         </div>
 
         {/* Adhan Sound Alert Card */}
-        <div className="bg-[#0D281C] p-3.5 rounded-2xl border-2 border-[#C8A85B]/50 flex flex-col gap-3 shadow-md">
+        <div className="bg-[#0D281C] p-3.5 rounded-2xl border-2 border-[#C8A85B]/50 flex flex-col gap-3 shadow-md shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <span className="text-2xl">🕌</span>
@@ -251,7 +260,7 @@ export default function PrayerTimesModal({
         </div>
 
         {/* Manual City Selector */}
-        <div className="bg-[#0D281C]/90 p-3 rounded-2xl border border-white/15 flex flex-col gap-1.5">
+        <div className="bg-[#0D281C]/90 p-3 rounded-2xl border border-white/15 flex flex-col gap-1.5 shrink-0">
           <label className="text-xs font-bold text-[#C8A85B] flex items-center gap-1">
             <span>🌍</span>
             <span>أو اختر مدينتك من القائمة يدوياً:</span>
@@ -270,7 +279,7 @@ export default function PrayerTimesModal({
         </div>
 
         {/* Calculation Method Selector */}
-        <div className="bg-[#0D281C]/90 p-3 rounded-2xl border border-white/15 flex flex-col gap-1.5">
+        <div className="bg-[#0D281C]/90 p-3 rounded-2xl border border-white/15 flex flex-col gap-1.5 shrink-0">
           <label className="text-xs font-bold text-white/80 flex items-center gap-1">
             <span>⚙️</span>
             <span>طريقة الحساب والتقويم المعتمد:</span>
@@ -295,7 +304,7 @@ export default function PrayerTimesModal({
             triggerHaptic('tap');
             onClose();
           }}
-          className="w-full py-2.5 rounded-xl font-bold text-xs bg-[#C8A85B] text-[#123B2A] hover:bg-[#dfc278] transition cursor-pointer shadow-md text-center mt-1"
+          className="w-full py-2.5 rounded-xl font-bold text-xs bg-[#C8A85B] text-[#123B2A] hover:bg-[#dfc278] transition cursor-pointer shadow-md text-center mt-1 shrink-0"
         >
           تم وإغلاق
         </button>
