@@ -363,18 +363,21 @@ function MushafReaderInner() {
 
   const handlePageTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2 && pinchStartDistRef.current && pinchStartDistRef.current > 0) {
-      // Pinch scaling
+      // Pinch scaling: minimum zoom is strictly 100% (cannot shrink below default size)
       if (e.cancelable) e.preventDefault();
       const currentDist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
       const scale = currentDist / pinchStartDistRef.current;
-      const calculatedZoom = Math.min(260, Math.max(70, Math.round(pinchStartZoomRef.current * scale)));
+      const calculatedZoom = Math.min(260, Math.max(100, Math.round(pinchStartZoomRef.current * scale)));
       setPageZoom(calculatedZoom);
+      if (calculatedZoom <= 100) {
+        setPanOffset({ x: 0, y: 0 });
+      }
       lastPinchTimeRef.current = Date.now();
     } else if (e.touches.length === 1 && panStartRef.current && pageZoom > 100) {
-      // 1-finger pan movement: prevent default to allow effortless dragging in any direction
+      // 1-finger pan movement: effortlessly drag in all 4 directions (up, down, left, right)
       if (e.cancelable) e.preventDefault();
 
       const dx = e.touches[0].clientX - panStartRef.current.touchX;
@@ -389,9 +392,9 @@ function MushafReaderInner() {
       const width = container ? container.clientWidth : (typeof window !== 'undefined' ? window.innerWidth : 400);
       const height = container ? container.clientHeight : (typeof window !== 'undefined' ? window.innerHeight : 600);
       const scale = pageZoom / 100;
-      // Generous bounds for smooth and easy left/right panning
-      const maxPanX = Math.max(100, ((scale - 1) * width) / 2 + 150);
-      const maxPanY = Math.max(100, ((scale - 1) * height) / 2 + 150);
+      // Generous bounds for smooth movement in all directions: up/down and left/right
+      const maxPanX = Math.max(120, ((scale - 1) * width) / 2 + 200);
+      const maxPanY = Math.max(200, ((scale - 1) * height) / 2 + 350);
 
       const nextX = panStartRef.current.startX + dx;
       const nextY = panStartRef.current.startY + dy;
@@ -408,11 +411,11 @@ function MushafReaderInner() {
       pinchStartDistRef.current = null;
       lastPinchTimeRef.current = Date.now();
       setPageZoom((prev) => {
-        if (prev >= 92 && prev <= 108) {
+        if (prev <= 102) {
           setPanOffset({ x: 0, y: 0 });
           return 100;
         }
-        return prev;
+        return Math.max(100, Math.min(260, prev));
       });
     }
     if (panStartRef.current !== null) {
@@ -453,8 +456,8 @@ function MushafReaderInner() {
       const width = container ? container.clientWidth : 400;
       const height = container ? container.clientHeight : 600;
       const scale = pageZoom / 100;
-      const maxPanX = Math.max(100, ((scale - 1) * width) / 2 + 150);
-      const maxPanY = Math.max(100, ((scale - 1) * height) / 2 + 150);
+      const maxPanX = Math.max(120, ((scale - 1) * width) / 2 + 200);
+      const maxPanY = Math.max(200, ((scale - 1) * height) / 2 + 350);
 
       setPanOffset({
         x: Math.max(-maxPanX, Math.min(maxPanX, panStartRef.current.startX + dx)),
@@ -1016,7 +1019,7 @@ function MushafReaderInner() {
                 pageZoom > 100 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : ''
               }`}
               style={{
-                touchAction: 'none',
+                touchAction: pageZoom > 100 ? 'none' : 'pan-y',
               }}
             >
               {/* Scaled and Panned Inner Content */}
