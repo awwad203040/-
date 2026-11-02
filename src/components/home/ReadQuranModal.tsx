@@ -12,7 +12,7 @@ import {
 import { saveReadingProgress } from '@/lib/storage';
 import KhatmahTracker from '@/components/mushaf/KhatmahTracker';
 import RecitationPracticeHub from '@/components/home/RecitationPracticeHub';
-import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
+import { triggerHaptic, announceToScreenReader } from '@/lib/accessibility';
 
 interface ReadQuranModalProps {
   isOpen: boolean;
@@ -46,7 +46,6 @@ export default function ReadQuranModal({
     const page = targetPage !== undefined ? targetPage : parseArabicOrWesternNumber(jumpPageInput);
     if (!isNaN(page) && page >= 1 && page <= 604) {
       triggerHaptic('tap');
-      speakAccessibility(`الانتقال إلى صفحة ${page}`);
       announceToScreenReader(`الانتقال إلى صفحة ${page}`);
       onClose();
       router.push(`/mushaf?page=${page}`);
@@ -337,7 +336,6 @@ export default function ReadQuranModal({
                       key={meta.number}
                       onClick={() => {
                         triggerHaptic('tap');
-                        speakAccessibility(`فتح سورة ${meta.name}، صفحة ${meta.startPage}`);
                         onClose();
                         router.push(`/mushaf?page=${meta.startPage}`);
                       }}

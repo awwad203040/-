@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Verse } from '@/types/quran';
-import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
+import { triggerHaptic, announceToScreenReader } from '@/lib/accessibility';
 
 interface MushafPageData {
   pageNumber: number;
@@ -132,7 +132,6 @@ export function useMushafPage(initialPage: number) {
       setCurrentPage((current) => {
         if (current !== page) {
           triggerHaptic('tap');
-          speakAccessibility(`صفحة ${page}`);
           announceToScreenReader(`صفحة ${page}`);
         }
         return page;
@@ -145,7 +144,6 @@ export function useMushafPage(initialPage: number) {
       const next = p < 604 ? p + 1 : p;
       if (next !== p) {
         triggerHaptic('next');
-        speakAccessibility(`صفحة ${next}`);
         announceToScreenReader(`صفحة ${next}`);
       }
       return next;
@@ -157,7 +155,6 @@ export function useMushafPage(initialPage: number) {
       const prev = p > 1 ? p - 1 : p;
       if (prev !== p) {
         triggerHaptic('prev');
-        speakAccessibility(`صفحة ${prev}`);
         announceToScreenReader(`صفحة ${prev}`);
       }
       return prev;
