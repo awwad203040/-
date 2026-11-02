@@ -36,6 +36,9 @@ export default function AutoAthkarModal({
   const [testActive, setTestActive] = useState<boolean>(false);
   const [btnFeedback, setBtnFeedback] = useState<string | null>(null);
 
+  const salawatThikr = VOICE_ATHKAR_LIST.find((t) => t.id === 'salawat-nabi') || VOICE_ATHKAR_LIST[3];
+  const nonSalawatAthkar = VOICE_ATHKAR_LIST.filter((t) => t.id !== 'salawat-nabi');
+
   const handleBatteryClick = async () => {
     setBtnFeedback('⏳ جاري فتح إعدادات استثناء البطارية بالجوال...');
     try {
@@ -146,7 +149,7 @@ export default function AutoAthkarModal({
                 الأذكار الصوتية التلقائية
               </h2>
               <p className="text-xs opacity-80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                تذكير صوتي ندي بالتسبيح والتوحيد والحوقلة والصلاة على النبي ﷺ
+                تذكير صوتي ندي بالأذكار مع تكرار الصلاة على النبي ﷺ بين كل ذكر وآخر
               </p>
             </div>
           </div>
@@ -185,7 +188,7 @@ export default function AutoAthkarModal({
               fontFamily: "'Tajawal', sans-serif",
             }}
           >
-            📜 قائمة الأذكار الصوتية ({VOICE_ATHKAR_LIST.length})
+            📜 الأذكار وتكرار الصلاة على النبي ﷺ
           </button>
         </div>
 
@@ -388,6 +391,36 @@ export default function AutoAthkarModal({
                   </span>
                 </div>
 
+                {/* Prominent Banner for Alternating Salawat */}
+                <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/15 via-[#C8A85B]/15 to-emerald-500/15 border border-emerald-500/40 flex items-center justify-between gap-2.5 shadow-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-xl shrink-0">💚</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                          الصلاة على النبي ﷺ:
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-700 text-white">
+                          تتكرر بين كل ذكر والآخر ✓
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-[#0B5B43] truncate mt-0.5" style={{ fontFamily: "'Amiri', serif" }}>
+                        «صَلِّ عَلَى النَّبِيِّ مُحَمَّد ﷺ»
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onTestThikr(salawatThikr)}
+                    disabled={isSpeaking}
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[#123B2A] text-[#C8A85B] hover:bg-[#0B5B43] transition-colors flex items-center gap-1 cursor-pointer shrink-0 shadow-xs disabled:opacity-50"
+                    title="استمع لصوت الصلاة على النبي"
+                  >
+                    <span>🔊</span>
+                    <span>استماع</span>
+                  </button>
+                </div>
+
                 <div className="space-y-2">
                   {VOICE_ATHKAR_LIST.map((thikr) => {
                     const isActive = activeThikrIds.includes(thikr.id);
@@ -404,7 +437,7 @@ export default function AutoAthkarModal({
                         <button
                           type="button"
                           onClick={() => handleToggleThikr(thikr.id)}
-                          className="flex items-center gap-2.5 flex-1 text-right cursor-pointer"
+                          className="flex items-center gap-2.5 flex-1 text-right cursor-pointer min-w-0"
                         >
                           <span
                             className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
@@ -415,13 +448,20 @@ export default function AutoAthkarModal({
                           >
                             ✓
                           </span>
-                          <span
-                            className="font-bold text-sm text-[#123B2A] leading-relaxed"
-                            style={{ fontFamily: "'Amiri', serif" }}
-                            dir="rtl"
-                          >
-                            • {thikr.textDisplay}
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <span
+                              className="font-bold text-sm text-[#123B2A] leading-relaxed block"
+                              style={{ fontFamily: "'Amiri', serif" }}
+                              dir="rtl"
+                            >
+                              • {thikr.textDisplay}
+                            </span>
+                            {thikr.id === 'salawat-nabi' && (
+                              <span className="inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-600/15 text-[#0B5B43]">
+                                💚 يتكرر دورياً بين كل ذكر وآخر
+                              </span>
+                            )}
+                          </div>
                         </button>
 
                         {/* Test Male Voice Button */}
@@ -510,40 +550,87 @@ export default function AutoAthkarModal({
           )}
 
           {activeTab === 'list' && (
-            <div className="space-y-2.5">
-              {VOICE_ATHKAR_LIST.map((thikr) => (
-                <div
-                  key={thikr.id}
-                  className="bg-white p-4 rounded-2xl border border-[#C8A85B]/30 shadow-xs flex items-center justify-between gap-3"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#123B2A]/10 text-[#123B2A]">
-                        {thikr.categoryName}
-                      </span>
+            <div className="space-y-3">
+              {/* Highlight Informative Banner */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-[#C8A85B]/20 to-emerald-500/15 border border-emerald-500/40 text-center space-y-1 shadow-xs">
+                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  <span>💚</span>
+                  <span>تكرار مبارك: الصلاة على النبي ﷺ تتكرر بين كل ذكر والآخر</span>
+                  <span>💚</span>
+                </div>
+                <p className="text-[11px] text-[#0B5B43] font-semibold leading-relaxed">
+                  ينطق الذكر ثم يتبعه في المرة التالية نطق: «صَلِّ عَلَى النَّبِيِّ مُحَمَّد ﷺ» بصوت رجل وقور
+                </p>
+              </div>
+
+              {nonSalawatAthkar.map((thikr, idx) => (
+                <div key={thikr.id} className="space-y-2.5">
+                  {/* Primary Thikr Card */}
+                  <div className="bg-white p-4 rounded-2xl border border-[#C8A85B]/30 shadow-xs flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#123B2A]/10 text-[#123B2A]">
+                          {thikr.categoryName}
+                        </span>
+                        <span className="text-[10px] font-semibold text-gray-400">
+                          ذكر #{idx + 1}
+                        </span>
+                      </div>
+                      <p
+                        className="text-base font-bold text-[#123B2A] leading-relaxed"
+                        style={{ fontFamily: "'Amiri', serif" }}
+                      >
+                        {thikr.textDisplay}
+                      </p>
+                      <p className="text-[11px] opacity-70 mt-1" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                        {thikr.virtue}
+                      </p>
                     </div>
-                    <p
-                      className="text-base font-bold text-[#123B2A] leading-relaxed"
-                      style={{ fontFamily: "'Amiri', serif" }}
+
+                    <button
+                      type="button"
+                      onClick={() => onTestThikr(thikr)}
+                      className="p-3 rounded-xl bg-[#123B2A] text-[#C8A85B] hover:bg-[#0B5B43] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 flex-shrink-0"
+                      title="استمع لنطق هذا الذكر"
                     >
-                      {thikr.textDisplay}
-                    </p>
-                    <p className="text-[11px] opacity-70 mt-1" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                      {thikr.virtue}
-                    </p>
+                      <span>🔊</span>
+                      <span className="text-xs font-bold hidden sm:inline" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                        استمع
+                      </span>
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => onTestThikr(thikr)}
-                    className="p-3 rounded-xl bg-[#123B2A] text-[#C8A85B] hover:bg-[#0B5B43] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 flex-shrink-0"
-                    title="استمع لنطق هذا الذكر"
-                  >
-                    <span>🔊</span>
-                    <span className="text-xs font-bold hidden sm:inline" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                      استمع
-                    </span>
-                  </button>
+                  {/* Interleaved Repeating Salawat Card */}
+                  <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-emerald-50/90 border border-emerald-400/50 shadow-xs">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <span className="text-xl shrink-0">💚</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-700 text-white">
+                            يتكرر بين كل ذكر والآخر ✓
+                          </span>
+                        </div>
+                        <p
+                          className="text-sm font-bold text-emerald-950 truncate"
+                          style={{ fontFamily: "'Amiri', serif" }}
+                        >
+                          {salawatThikr.textDisplay}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onTestThikr(salawatThikr)}
+                      className="p-2 px-3 rounded-xl bg-emerald-800 text-[#C8A85B] hover:bg-emerald-900 transition-all flex items-center gap-1 shadow-xs cursor-pointer active:scale-95 flex-shrink-0"
+                      title="استمع لنطق الصلاة على النبي"
+                    >
+                      <span>🔊</span>
+                      <span className="text-xs font-bold" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                        استمع
+                      </span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -2,7 +2,7 @@
 
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import type { AutoAthkarSettings } from '@/types/athkar';
-import { VOICE_ATHKAR_LIST } from '@/lib/athkar-data';
+import { VOICE_ATHKAR_LIST, interleaveWithSalawat } from '@/lib/athkar-data';
 
 interface NativeThikrPayload {
   id: string;
@@ -246,8 +246,9 @@ export async function syncNativeAthkar(settings: AutoAthkarSettings): Promise<bo
         );
 
     const pool = activeList.length > 0 ? activeList : VOICE_ATHKAR_LIST;
+    const interleavedPool = interleaveWithSalawat(pool);
 
-    const payload: NativeThikrPayload[] = pool.map((t) => ({
+    const payload: NativeThikrPayload[] = interleavedPool.map((t) => ({
       id: t.id,
       sound: t.rawSound ? t.rawSound.replace(/\.[^/.]+$/, '') : 'tasbeeh_azeem',
       title: t.categoryName,

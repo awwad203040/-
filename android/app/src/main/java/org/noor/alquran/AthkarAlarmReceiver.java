@@ -444,13 +444,20 @@ public class AthkarAlarmReceiver extends BroadcastReceiver {
 
     public static List<ThikrItem> getDefaultThikrItems() {
         List<ThikrItem> list = new ArrayList<>();
+        ThikrItem salawat = new ThikrItem("salawat-nabi", "salawat_nabi", "الصلاة على النبي ﷺ", "صَلِّ عَلَى النَّبِيِّ مُحَمَّد ﷺ.");
+
         list.add(new ThikrItem("tasbeeh-azeem", "tasbeeh_azeem", "التسبيح", "سُبْحَانَ رَبِّيَ الْعَظِيمِ وَبِحَمْدِهِ."));
+        list.add(salawat);
         list.add(new ThikrItem("tawheed-1", "tawheed", "التهليل والتوحيد", "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ."));
+        list.add(salawat);
         list.add(new ThikrItem("hawqala-1", "hawqala", "الحوقلة", "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ."));
-        list.add(new ThikrItem("salawat-nabi", "salawat_nabi", "الصلاة على النبي ﷺ", "إِنَّ اللَّهَ وَمَلَائِكَتَهُ يُصَلُّونَ عَلَى النَّبِيِّ ۝ يَا أَيُّهَا الَّذِينَ آمَنُوا صَلُّوا عَلَيْهِ وَسَلِّمُوا تَسْلِيمًا."));
+        list.add(salawat);
         list.add(new ThikrItem("tasbeeh-quddoos", "tasbeeh_quddoos", "التسبيح والتقديس", "سُبْحَانَ الْمَلِكِ الْقُدُّوسِ."));
+        list.add(salawat);
         list.add(new ThikrItem("baqiyat-1", "baqiyat", "الباقيات الصالحات", "سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَاللَّهُ أَكْبَرُ."));
+        list.add(salawat);
         list.add(new ThikrItem("istighfar-custom", "istighfar", "الاستغفار", "أَسْتَغْفِرُ اللَّهَ."));
+        list.add(salawat);
         return list;
     }
 }

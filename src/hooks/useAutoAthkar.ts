@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AutoAthkarSettings, VoiceThikr, ThikrCategory } from '@/types/athkar';
 import { DEFAULT_ATHKAR_SETTINGS } from '@/types/athkar';
-import { VOICE_ATHKAR_LIST } from '@/lib/athkar-data';
+import { VOICE_ATHKAR_LIST, interleaveWithSalawat } from '@/lib/athkar-data';
 import { getAutoAthkarSettings, saveAutoAthkarSettings } from '@/lib/storage';
 import {
   playSpiritualChime,
@@ -93,7 +93,8 @@ export function useAutoAthkar() {
             (settings?.activeCategories || ['istighfar', 'tasbeeh', 'hawqala', 'tahmeed', 'salawat']).includes(t.category)
           );
 
-      const candidateList = activeList.length > 0 ? activeList : VOICE_ATHKAR_LIST;
+      const baseList = activeList.length > 0 ? activeList : VOICE_ATHKAR_LIST;
+      const candidateList = interleaveWithSalawat(baseList);
 
       let selected: VoiceThikr;
       if (thikrToPlay) {

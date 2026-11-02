@@ -35,8 +35,8 @@ export const VOICE_ATHKAR_LIST: VoiceThikr[] = [
     id: 'salawat-nabi',
     category: 'salawat',
     categoryName: 'الصلاة على النبي ﷺ',
-    textTashkeel: 'إِنَّ اللَّهَ وَمَلَائِكَتَهُ يُصَلُّونَ عَلَى النَّبِيِّ يَا أَيُّهَا الَّذِينَ آمَنُوا صَلُّوا عَلَيْهِ وَسَلِّمُوا تَسْلِيمًا',
-    textDisplay: 'إِنَّ اللَّهَ وَمَلَائِكَتَهُ يُصَلُّونَ عَلَى النَّبِيِّ ۝ يَا أَيُّهَا الَّذِينَ آمَنُوا صَلُّوا عَلَيْهِ وَسَلِّمُوا تَسْلِيمًا.',
+    textTashkeel: 'صَلِّ عَلَى النَّبِيِّ مُحَمَّد',
+    textDisplay: 'صَلِّ عَلَى النَّبِيِّ مُحَمَّد ﷺ.',
     virtue: 'قال ﷺ: «مَنْ صَلَّى عَلَيَّ صَلَاةً صَلَّى اللَّهُ عَلَيْهِ بِهَا عَشْرًا»',
     audioUrl: '/audio/athkar/salawat-nabi.mp3',
     rawSound: 'salawat_nabi.mp3',
@@ -89,3 +89,25 @@ export const ATHKAR_INTERVALS = [
   { minutes: 30, label: 'كل 30 دقيقة' },
   { minutes: 60, label: 'كل ساعة' },
 ];
+
+/**
+ * Interleaves Salawat (الصلاة على النبي ﷺ) between every other thikr in the rotation.
+ * Pattern: [ذكر 1, الصلاة على النبي, ذكر 2, الصلاة على النبي, ...]
+ * Ensures Salawat repeats continuously between every thikr recited.
+ */
+export function interleaveWithSalawat(thikrs: VoiceThikr[]): VoiceThikr[] {
+  const salawat = VOICE_ATHKAR_LIST.find((t) => t.id === 'salawat-nabi') || VOICE_ATHKAR_LIST[3];
+  const nonSalawat = thikrs.filter((t) => t.id !== 'salawat-nabi');
+
+  if (nonSalawat.length === 0) {
+    return [salawat];
+  }
+
+  const result: VoiceThikr[] = [];
+  for (const item of nonSalawat) {
+    result.push(item);
+    result.push(salawat);
+  }
+  return result;
+}
+
