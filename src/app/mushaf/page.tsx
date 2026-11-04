@@ -41,6 +41,7 @@ import PageVersesTafsirDrawer from '@/components/mushaf/PageVersesTafsirDrawer';
 import { useAutoAthkar } from '@/hooks/useAutoAthkar';
 import AthkarToast from '@/components/common/AthkarToast';
 import { getPageFromIDB } from '@/lib/offline-manager';
+import { stopAccessibilitySpeech } from '@/lib/accessibility';
 
 
 
@@ -240,6 +241,7 @@ function MushafReaderInner() {
 
   // Load settings and bookmarks from localStorage
   useEffect(() => {
+    stopAccessibilitySpeech();
     setSettings(getSettings());
     setBookmarks(getBookmarks());
   }, []);

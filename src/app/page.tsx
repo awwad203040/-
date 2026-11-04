@@ -24,7 +24,7 @@ import ReadQuranModal from '@/components/home/ReadQuranModal';
 import BlindVoiceAssistantModal from '@/components/common/BlindVoiceAssistantModal';
 import type { VoiceCommandResult } from '@/lib/voice-command-engine';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
-import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
+import { triggerHaptic, speakAccessibility, stopAccessibilitySpeech, announceToScreenReader } from '@/lib/accessibility';
 
 export default function HomePage() {
   const router = useRouter();
@@ -123,7 +123,7 @@ export default function HomePage() {
     const start = Math.max(1, Math.min(total, ayahRangeStart));
     const end = Math.max(start, Math.min(total, ayahRangeEnd));
     triggerHaptic('repeat');
-    speakAccessibility(`بدء تكرار سورة ${meta?.name || ''} من آية ${start} إلى ${end}، ${rangeRepeatCount === 999 ? 'مستمر' : `${rangeRepeatCount} مرات`}`);
+    stopAccessibilitySpeech();
     announceToScreenReader(`بدء تكرار سورة ${meta?.name || ''} من آية ${start} إلى ${end}`);
     audio.startAyahRangeLoop(
       selectedSurahForAudio,
@@ -153,17 +153,16 @@ export default function HomePage() {
     }
     if (audio.isPlaying) {
       triggerHaptic('pause');
-      speakAccessibility('إيقاف مؤقت');
       announceToScreenReader('تم إيقاف التلاوة مؤقتاً');
       audio.pause();
     } else if (audio.currentSurah === selectedSurahForAudio && audio.currentTime > 0) {
       triggerHaptic('play');
-      speakAccessibility(`استئناف تلاوة سورة ${sName}`);
+      stopAccessibilitySpeech();
       announceToScreenReader(`استئناف تلاوة سورة ${sName}`);
       audio.play();
     } else {
       triggerHaptic('play');
-      speakAccessibility(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
+      stopAccessibilitySpeech();
       announceToScreenReader(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
       audio.loadAndPlay(
         selectedSurahForAudio,
@@ -181,7 +180,6 @@ export default function HomePage() {
     saveSettings({ selectedReciterId: newId });
     const newReciter = POPULAR_RECITERS.find((r) => r.id === newId) || POPULAR_RECITERS[0];
     triggerHaptic('tap');
-    speakAccessibility(`تم اختيار القارئ الشيخ ${newReciter.name}`);
     announceToScreenReader(`تم اختيار القارئ الشيخ ${newReciter.name}`);
     if (audio.isPlaying) {
       const targetSurah = audio.currentSurah || selectedSurahForAudio;
@@ -200,12 +198,11 @@ export default function HomePage() {
     const sName = getSurahName(surahNumber);
     if (audio.isPlaying && audio.currentSurah === surahNumber) {
       triggerHaptic('pause');
-      speakAccessibility(`إيقاف الاستماع لسورة ${sName}`);
       announceToScreenReader(`تم إيقاف تلاوة سورة ${sName}`);
       audio.pause();
     } else {
       triggerHaptic('play');
-      speakAccessibility(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
+      stopAccessibilitySpeech();
       announceToScreenReader(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
       audio.loadAndPlay(
         surahNumber,
@@ -400,7 +397,7 @@ export default function HomePage() {
                 type="button"
                 onClick={() => {
                   triggerHaptic('tap');
-                  speakAccessibility('فتح نافذة اقرأ القرآن وفهرس السور والأجزاء والختمة المباركة');
+                  stopAccessibilitySpeech();
                   setShowReadQuranModal(true);
                 }}
                 className="group relative inline-block select-none cursor-pointer focus:outline-none"
@@ -987,7 +984,7 @@ export default function HomePage() {
                             setAyahRangeEnd(val);
                           }
                           triggerHaptic('tap');
-                          speakAccessibility(`بداية المقطع من الآية ${val}`);
+                          announceToScreenReader(`بداية المقطع من الآية ${val}`);
                         }}
                         aria-label="اختيار بداية المقطع من الآية"
                         className="w-full bg-[#0D281C] text-[#C8A85B] font-bold text-xs p-2 rounded-xl border border-[#C8A85B]/50 focus:outline-none cursor-pointer"
@@ -1014,7 +1011,7 @@ export default function HomePage() {
                           const finalEnd = Math.max(ayahRangeStart, val);
                           setAyahRangeEnd(finalEnd);
                           triggerHaptic('tap');
-                          speakAccessibility(`نهاية المقطع إلى الآية ${finalEnd}`);
+                          announceToScreenReader(`نهاية المقطع إلى الآية ${finalEnd}`);
                         }}
                         aria-label="اختيار نهاية المقطع إلى الآية"
                         className="w-full bg-[#0D281C] text-[#C8A85B] font-bold text-xs p-2 rounded-xl border border-[#C8A85B]/50 focus:outline-none cursor-pointer"
@@ -1052,11 +1049,11 @@ export default function HomePage() {
                           triggerHaptic('tap');
                           if (rangeRepeatCount === 999) {
                             setRangeRepeatCount(10);
-                            speakAccessibility('عدد التكرار 10');
+                            announceToScreenReader('عدد التكرار 10');
                           } else {
                             const nextVal = Math.max(1, rangeRepeatCount - 1);
                             setRangeRepeatCount(nextVal);
-                            speakAccessibility(`عدد التكرار ${nextVal}`);
+                            announceToScreenReader(`عدد التكرار ${nextVal}`);
                           }
                         }}
                         aria-label="إنقاص عدد مرات التكرار بمقدار واحد"
@@ -1079,7 +1076,7 @@ export default function HomePage() {
                           if (!isNaN(val) && val >= 1) {
                             const clamped = Math.min(500, val);
                             setRangeRepeatCount(clamped);
-                            speakAccessibility(`عدد التكرار ${clamped}`);
+                            announceToScreenReader(`عدد التكرار ${clamped}`);
                           } else if (e.target.value === '') {
                             setRangeRepeatCount(1);
                           }
@@ -1094,11 +1091,11 @@ export default function HomePage() {
                           triggerHaptic('tap');
                           if (rangeRepeatCount === 999) {
                             setRangeRepeatCount(1);
-                            speakAccessibility('عدد التكرار 1');
+                            announceToScreenReader('عدد التكرار 1');
                           } else {
                             const nextVal = Math.min(500, rangeRepeatCount + 1);
                             setRangeRepeatCount(nextVal);
-                            speakAccessibility(`عدد التكرار ${nextVal}`);
+                            announceToScreenReader(`عدد التكرار ${nextVal}`);
                           }
                         }}
                         aria-label="زيادة عدد مرات التكرار بمقدار واحد"
@@ -1115,7 +1112,7 @@ export default function HomePage() {
                           triggerHaptic('tap');
                           const nextVal = rangeRepeatCount === 999 ? 3 : 999;
                           setRangeRepeatCount(nextVal);
-                          speakAccessibility(nextVal === 999 ? 'تكرار مستمر بلا توقف' : 'تكرار 3 مرات');
+                          announceToScreenReader(nextVal === 999 ? 'تكرار مستمر بلا توقف' : 'تكرار 3 مرات');
                         }}
                         aria-label="تفعيل أو إيقاف التكرار المستمر"
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border shrink-0 ${
@@ -1173,11 +1170,11 @@ export default function HomePage() {
                         triggerHaptic('tap');
                         if (audio.repeatCount === 999) {
                           audio.setRepeatCount(10);
-                          speakAccessibility('تكرار السورة 10 مرات');
+                          announceToScreenReader('تكرار السورة 10 مرات');
                         } else {
                           const nextVal = Math.max(1, audio.repeatCount - 1);
                           audio.setRepeatCount(nextVal);
-                          speakAccessibility(`تكرار السورة ${nextVal} مرات`);
+                          announceToScreenReader(`تكرار السورة ${nextVal} مرات`);
                         }
                       }}
                       aria-label="إنقاص عدد تكرار السورة"
@@ -1198,7 +1195,7 @@ export default function HomePage() {
                         if (!isNaN(val) && val >= 1) {
                           const clamped = Math.min(500, val);
                           audio.setRepeatCount(clamped);
-                          speakAccessibility(`تكرار السورة ${clamped} مرات`);
+                          announceToScreenReader(`تكرار السورة ${clamped} مرات`);
                         } else if (e.target.value === '') {
                           audio.setRepeatCount(1);
                         }
@@ -1211,11 +1208,11 @@ export default function HomePage() {
                         triggerHaptic('tap');
                         if (audio.repeatCount === 999) {
                           audio.setRepeatCount(1);
-                          speakAccessibility('تكرار السورة مرة واحدة');
+                          announceToScreenReader('تكرار السورة مرة واحدة');
                         } else {
                           const nextVal = Math.min(500, audio.repeatCount + 1);
                           audio.setRepeatCount(nextVal);
-                          speakAccessibility(`تكرار السورة ${nextVal} مرات`);
+                          announceToScreenReader(`تكرار السورة ${nextVal} مرات`);
                         }
                       }}
                       aria-label="زيادة عدد تكرار السورة"
@@ -1230,7 +1227,7 @@ export default function HomePage() {
                         triggerHaptic('tap');
                         const nextVal = audio.repeatCount === 999 ? 3 : 999;
                         audio.setRepeatCount(nextVal);
-                        speakAccessibility(nextVal === 999 ? 'تكرار السورة مستمر بلا توقف' : 'تكرار السورة 3 مرات');
+                        announceToScreenReader(nextVal === 999 ? 'تكرار السورة مستمر بلا توقف' : 'تكرار السورة 3 مرات');
                       }}
                       aria-label="تفعيل أو إلغاء تكرار السورة المستمر"
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border shrink-0 ${

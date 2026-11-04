@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReadingProgress, Bookmark } from '@/types/quran';
 import {
@@ -12,7 +12,7 @@ import {
 import { saveReadingProgress } from '@/lib/storage';
 import KhatmahTracker from '@/components/mushaf/KhatmahTracker';
 import RecitationPracticeHub from '@/components/home/RecitationPracticeHub';
-import { triggerHaptic, announceToScreenReader } from '@/lib/accessibility';
+import { triggerHaptic, stopAccessibilitySpeech, announceToScreenReader } from '@/lib/accessibility';
 
 interface ReadQuranModalProps {
   isOpen: boolean;
@@ -40,12 +40,19 @@ export default function ReadQuranModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [jumpPageInput, setJumpPageInput] = useState('');
 
+  useEffect(() => {
+    if (isOpen) {
+      stopAccessibilitySpeech();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleJumpToPage = (targetPage?: number) => {
     const page = targetPage !== undefined ? targetPage : parseArabicOrWesternNumber(jumpPageInput);
     if (!isNaN(page) && page >= 1 && page <= 604) {
       triggerHaptic('tap');
+      stopAccessibilitySpeech();
       announceToScreenReader(`الانتقال إلى صفحة ${page}`);
       onClose();
       router.push(`/mushaf?page=${page}`);

@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { getSurahName, getDirectReciterAudioUrl, getFallbackReciterAudioUrl } from '@/lib/quran-meta';
 import { getOfflineAudioBlob, isAudioDownloaded } from '@/lib/offline-audio-manager';
-import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
+import { triggerHaptic, stopAccessibilitySpeech, announceToScreenReader } from '@/lib/accessibility';
 
 export interface AudioPlayerState {
   isPlaying: boolean;
@@ -247,7 +247,7 @@ export function useAudioPlayer() {
           loopRef.current.currentAyahNumber = ayahRangeStart;
           setState((prev) => ({ ...prev, currentAyahNumber: ayahRangeStart }));
           triggerHaptic('repeat');
-          speakAccessibility('إعادة تكرار المقطع');
+          announceToScreenReader('إعادة تكرار المقطع');
           const verseKey = `${currentSurah}:${ayahRangeStart}`;
           const surahName = getSurahName(currentSurah);
           loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
@@ -264,7 +264,7 @@ export function useAudioPlayer() {
             currentAyahNumber: ayahRangeStart,
           }));
           triggerHaptic('repeat');
-          speakAccessibility(`تكرار: متبقي ${nextRemaining} مرات`);
+          announceToScreenReader(`تكرار: متبقي ${nextRemaining} مرات`);
           const verseKey = `${currentSurah}:${ayahRangeStart}`;
           const surahName = getSurahName(currentSurah);
           loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
@@ -278,7 +278,7 @@ export function useAudioPlayer() {
         audio.pause();
         audio.currentTime = 0;
         triggerHaptic('success');
-        speakAccessibility('اكتمل التكرار');
+        announceToScreenReader('اكتمل التكرار');
         setState((prev) => ({
           ...prev,
           isPlaying: false,
@@ -414,6 +414,7 @@ export function useAudioPlayer() {
       verseKey?: string,
       preserveRepeatState = false
     ) => {
+      stopAccessibilitySpeech();
       setState((prev) => ({
         ...prev,
         isLoading: true,
@@ -634,6 +635,7 @@ export function useAudioPlayer() {
   }, []);
 
   const play = useCallback(() => {
+    stopAccessibilitySpeech();
     if (!audioRef.current) return;
     const audio = audioRef.current;
     if (!audio.src) {
