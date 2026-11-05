@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { forcePwaUpdate } from '@/components/PwaRegister';
+import { downloadAndInstallNativeUpdate } from '@/lib/adhan-native-bridge';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -21,6 +23,22 @@ export default function InstallAppModal({
   const [showManualGuide, setShowManualGuide] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [isDownloadingApk, setIsDownloadingApk] = useState(false);
+
+  const handleDownloadApk = async () => {
+    if (Capacitor.isNativePlatform()) {
+      setIsDownloadingApk(true);
+      try {
+        await downloadAndInstallNativeUpdate('https://awwad2030.vercel.app/Noor-AlQuran.apk');
+      } catch {
+        window.open('https://awwad2030.vercel.app/Noor-AlQuran.apk', '_system');
+      } finally {
+        setTimeout(() => setIsDownloadingApk(false), 3000);
+      }
+    } else {
+      window.location.href = 'https://awwad2030.vercel.app/Noor-AlQuran.apk';
+    }
+  };
 
   const handleUpdateApp = async () => {
     setIsUpdating(true);
@@ -325,9 +343,10 @@ export default function InstallAppModal({
               </p>
             </div>
 
-            <a
-              href="https://github.com/awwad203040/awwad2030/raw/main/public/Noor-AlQuran.apk"
-              download="Noor-AlQuran.apk"
+            <button
+              type="button"
+              onClick={handleDownloadApk}
+              disabled={isDownloadingApk}
               className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-md transition-transform active:scale-98 cursor-pointer text-center block"
               style={{
                 backgroundColor: '#123B2A',
@@ -335,9 +354,18 @@ export default function InstallAppModal({
                 fontFamily: "'Tajawal', sans-serif",
               }}
             >
-              <span>📥</span>
-              <span>تحميل تطبيق نور القرآن APK المحدث الآن</span>
-            </a>
+              {isDownloadingApk ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-[#C8A85B] border-t-transparent rounded-full animate-spin" />
+                  <span>جاري تنزيل التحديث والتثبيت التلقائي...</span>
+                </>
+              ) : (
+                <>
+                  <span>📥</span>
+                  <span>تحميل أو تحديث تطبيق نور القرآن APK المحدث الآن</span>
+                </>
+              )}
+            </button>
 
             <div className="p-4 rounded-2xl bg-[#C8A85B]/15 border border-[#C8A85B]/40 text-xs text-[#123B2A] space-y-2">
               <p className="font-bold">طريقة تثبيت ملف الـ APK:</p>

@@ -23,6 +23,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import androidx.core.app.NotificationCompat;
 
+import java.util.Calendar;
 import java.util.Locale;
 
 /**
@@ -168,7 +169,10 @@ public class PrayerNotificationHelper {
     public static CharSequence buildSalatukContentText(String prayerName, String prayerTime12, String timerText) {
         String safePrayer = (prayerName != null && !prayerName.isEmpty()) ? prayerName : "الصلاة";
         String safeTime = (prayerTime12 != null && !prayerTime12.isEmpty()) ? prayerTime12 : "00:00";
-        String safeTimer = (timerText != null && !timerText.isEmpty()) ? timerText : "+ 00:00";
+        String safeTimer = (timerText != null && !timerText.isEmpty()) ? timerText.trim() : "+ 00:00";
+        if (safeTimer.startsWith("د")) {
+            safeTimer = safeTimer.substring(1).trim();
+        }
 
         SpannableStringBuilder ssb = new SpannableStringBuilder();
         ssb.append(safePrayer).append(" . ").append(safeTime).append(" ");
@@ -248,18 +252,43 @@ public class PrayerNotificationHelper {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
+        Intent deleteIntent = new Intent(context, PrayerNotificationReceiver.class);
+        deleteIntent.setAction(PrayerNotificationReceiver.ACTION_RECREATE_PRAYER_NOTIFICATION);
+        PendingIntent deletePi = PendingIntent.getBroadcast(
+                context,
+                PrayerNotificationReceiver.REQ_CODE_DELETE,
+                deleteIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        android.widget.RemoteViews customViews = new android.widget.RemoteViews(context.getPackageName(), R.layout.notification_salatuk);
+        customViews.setTextViewText(R.id.salatuk_title, title);
+        customViews.setTextViewText(R.id.salatuk_prayer_time, prayerName + " . " + prayerTime12 + " ");
+        String safeTimerOnly = (timerText != null && !timerText.isEmpty()) ? timerText.trim() : "+ 00:00";
+        if (safeTimerOnly.startsWith("د")) {
+            safeTimerOnly = safeTimerOnly.substring(1).trim();
+        }
+        customViews.setTextViewText(R.id.salatuk_timer, "د " + safeTimerOnly);
+
+        Bitmap mosqueIcon = getSalatukMosqueIcon(context);
+        if (mosqueIcon != null) {
+            customViews.setImageViewBitmap(R.id.salatuk_icon, mosqueIcon);
+        }
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setContentText(contentText)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(contentText))
+                .setCustomContentView(customViews)
+                .setCustomBigContentView(customViews)
                 .setShowWhen(false)
+                .setWhen(0)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setColor(Color.parseColor("#123B2A"))
                 .setContentIntent(openPi)
+                .setDeleteIntent(deletePi)
                 .setOngoing(true);
 
-        Bitmap mosqueIcon = getSalatukMosqueIcon(context);
         if (mosqueIcon != null) {
             builder.setLargeIcon(mosqueIcon);
         }
@@ -284,7 +313,107 @@ public class PrayerNotificationHelper {
                     .setCategory(NotificationCompat.CATEGORY_STATUS);
         }
 
-        return builder.build();
+        Notification notification = builder.build();
+        notification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_NO_CLEAR;
+        return notification;
+    }
+
+    public static class ActivePrayerInfo {
+        public String prayerName;
+        public String prayerTime12;
+        public String cityName;
+        public String hijriDate;
+        public String timerText;
+    }
+
+    public static ActivePrayerInfo calculateCurrentActivePrayer(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(AdhanAlarmReceiver.PREFS_NAME, Context.MODE_PRIVATE);
+        String cityName = prefs.getString("city_name", "موقعك");
+        String hijriDate = prefs.getString("hijri_date", null);
+        if (hijriDate == null) hijriDate = getHijriDateArabic(context);
+
+        String fajr = prefs.getString("time_fajr", "04:45");
+        String dhuhr = prefs.getString("time_dhuhr", "11:27");
+        String asr = prefs.getString("time_asr", "14:45");
+        String maghrib = prefs.getString("time_maghrib", "17:15");
+        String isha = prefs.getString("time_isha", "18:45");
+
+        String[] times24 = { fajr, dhuhr, asr, maghrib, isha };
+        String[] names = { "الفجر", "الظهر", "العصر", "المغرب", "العشاء" };
+        String[] keys = { "fajr", "dhuhr", "asr", "maghrib", "isha" };
+
+        Calendar now = Calendar.getInstance();
+        int nowMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
+        int nowSeconds = now.get(Calendar.SECOND);
+        int nowTotalSec = nowMinutes * 60 + nowSeconds;
+
+        int[] prayerSecs = new int[5];
+        for (int i = 0; i < 5; i++) {
+            try {
+                String[] p = times24[i].split(":");
+                int h = Integer.parseInt(p[0].trim());
+                int m = Integer.parseInt(p[1].trim());
+                prayerSecs[i] = (h * 60 + m) * 60;
+            } catch (Exception e) {
+                prayerSecs[i] = (i * 3 + 4) * 3600;
+            }
+        }
+
+        int activeIdx = 4;
+        int elapsedSec;
+        if (nowTotalSec < prayerSecs[0]) {
+            activeIdx = 4;
+            elapsedSec = nowTotalSec + (24 * 3600 - prayerSecs[4]);
+        } else {
+            for (int i = 4; i >= 0; i--) {
+                if (nowTotalSec >= prayerSecs[i]) {
+                    activeIdx = i;
+                    elapsedSec = nowTotalSec - prayerSecs[i];
+                    break;
+                }
+            }
+            if (activeIdx < 0 || activeIdx > 4) activeIdx = 0;
+            elapsedSec = Math.max(0, nowTotalSec - prayerSecs[activeIdx]);
+        }
+
+        String timerText;
+        if (elapsedSec < 3600) {
+            int m = elapsedSec / 60;
+            int s = elapsedSec % 60;
+            timerText = String.format(Locale.US, "+ %02d:%02d", m, s);
+        } else {
+            int h = elapsedSec / 3600;
+            int m = (elapsedSec % 3600) / 60;
+            timerText = String.format(Locale.US, "+ %02d:%02d", h, m);
+        }
+
+        String time12 = prefs.getString("time12_" + keys[activeIdx], null);
+        if (time12 == null || time12.isEmpty()) {
+            time12 = formatTime12(times24[activeIdx]);
+        }
+
+        ActivePrayerInfo info = new ActivePrayerInfo();
+        info.prayerName = names[activeIdx];
+        info.prayerTime12 = time12;
+        info.cityName = cityName;
+        info.hijriDate = hijriDate;
+        info.timerText = timerText;
+        return info;
+    }
+
+    public static void updateAndShowSalatukNotification(Context context) {
+        try {
+            ActivePrayerInfo info = calculateCurrentActivePrayer(context);
+            showOngoingPrayerNotification(
+                    context,
+                    info.prayerName,
+                    info.prayerTime12,
+                    info.cityName,
+                    info.hijriDate,
+                    info.timerText,
+                    false
+            );
+        } catch (Exception ignored) {}
     }
 
     public static void showOngoingPrayerNotification(

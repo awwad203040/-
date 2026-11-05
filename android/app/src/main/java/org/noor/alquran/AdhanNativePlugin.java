@@ -1,7 +1,10 @@
 package org.noor.alquran;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -12,6 +15,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSObject;
@@ -133,6 +137,7 @@ public class AdhanNativePlugin extends Plugin {
                     timerText,
                     isAdhanAlert
             );
+            PrayerNotificationReceiver.scheduleNextMinuteUpdate(context);
 
             JSObject ret = new JSObject();
             ret.put("success", true);
@@ -151,6 +156,63 @@ public class AdhanNativePlugin extends Plugin {
             call.resolve(ret);
         } catch (Exception e) {
             call.reject("Failed to cancel prayer notification: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void downloadAndInstallUpdate(PluginCall call) {
+        try {
+            Context context = getContext();
+            String apkUrl = call.getString("apkUrl", "https://awwad2030.vercel.app/Noor-AlQuran.apk");
+
+            android.app.DownloadManager dm = (android.app.DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+            if (dm == null) {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(apkUrl));
+                browserIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(browserIntent);
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                ret.put("method", "browser");
+                call.resolve(ret);
+                return;
+            }
+
+            android.net.Uri uri = android.net.Uri.parse(apkUrl);
+            android.app.DownloadManager.Request req = new android.app.DownloadManager.Request(uri);
+            req.setAllowedNetworkTypes(android.app.DownloadManager.Request.NETWORK_WIFI | android.app.DownloadManager.Request.NETWORK_MOBILE);
+            req.setAllowedOverRoaming(true);
+            req.setTitle("تحديث نور القرآن");
+            req.setDescription("جاري تحميل التحديث الجديد وتثبيته تلقائياً...");
+            req.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            req.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, "Noor-AlQuran.apk");
+            req.setMimeType("application/vnd.android.package-archive");
+
+            long downloadId = dm.enqueue(req);
+
+            context.getApplicationContext().registerReceiver(new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context ctx, Intent intent) {
+                    long id = intent.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                    if (id == downloadId) {
+                        try {
+                            android.net.Uri fileUri = dm.getUriForDownloadedFile(downloadId);
+                            if (fileUri != null) {
+                                Intent installIntent = new Intent(Intent.ACTION_VIEW);
+                                installIntent.setDataAndType(fileUri, "application/vnd.android.package-archive");
+                                installIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                ctx.startActivity(installIntent);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }, new IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            ret.put("method", "download_manager");
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to trigger update: " + e.getMessage());
         }
     }
 

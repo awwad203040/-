@@ -37,6 +37,7 @@ export interface AdhanNativePluginInterface {
     isAdhanAlert?: boolean;
   }): Promise<{ success: boolean }>;
   cancelPrayerNotification(): Promise<{ success: boolean }>;
+  downloadAndInstallUpdate(options?: { apkUrl?: string }): Promise<{ success: boolean; method?: string }>;
   getDeviceLocation(): Promise<{
     success: boolean;
     latitude?: number;
@@ -177,6 +178,20 @@ export async function cancelNativePrayerNotification() {
   try {
     return await AdhanNative.cancelPrayerNotification();
   } catch {
+    return { success: false };
+  }
+}
+
+/**
+ * Automatically downloads and installs the latest APK update seamlessly
+ */
+export async function downloadAndInstallNativeUpdate(apkUrl?: string) {
+  try {
+    return await AdhanNative.downloadAndInstallUpdate({ apkUrl });
+  } catch {
+    if (typeof window !== 'undefined') {
+      window.location.href = apkUrl || 'https://awwad2030.vercel.app/Noor-AlQuran.apk';
+    }
     return { success: false };
   }
 }

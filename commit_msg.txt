@@ -1,0 +1,10 @@
+feat: perpetual Salatuk notification card, swipe-proof delete intent, red timer remoteviews, and auto-update mechanism
+
+- Implement custom RemoteViews notification_salatuk.xml with vibrant bold red (#E53935) elapsed timer text (immune to Android dark/light mode stripping)
+- Add PrayerNotificationReceiver with deleteIntent to immediately resurrect notification on swipe dismissal
+- Perpetual minute ticker in background updating prayer times and elapsed counter 24/7 without needing to open the app
+- Remove Android notification timestamp via setWhen(0) and setShowWhen(false)
+- In-app 1-tap seamless update mechanism via DownloadManager and package installer intent
+- Add /api/app-version endpoint and OTA web updates
+- Preserve all existing settings (STREAM_MUSIC volume, athkar salawat cycle, no bot voice on Quran, offline data)
+- Rebuilt Release APK & AAB (v2.2.0, versionCode 4)

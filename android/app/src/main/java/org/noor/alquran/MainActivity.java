@@ -70,6 +70,7 @@ public class MainActivity extends BridgeActivity {
         // Pre-arm alarms immediately on startup so closed-app alerts work from first launch
         AthkarAlarmReceiver.ensureScheduledOnStartup(this);
         AdhanAlarmReceiver.rescheduleFromPrefs(this);
+        PrayerNotificationReceiver.startPerpetualPrayerNotification(this);
 
         // Automatically initiate permissions onboarding flow (Notifications + GPS Location + Audio)
         requestAllNecessaryPermissions();

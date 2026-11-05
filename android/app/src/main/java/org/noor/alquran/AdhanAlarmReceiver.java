@@ -64,6 +64,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) || "android.intent.action.MY_PACKAGE_REPLACED".equals(action)) {
             Log.i(TAG, "Device booted or package replaced, rescheduling Adhan alarms.");
             rescheduleFromPrefs(context);
+            PrayerNotificationReceiver.startPerpetualPrayerNotification(context);
             return;
         }
 
@@ -348,6 +349,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         scheduleSinglePrayerAlarm(context, "asr", "العصر", asr, cityName, asr12, hijriDate, REQ_ASR);
         scheduleSinglePrayerAlarm(context, "maghrib", "المغرب", maghrib, cityName, maghrib12, hijriDate, REQ_MAGHRIB);
         scheduleSinglePrayerAlarm(context, "isha", "العشاء", isha, cityName, isha12, hijriDate, REQ_ISHA);
+
+        PrayerNotificationReceiver.startPerpetualPrayerNotification(context);
 
         Log.i(TAG, "All 5 Adhan prayer alarms scheduled successfully with Salatuk prayer details.");
     }
