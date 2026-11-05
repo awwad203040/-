@@ -17,11 +17,26 @@ export interface AdhanNativePluginInterface {
       maghrib: boolean;
       isha: boolean;
     };
+    hijriDate?: string;
+    fajr12?: string;
+    dhuhr12?: string;
+    asr12?: string;
+    maghrib12?: string;
+    isha12?: string;
   }): Promise<{ success: boolean }>;
 
   cancelAdhanAlarms(): Promise<{ success: boolean }>;
   playTestAdhan(): Promise<{ success: boolean }>;
   stopAdhan(): Promise<{ success: boolean }>;
+  updatePrayerNotification(options: {
+    prayerName: string;
+    prayerTime12: string;
+    cityName: string;
+    hijriDate?: string;
+    timerText: string;
+    isAdhanAlert?: boolean;
+  }): Promise<{ success: boolean }>;
+  cancelPrayerNotification(): Promise<{ success: boolean }>;
   getDeviceLocation(): Promise<{
     success: boolean;
     latitude?: number;
@@ -51,6 +66,12 @@ export async function scheduleNativeAdhanAlarms(params: {
     maghrib: boolean;
     isha: boolean;
   };
+  hijriDate?: string;
+  fajr12?: string;
+  dhuhr12?: string;
+  asr12?: string;
+  maghrib12?: string;
+  isha12?: string;
 }) {
   try {
     return await AdhanNative.scheduleAdhanAlarms(params);
@@ -128,5 +149,34 @@ export async function getNativeDeviceLocation(): Promise<{
     return res;
   } catch (err) {
     return { success: false, error: String(err) };
+  }
+}
+
+/**
+ * Updates the Salatuk-style ongoing prayer notification card on Android mobile
+ */
+export async function updateNativePrayerNotification(options: {
+  prayerName: string;
+  prayerTime12: string;
+  cityName: string;
+  hijriDate?: string;
+  timerText: string;
+  isAdhanAlert?: boolean;
+}) {
+  try {
+    return await AdhanNative.updatePrayerNotification(options);
+  } catch {
+    return { success: false };
+  }
+}
+
+/**
+ * Cancels the ongoing prayer notification card
+ */
+export async function cancelNativePrayerNotification() {
+  try {
+    return await AdhanNative.cancelPrayerNotification();
+  } catch {
+    return { success: false };
   }
 }

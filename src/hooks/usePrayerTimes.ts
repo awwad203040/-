@@ -11,6 +11,7 @@ import {
   POPULAR_CITIES,
   CalculationMethod,
   getAutoCalculationMethod,
+  formatTime12Clean,
 } from '@/lib/prayer-times';
 import { triggerHaptic, speakAccessibility, announceToScreenReader } from '@/lib/accessibility';
 import {
@@ -19,7 +20,48 @@ import {
   playTestAdhanSound,
   stopAdhanSound,
   getNativeDeviceLocation,
+  updateNativePrayerNotification,
 } from '@/lib/adhan-native-bridge';
+
+function getSalatukActivePrayer(
+  prayers: Array<{ key: string; name: string; time: string; time12Clean: string }>,
+  now: Date
+) {
+  const currentTotalSec = (now.getHours() * 60 + now.getMinutes()) * 60 + now.getSeconds();
+
+  const prayerSecs = prayers.map((p) => {
+    const [h, m] = p.time.split(':').map((v) => parseInt(v, 10));
+    return { ...p, totalSec: (h * 60 + m) * 60 };
+  });
+
+  let active = prayerSecs[prayerSecs.length - 1]; // Default to Isha if before Fajr
+  let elapsedSec = currentTotalSec + (24 * 3600 - active.totalSec);
+
+  for (let i = prayerSecs.length - 1; i >= 0; i--) {
+    if (currentTotalSec >= prayerSecs[i].totalSec) {
+      active = prayerSecs[i];
+      elapsedSec = currentTotalSec - active.totalSec;
+      break;
+    }
+  }
+
+  let timerText = '+ 00:00';
+  if (elapsedSec < 3600) {
+    const m = Math.floor(elapsedSec / 60);
+    const s = elapsedSec % 60;
+    timerText = `+ ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  } else {
+    const h = Math.floor(elapsedSec / 3600);
+    const m = Math.floor((elapsedSec % 3600) / 60);
+    timerText = `+ ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  return {
+    prayerName: active.name,
+    prayerTime12: active.time12Clean,
+    timerText,
+  };
+}
 
 const DEFAULT_PRAYER_RESULT: PrayerTimesResult = {
   fajr: '04:55',
@@ -102,6 +144,7 @@ export function usePrayerTimes() {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [isTestAdhanPlaying, setIsTestAdhanPlaying] = useState(false);
   const lastAdhanTriggerRef = useRef<string>('');
+  const lastOngoingUpdateRef = useRef<number>(0);
 
   // Synchronize scheduled native alarms whenever prayer times or settings change
   useEffect(() => {
@@ -115,6 +158,12 @@ export function usePrayerTimes() {
         cityName: prayerData.cityName,
         masterEnabled: settings.adhanEnabled,
         enabledPrayers: settings.enabledPrayers,
+        hijriDate: prayerData.hijriDate,
+        fajr12: formatTime12Clean(prayerData.fajr),
+        dhuhr12: formatTime12Clean(prayerData.dhuhr),
+        asr12: formatTime12Clean(prayerData.asr),
+        maghrib12: formatTime12Clean(prayerData.maghrib),
+        isha12: formatTime12Clean(prayerData.isha),
       });
     }
   }, [
@@ -124,6 +173,7 @@ export function usePrayerTimes() {
     prayerData.maghrib,
     prayerData.isha,
     prayerData.cityName,
+    prayerData.hijriDate,
     settings.adhanEnabled,
     settings.enabledPrayers,
   ]);
@@ -134,6 +184,33 @@ export function usePrayerTimes() {
       const now = new Date();
       const updatedData = getFullPrayerTimes(settings, now);
       setPrayerData(updatedData);
+
+      // On Native Android: Keep Salatuk-style ongoing prayer notification card updated in notification bar
+      if (Capacitor.isNativePlatform() && settings.notificationEnabled) {
+        const nowMs = Date.now();
+        if (nowMs - lastOngoingUpdateRef.current >= 30000) {
+          lastOngoingUpdateRef.current = nowMs;
+
+          const prayersForSalatuk = [
+            { key: 'fajr', name: 'الفجر', time: updatedData.fajr, time12Clean: formatTime12Clean(updatedData.fajr) },
+            { key: 'dhuhr', name: 'الظهر', time: updatedData.dhuhr, time12Clean: formatTime12Clean(updatedData.dhuhr) },
+            { key: 'asr', name: 'العصر', time: updatedData.asr, time12Clean: formatTime12Clean(updatedData.asr) },
+            { key: 'maghrib', name: 'المغرب', time: updatedData.maghrib, time12Clean: formatTime12Clean(updatedData.maghrib) },
+            { key: 'isha', name: 'العشاء', time: updatedData.isha, time12Clean: formatTime12Clean(updatedData.isha) },
+          ];
+
+          const salatukInfo = getSalatukActivePrayer(prayersForSalatuk, now);
+
+          updateNativePrayerNotification({
+            prayerName: salatukInfo.prayerName,
+            prayerTime12: salatukInfo.prayerTime12,
+            cityName: updatedData.cityName,
+            hijriDate: updatedData.hijriDate,
+            timerText: salatukInfo.timerText,
+            isAdhanAlert: false,
+          }).catch(() => {});
+        }
+      }
 
       // On Web / PWA: Check if current minute matches any enabled prayer to sound the Adhan
       if (!Capacitor.isNativePlatform() && settings.adhanEnabled) {
@@ -164,17 +241,20 @@ export function usePrayerTimes() {
               // Play Adhan Audio (Sheikh Mohamed Jazi Azan)
               playTestAdhanSound().catch(() => {});
 
-              // Show Web / Service Worker Notification if permitted
+              // Show Web / Service Worker Notification if permitted (matching Salatuk format)
               if (
                 typeof window !== 'undefined' &&
                 'Notification' in window &&
                 Notification.permission === 'granted'
               ) {
+                const webTitle = `${updatedData.cityName} | ${updatedData.hijriDate}`;
+                const webBody = `${prayer.name} . ${formatTime12Clean(prayer.time)} د + 00:01 • حان موعد الأذان بصوت الشيخ محمد جازي`;
+
                 if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                   navigator.serviceWorker.ready
                     .then((reg) => {
-                      reg.showNotification('الله أكبر - حان موعد الأذان 🕌', {
-                        body: `حان الآن موعد أذان صلاة ${prayer.name} (${prayer.time12}) حسب توقيت ${updatedData.cityName}`,
+                      reg.showNotification(webTitle, {
+                        body: webBody,
                         icon: '/icon-192.png',
                         badge: '/icon-192.png',
                         vibrate: [300, 150, 300, 150, 600],
@@ -186,8 +266,8 @@ export function usePrayerTimes() {
                     .catch(() => {});
                 } else {
                   try {
-                    new Notification('الله أكبر - حان موعد الأذان 🕌', {
-                      body: `حان الآن موعد أذان صلاة ${prayer.name} (${prayer.time12}) حسب توقيت ${updatedData.cityName}`,
+                    new Notification(webTitle, {
+                      body: webBody,
                       icon: '/icon-192.png',
                     });
                   } catch {}

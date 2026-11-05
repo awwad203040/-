@@ -317,22 +317,36 @@ export function formatTime12(time24: string): string {
   return `${h}:${mStr} ${suffix}`;
 }
 
+/**
+ * Formats 24h time to 12h without AM/PM suffix, e.g. "02:36" (Salatuk style)
+ */
+export function formatTime12Clean(time24: string): string {
+  if (!time24 || !time24.includes(':')) return '00:00';
+  const [hStr, mStr] = time24.split(':');
+  let h = parseInt(hStr, 10);
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${String(h).padStart(2, '0')}:${mStr}`;
+}
+
 export function getHijriDate(date?: Date): string {
   try {
     const d = date || new Date();
-    return new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
+    const str = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
     }).format(d);
+    return str.replace(/\s*هـ?\s*$/, '').trim();
   } catch {
     try {
       const d = date || new Date();
-      return new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
+      const str = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       }).format(d);
+      return str.replace(/\s*هـ?\s*$/, '').trim();
     } catch {
       return '';
     }

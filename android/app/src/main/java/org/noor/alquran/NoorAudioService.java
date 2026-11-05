@@ -52,6 +52,12 @@ public class NoorAudioService extends Service {
     private AudioFocusRequest audioFocusRequest = null;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable timeoutRunnable = null;
+    private Runnable adhanTickerRunnable = null;
+    private int adhanElapsedSeconds = 1;
+    private String currentAdhanPrayer = null;
+    private String currentAdhanCity = null;
+    private String currentAdhanTime12 = null;
+    private String currentAdhanHijri = null;
 
     @Override
     public void onCreate() {
@@ -91,15 +97,34 @@ public class NoorAudioService extends Service {
     private void handlePlayAdhan(Intent intent) {
         String prayerName = intent.getStringExtra("prayer_name");
         String cityName = intent.getStringExtra("city_name");
+        String prayerTime12 = intent.getStringExtra("prayer_time12");
+        String hijriDate = intent.getStringExtra("hijri_date");
+
         if (prayerName == null || prayerName.isEmpty()) prayerName = "الصلاة";
         if (cityName == null || cityName.isEmpty()) cityName = "موقعك";
+        if (prayerTime12 == null || prayerTime12.isEmpty()) {
+            prayerTime12 = PrayerNotificationHelper.formatTime12(intent.getStringExtra("prayer_time24"));
+        }
+        if (hijriDate == null || hijriDate.isEmpty()) {
+            hijriDate = PrayerNotificationHelper.getHijriDateArabic(this);
+        }
+
+        currentAdhanPrayer = prayerName;
+        currentAdhanCity = cityName;
+        currentAdhanTime12 = prayerTime12;
+        currentAdhanHijri = hijriDate;
 
         // Acquire WakeLock for up to 4 minutes (Azan length is ~3.5 min)
         acquireWakeLock(240000L);
 
-        // Build notification
-        Notification notification = buildAdhanNotification(prayerName, cityName);
+        // Build Salatuk notification
+        Notification notification = PrayerNotificationHelper.buildSalatukNotification(
+                this, prayerName, prayerTime12, cityName, hijriDate, "+ 00:01", true
+        );
         startForegroundCompat(NOTIFICATION_ID_ADHAN, notification);
+
+        // Start live elapsed ticker for Salatuk red timer
+        startAdhanTicker(prayerName, prayerTime12, cityName, hijriDate);
 
         // Request audio focus
         requestAudioFocus();
@@ -121,7 +146,7 @@ public class NoorAudioService extends Service {
 
         startAudioPlayback(soundResId, 1.0f, true, () -> {
             Log.i(TAG, "Adhan audio completed naturally.");
-            stopPlaybackAndService();
+            finishAdhan();
         });
     }
 
@@ -400,6 +425,80 @@ public class NoorAudioService extends Service {
         } catch (Exception ignored) {}
     }
 
+    private void startAdhanTicker(String prayerName, String prayerTime12, String cityName, String hijriDate) {
+        stopAdhanTicker();
+        adhanElapsedSeconds = 1;
+        adhanTickerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                adhanElapsedSeconds++;
+                int mins = adhanElapsedSeconds / 60;
+                int secs = adhanElapsedSeconds % 60;
+                String timerStr = String.format(java.util.Locale.US, "+ %02d:%02d", mins, secs);
+
+                try {
+                    NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                    if (nm != null) {
+                        Notification updatedNotif = PrayerNotificationHelper.buildSalatukNotification(
+                                NoorAudioService.this,
+                                prayerName,
+                                prayerTime12,
+                                cityName,
+                                hijriDate,
+                                timerStr,
+                                true
+                        );
+                        nm.notify(NOTIFICATION_ID_ADHAN, updatedNotif);
+                    }
+                } catch (Exception ignored) {}
+
+                handler.postDelayed(this, 1000L);
+            }
+        };
+        handler.postDelayed(adhanTickerRunnable, 1000L);
+    }
+
+    private void stopAdhanTicker() {
+        if (adhanTickerRunnable != null) {
+            handler.removeCallbacks(adhanTickerRunnable);
+            adhanTickerRunnable = null;
+        }
+    }
+
+    private void finishAdhan() {
+        stopAdhanTicker();
+        cancelTimeout();
+        stopActivePlayerOnly();
+        abandonAudioFocus();
+        releaseWakeLock();
+
+        // Transition to ongoing silent prayer notification card
+        if (currentAdhanPrayer != null && !currentAdhanPrayer.isEmpty()) {
+            int mins = adhanElapsedSeconds / 60;
+            int secs = adhanElapsedSeconds % 60;
+            String timerStr = String.format(java.util.Locale.US, "+ %02d:%02d", mins, secs);
+            PrayerNotificationHelper.showOngoingPrayerNotification(
+                    this,
+                    currentAdhanPrayer,
+                    currentAdhanTime12,
+                    currentAdhanCity,
+                    currentAdhanHijri,
+                    timerStr,
+                    false
+            );
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_DETACH);
+            } else {
+                stopForeground(false);
+            }
+        } catch (Exception ignored) {}
+
+        stopSelf();
+    }
+
     private void finishAthkar() {
         cancelTimeout();
         stopActivePlayerOnly();
@@ -419,21 +518,45 @@ public class NoorAudioService extends Service {
     }
 
     private void stopPlaybackAndService() {
+        stopAdhanTicker();
         cancelTimeout();
         stopActivePlayerOnly();
         abandonAudioFocus();
         releaseWakeLock();
 
-        try {
-            stopForeground(true);
-        } catch (Exception ignored) {}
+        // If stopped during Adhan (e.g. user pressed stop button), transition to ongoing prayer bar
+        if (currentAdhanPrayer != null && !currentAdhanPrayer.isEmpty()) {
+            int mins = adhanElapsedSeconds / 60;
+            int secs = adhanElapsedSeconds % 60;
+            String timerStr = String.format(java.util.Locale.US, "+ %02d:%02d", mins, secs);
+            PrayerNotificationHelper.showOngoingPrayerNotification(
+                    this,
+                    currentAdhanPrayer,
+                    currentAdhanTime12,
+                    currentAdhanCity,
+                    currentAdhanHijri,
+                    timerStr,
+                    false
+            );
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_DETACH);
+                } else {
+                    stopForeground(false);
+                }
+            } catch (Exception ignored) {}
+        } else {
+            try {
+                stopForeground(true);
+            } catch (Exception ignored) {}
 
-        try {
-            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm != null) {
-                nm.cancel(NOTIFICATION_ID_ADHAN);
-            }
-        } catch (Exception ignored) {}
+            try {
+                NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                if (nm != null) {
+                    nm.cancel(NOTIFICATION_ID_ADHAN);
+                }
+            } catch (Exception ignored) {}
+        }
 
         stopSelf();
     }

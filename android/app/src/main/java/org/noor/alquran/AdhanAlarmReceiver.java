@@ -72,11 +72,27 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         final String prayerKey = intent.getStringExtra("prayer_key");
         final String prayerName = intent.getStringExtra("prayer_name");
         final String cityName = intent.getStringExtra("city_name") != null ? intent.getStringExtra("city_name") : "موقعك";
-
-        // 1. Guaranteed rescheduling first so the chain is never interrupted
-        rescheduleSinglePrayerNextDay(context, prayerKey, prayerName, cityName);
+        String prayerTime12 = intent.getStringExtra("prayer_time12");
+        String hijriDate = intent.getStringExtra("hijri_date");
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+
+        if (prayerTime12 == null || prayerTime12.isEmpty()) {
+            prayerTime12 = prefs.getString("time12_" + prayerKey, null);
+            if (prayerTime12 == null) {
+                prayerTime12 = PrayerNotificationHelper.formatTime12(prefs.getString("time_" + prayerKey, "00:00"));
+            }
+        }
+        if (hijriDate == null || hijriDate.isEmpty()) {
+            hijriDate = prefs.getString("hijri_date", null);
+            if (hijriDate == null) {
+                hijriDate = PrayerNotificationHelper.getHijriDateArabic(context);
+            }
+        }
+
+        // 1. Guaranteed rescheduling first so the chain is never interrupted
+        rescheduleSinglePrayerNextDay(context, prayerKey, prayerName, cityName, prayerTime12, hijriDate);
+
         boolean masterEnabled = prefs.getBoolean("adhan_master_enabled", true);
         boolean prayerEnabled = prefs.getBoolean("adhan_" + prayerKey, true);
 
@@ -86,13 +102,13 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         }
 
         // 2. Try starting NoorAudioService (Foreground Service).
-        // If Android 12+ throws ForegroundServiceStartNotAllowedException while app is closed,
-        // seamlessly fall back to direct MediaPlayer playback inside the BroadcastReceiver with WakeLock!
         Intent serviceIntent = new Intent(context, NoorAudioService.class);
         serviceIntent.setAction(NoorAudioService.ACTION_PLAY_ADHAN);
         serviceIntent.putExtra("prayer_key", prayerKey);
         serviceIntent.putExtra("prayer_name", prayerName);
         serviceIntent.putExtra("city_name", cityName);
+        serviceIntent.putExtra("prayer_time12", prayerTime12);
+        serviceIntent.putExtra("hijri_date", hijriDate);
 
         boolean startedService = false;
         try {
@@ -107,11 +123,11 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         }
 
         if (!startedService) {
-            playAdhanDirectFallback(context, prayerKey, prayerName, cityName);
+            playAdhanDirectFallback(context, prayerKey, prayerName, cityName, prayerTime12, hijriDate);
         }
     }
 
-    private void playAdhanDirectFallback(Context context, String prayerKey, String prayerName, String cityName) {
+    private void playAdhanDirectFallback(Context context, String prayerKey, String prayerName, String cityName, String prayerTime12, String hijriDate) {
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         if (pm != null) {
             try {
@@ -159,7 +175,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         new Handler(Looper.getMainLooper()).postDelayed(cleanup, 220000L);
 
         try {
-            showAdhanHeadsUpNotification(context, prayerName, cityName);
+            showAdhanHeadsUpNotification(context, prayerName, cityName, prayerTime12, hijriDate);
 
             int soundResId = context.getResources().getIdentifier("adhan", "raw", context.getPackageName());
             if (soundResId == 0) {
@@ -233,51 +249,17 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         } catch (Exception ignored) {}
     }
 
-    private void showAdhanHeadsUpNotification(Context context, String prayerName, String cityName) {
+    private void showAdhanHeadsUpNotification(Context context, String prayerName, String cityName, String prayerTime12, String hijriDate) {
         try {
-            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm == null) return;
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                NotificationChannel channel = nm.getNotificationChannel(CHANNEL_FALLBACK_ID);
-                if (channel == null) {
-                    channel = new NotificationChannel(
-                            CHANNEL_FALLBACK_ID,
-                            "أذان الصلاة المباشر",
-                            NotificationManager.IMPORTANCE_HIGH
-                    );
-                    channel.setDescription("تنبيهات أذان الصلاة بصوت الشيخ محمد جازي");
-                    channel.enableLights(true);
-                    channel.setLightColor(Color.parseColor("#123B2A"));
-                    channel.enableVibration(true);
-                    channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-                    channel.setSound(null, null);
-                    nm.createNotificationChannel(channel);
-                }
-            }
-
-            Intent launchIntent = new Intent(context, MainActivity.class);
-            launchIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            PendingIntent contentIntent = PendingIntent.getActivity(
+            PrayerNotificationHelper.showOngoingPrayerNotification(
                     context,
-                    0,
-                    launchIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    prayerName,
+                    prayerTime12,
+                    cityName,
+                    hijriDate,
+                    "+ 00:01",
+                    true
             );
-
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_FALLBACK_ID)
-                    .setSmallIcon(R.mipmap.ic_launcher)
-                    .setContentTitle("حان الآن موعد أذان " + (prayerName != null ? prayerName : "الصلاة"))
-                    .setContentText("حسب التوقيت المحلي لمدينة " + (cityName != null ? cityName : "موقعك") + " • بصوت الشيخ محمد جازي")
-                    .setColor(Color.parseColor("#123B2A"))
-                    .setContentIntent(contentIntent)
-                    .setFullScreenIntent(contentIntent, true)
-                    .setAutoCancel(true)
-                    .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setCategory(NotificationCompat.CATEGORY_REMINDER)
-                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-
-            nm.notify(NOTIFICATION_FALLBACK_ID, builder.build());
         } catch (Exception e) {
             Log.w(TAG, "Failed to display adhan notification: " + e.getMessage());
         }
@@ -324,6 +306,24 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             String isha,
             String cityName
     ) {
+        scheduleAllPrayers(context, fajr, dhuhr, asr, maghrib, isha, cityName, null, null, null, null, null, null);
+    }
+
+    public static void scheduleAllPrayers(
+            Context context,
+            String fajr,
+            String dhuhr,
+            String asr,
+            String maghrib,
+            String isha,
+            String cityName,
+            String hijriDate,
+            String fajr12,
+            String dhuhr12,
+            String asr12,
+            String maghrib12,
+            String isha12
+    ) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor ed = prefs.edit();
 
@@ -333,15 +333,23 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         if (maghrib != null) ed.putString("time_maghrib", maghrib);
         if (isha != null) ed.putString("time_isha", isha);
         if (cityName != null) ed.putString("city_name", cityName);
+
+        if (hijriDate != null) ed.putString("hijri_date", hijriDate);
+        if (fajr12 != null) ed.putString("time12_fajr", fajr12);
+        if (dhuhr12 != null) ed.putString("time12_dhuhr", dhuhr12);
+        if (asr12 != null) ed.putString("time12_asr", asr12);
+        if (maghrib12 != null) ed.putString("time12_maghrib", maghrib12);
+        if (isha12 != null) ed.putString("time12_isha", isha12);
+
         ed.apply();
 
-        scheduleSinglePrayerAlarm(context, "fajr", "الفجر", fajr, cityName, REQ_FAJR);
-        scheduleSinglePrayerAlarm(context, "dhuhr", "الظهر", dhuhr, cityName, REQ_DHUHR);
-        scheduleSinglePrayerAlarm(context, "asr", "العصر", asr, cityName, REQ_ASR);
-        scheduleSinglePrayerAlarm(context, "maghrib", "المغرب", maghrib, cityName, REQ_MAGHRIB);
-        scheduleSinglePrayerAlarm(context, "isha", "العشاء", isha, cityName, REQ_ISHA);
+        scheduleSinglePrayerAlarm(context, "fajr", "الفجر", fajr, cityName, fajr12, hijriDate, REQ_FAJR);
+        scheduleSinglePrayerAlarm(context, "dhuhr", "الظهر", dhuhr, cityName, dhuhr12, hijriDate, REQ_DHUHR);
+        scheduleSinglePrayerAlarm(context, "asr", "العصر", asr, cityName, asr12, hijriDate, REQ_ASR);
+        scheduleSinglePrayerAlarm(context, "maghrib", "المغرب", maghrib, cityName, maghrib12, hijriDate, REQ_MAGHRIB);
+        scheduleSinglePrayerAlarm(context, "isha", "العشاء", isha, cityName, isha12, hijriDate, REQ_ISHA);
 
-        Log.i(TAG, "All 5 Adhan prayer alarms scheduled successfully.");
+        Log.i(TAG, "All 5 Adhan prayer alarms scheduled successfully with Salatuk prayer details.");
     }
 
     public static void scheduleSinglePrayerAlarm(
@@ -350,6 +358,19 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             String prayerName,
             String timeStr,
             String cityName,
+            int reqCode
+    ) {
+        scheduleSinglePrayerAlarm(context, prayerKey, prayerName, timeStr, cityName, null, null, reqCode);
+    }
+
+    public static void scheduleSinglePrayerAlarm(
+            Context context,
+            String prayerKey,
+            String prayerName,
+            String timeStr,
+            String cityName,
+            String time12,
+            String hijriDate,
             int reqCode
     ) {
         if (timeStr == null || !timeStr.contains(":")) return;
@@ -381,6 +402,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             intent.putExtra("prayer_key", prayerKey);
             intent.putExtra("prayer_name", prayerName);
             intent.putExtra("city_name", cityName);
+            if (time12 != null) intent.putExtra("prayer_time12", time12);
+            if (hijriDate != null) intent.putExtra("hijri_date", hijriDate);
 
             PendingIntent pi = PendingIntent.getBroadcast(
                     context,
@@ -420,13 +443,16 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         }
     }
 
-    private static void rescheduleSinglePrayerNextDay(Context context, String prayerKey, String prayerName, String cityName) {
+    private static void rescheduleSinglePrayerNextDay(Context context, String prayerKey, String prayerName, String cityName, String time12, String hijriDate) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String timeStr = prefs.getString("time_" + prayerKey, null);
         if (timeStr == null) return;
 
+        if (time12 == null) time12 = prefs.getString("time12_" + prayerKey, null);
+        if (hijriDate == null) hijriDate = prefs.getString("hijri_date", null);
+
         int reqCode = getReqCode(prayerKey);
-        scheduleSinglePrayerAlarm(context, prayerKey, prayerName, timeStr, cityName, reqCode);
+        scheduleSinglePrayerAlarm(context, prayerKey, prayerName, timeStr, cityName, time12, hijriDate, reqCode);
     }
 
     public static void rescheduleFromPrefs(Context context) {
@@ -440,8 +466,14 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         String asr = prefs.getString("time_asr", "15:25");
         String maghrib = prefs.getString("time_maghrib", "18:00");
         String isha = prefs.getString("time_isha", "19:30");
+        String hijriDate = prefs.getString("hijri_date", null);
+        String fajr12 = prefs.getString("time12_fajr", null);
+        String dhuhr12 = prefs.getString("time12_dhuhr", null);
+        String asr12 = prefs.getString("time12_asr", null);
+        String maghrib12 = prefs.getString("time12_maghrib", null);
+        String isha12 = prefs.getString("time12_isha", null);
 
-        scheduleAllPrayers(context, fajr, dhuhr, asr, maghrib, isha, cityName);
+        scheduleAllPrayers(context, fajr, dhuhr, asr, maghrib, isha, cityName, hijriDate, fajr12, dhuhr12, asr12, maghrib12, isha12);
     }
 
     public static void cancelAllAdhanAlarms(Context context) {

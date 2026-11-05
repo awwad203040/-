@@ -38,6 +38,13 @@ public class AdhanNativePlugin extends Plugin {
             String cityName = call.getString("cityName", "موقعك");
             boolean masterEnabled = call.getBoolean("masterEnabled", true);
 
+            String hijriDate = call.getString("hijriDate");
+            String fajr12 = call.getString("fajr12");
+            String dhuhr12 = call.getString("dhuhr12");
+            String asr12 = call.getString("asr12");
+            String maghrib12 = call.getString("maghrib12");
+            String isha12 = call.getString("isha12");
+
             JSObject prayersObj = call.getObject("enabledPrayers");
 
             SharedPreferences prefs = context.getSharedPreferences(AdhanAlarmReceiver.PREFS_NAME, Context.MODE_PRIVATE);
@@ -54,7 +61,10 @@ public class AdhanNativePlugin extends Plugin {
             ed.apply();
 
             if (masterEnabled) {
-                AdhanAlarmReceiver.scheduleAllPrayers(context, fajr, dhuhr, asr, maghrib, isha, cityName);
+                AdhanAlarmReceiver.scheduleAllPrayers(
+                        context, fajr, dhuhr, asr, maghrib, isha, cityName,
+                        hijriDate, fajr12, dhuhr12, asr12, maghrib12, isha12
+                );
             } else {
                 AdhanAlarmReceiver.cancelAllAdhanAlarms(context);
             }
@@ -100,6 +110,47 @@ public class AdhanNativePlugin extends Plugin {
             call.resolve(ret);
         } catch (Exception e) {
             call.reject("Failed to stop Adhan: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void updatePrayerNotification(PluginCall call) {
+        try {
+            Context context = getContext();
+            String prayerName = call.getString("prayerName", "الصلاة");
+            String prayerTime12 = call.getString("prayerTime12", "00:00");
+            String cityName = call.getString("cityName", "موقعك");
+            String hijriDate = call.getString("hijriDate", null);
+            String timerText = call.getString("timerText", "+ 00:00");
+            boolean isAdhanAlert = Boolean.TRUE.equals(call.getBoolean("isAdhanAlert", false));
+
+            PrayerNotificationHelper.showOngoingPrayerNotification(
+                    context,
+                    prayerName,
+                    prayerTime12,
+                    cityName,
+                    hijriDate,
+                    timerText,
+                    isAdhanAlert
+            );
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to update prayer notification: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void cancelPrayerNotification(PluginCall call) {
+        try {
+            PrayerNotificationHelper.cancelOngoingPrayerNotification(getContext());
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to cancel prayer notification: " + e.getMessage());
         }
     }
 
