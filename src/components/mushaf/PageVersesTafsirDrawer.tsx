@@ -483,6 +483,41 @@ export default function PageVersesTafsirDrawer({
                     </option>
                   ))}
                 </select>
+
+                {/* Compact Actions: Play & Copy in Top Bar */}
+                {selectedVerse && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    {onPlayVerse && (() => {
+                      const isThisVersePlaying = isPlayingAudio && playingVerseKey === selectedVerse.verseKey;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => onPlayVerse(selectedVerse)}
+                          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 active:scale-95 transition shadow-2xs cursor-pointer ${
+                            isThisVersePlaying
+                              ? 'bg-[#C8A85B] text-[#123B2A] ring-2 ring-[#C8A85B]/60 animate-pulse'
+                              : 'bg-[#123B2A] hover:bg-[#0B5B43] text-white'
+                          }`}
+                          style={{ fontFamily: "'Tajawal', sans-serif" }}
+                          title={isThisVersePlaying ? "إيقاف التلاوة" : "استماع لتلاوة الآية"}
+                        >
+                          <span className="text-xs">{isThisVersePlaying ? '⏹' : '▶'}</span>
+                          <span className="hidden sm:inline">{isThisVersePlaying ? 'إيقاف' : 'استماع'}</span>
+                        </button>
+                      );
+                    })()}
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="px-2.5 py-1.5 rounded-xl bg-[#C8A85B] hover:bg-[#b5954a] text-[#123B2A] text-xs font-bold flex items-center gap-1 active:scale-95 transition shadow-2xs cursor-pointer"
+                      style={{ fontFamily: "'Tajawal', sans-serif" }}
+                      title="نسخ الآية وتفسيرها"
+                    >
+                      <span className="text-xs">{copied ? '✓' : '📋'}</span>
+                      <span className="hidden sm:inline">{copied ? 'تم' : 'نسخ'}</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Quick Tafsir Chips for 1-Click Access */}
@@ -507,61 +542,6 @@ export default function PageVersesTafsirDrawer({
                 })}
               </div>
             </div>
-
-            {/* Selected Verse Header Preview */}
-            {selectedVerse && (
-              <div className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#123B2A]/5 border-b border-[#C8A85B]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 shrink-0">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md bg-[#123B2A] text-white" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                      الآية {selectedVerse.verseKey}
-                    </span>
-                    <span className="text-[10px] sm:text-xs text-[#C8A85B] font-bold truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                      {currentTafsirMeta.name}
-                    </span>
-                  </div>
-                  <p
-                    className="text-xs sm:text-sm md:text-base font-bold text-[#123B2A] leading-relaxed line-clamp-2"
-                    style={{ fontFamily: "'Amiri', serif" }}
-                  >
-                    ﴿ {selectedVerse.textUthmani} ﴾
-                  </p>
-                </div>
-
-                {/* Actions: Play Verse Audio & Copy */}
-                <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
-                  {onPlayVerse && (() => {
-                    const isThisVersePlaying = isPlayingAudio && playingVerseKey === selectedVerse.verseKey;
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => onPlayVerse(selectedVerse)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition shadow-sm cursor-pointer ${
-                          isThisVersePlaying
-                            ? 'bg-[#C8A85B] text-[#123B2A] ring-2 ring-[#C8A85B]/60 animate-pulse'
-                            : 'bg-[#123B2A] hover:bg-[#0B5B43] text-white'
-                        }`}
-                        style={{ fontFamily: "'Tajawal', sans-serif" }}
-                        title={isThisVersePlaying ? "إيقاف صوت القارئ" : "استماع لتلاوة هذه الآية"}
-                      >
-                        <span className="text-sm">{isThisVersePlaying ? '⏹' : '▶'}</span>
-                        <span>{isThisVersePlaying ? 'إيقاف التلاوة' : 'استماع للآية'}</span>
-                      </button>
-                    );
-                  })()}
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="px-2.5 py-1 rounded-lg bg-[#C8A85B] hover:bg-[#b5954a] text-[#123B2A] text-[11px] font-bold flex items-center gap-1 active:scale-95 transition shadow-2xs cursor-pointer"
-                    style={{ fontFamily: "'Tajawal', sans-serif" }}
-                    title="نسخ الآية وتفسيرها"
-                  >
-                    <span>{copied ? '✓' : '📋'}</span>
-                    <span className="hidden xs:inline">{copied ? 'تم النسخ' : 'نسخ'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Tafsir Body Content */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3">
@@ -619,66 +599,38 @@ export default function PageVersesTafsirDrawer({
               )}
             </div>
 
-            {/* Bottom Verse & Batch Navigation Controls */}
-            <div className="p-2 sm:p-2.5 bg-white/90 border-t border-[#C8A85B]/30 flex flex-col gap-1.5 shrink-0 select-none">
-              {/* Row 1: Verse-by-verse continuous navigation */}
-              <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-                <button
-                  type="button"
-                  onClick={handleNextAyah}
-                  disabled={currentPage >= 604 && selectedVerseIndex >= verses.length - 1}
-                  className="flex-1 py-1.5 sm:py-2 px-2 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed shadow-2xs"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title="الآية التالية (ينتقل تلقائياً للآيات التالية عند نهاية الصفحة)"
-                >
-                  <span>◀ الآية التالية</span>
-                </button>
+            {/* Bottom Verse Navigation Controls */}
+            <div className="p-2 sm:p-2.5 bg-white/95 border-t border-[#C8A85B]/30 flex items-center justify-between gap-1.5 sm:gap-2 shrink-0 select-none">
+              <button
+                type="button"
+                onClick={handleNextAyah}
+                disabled={currentPage >= 604 && selectedVerseIndex >= verses.length - 1}
+                className="flex-1 py-1.5 sm:py-2 px-2.5 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed shadow-2xs"
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+                title="الآية التالية (ينتقل تلقائياً للآيات التالية عند نهاية الصفحة)"
+              >
+                <span>◀ الآية التالية</span>
+              </button>
 
-                <div className="flex flex-col items-center justify-center px-1 shrink-0">
-                  <span className="text-[11px] sm:text-xs font-bold text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                    {verses.length > 0 ? selectedVerseIndex + 1 : 0} / {verses.length}
-                  </span>
-                  <span className="text-[9px] text-[#C8A85B] font-bold">
-                    صـ {currentPage}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handlePrevAyah}
-                  disabled={currentPage <= 1 && selectedVerseIndex <= 0}
-                  className="flex-1 py-1.5 sm:py-2 px-2 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed shadow-2xs"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title="الآية السابقة (ينتقل تلقائياً للآيات السابقة عند بداية الصفحة)"
-                >
-                  <span>الآية السابقة ▶</span>
-                </button>
+              <div className="flex flex-col items-center justify-center px-2 shrink-0">
+                <span className="text-xs font-bold text-[#123B2A]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  {verses.length > 0 ? selectedVerseIndex + 1 : 0} / {verses.length}
+                </span>
+                <span className="text-[10px] text-[#C8A85B] font-bold">
+                  صـ {currentPage}
+                </span>
               </div>
 
-              {/* Row 2: Batch Jump (الـ 8 آيات التالية / القبلية) */}
-              <div className="flex items-center justify-between gap-1.5 sm:gap-2 pt-1 border-t border-[#C8A85B]/20">
-                <button
-                  type="button"
-                  onClick={handleNextBatch}
-                  disabled={currentPage >= 604}
-                  className="flex-1 py-1 px-2 rounded-lg bg-[#C8A85B]/15 hover:bg-[#C8A85B]/30 active:scale-95 border border-[#C8A85B]/40 text-[#123B2A] text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title={`الانتقال للآيات التالية (صفحة ${currentPage + 1})`}
-                >
-                  <span>◀ الآيات التالية (صـ {currentPage < 604 ? currentPage + 1 : 604})</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handlePrevBatch}
-                  disabled={currentPage <= 1}
-                  className="flex-1 py-1 px-2 rounded-lg bg-[#C8A85B]/15 hover:bg-[#C8A85B]/30 active:scale-95 border border-[#C8A85B]/40 text-[#123B2A] text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title={`الانتقال للآيات السابقة (صفحة ${currentPage - 1})`}
-                >
-                  <span>(صـ {currentPage > 1 ? currentPage - 1 : 1}) الآيات السابقة ▶</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handlePrevAyah}
+                disabled={currentPage <= 1 && selectedVerseIndex <= 0}
+                className="flex-1 py-1.5 sm:py-2 px-2.5 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white hover:bg-[#0B5B43] active:scale-95 transition-all text-xs font-bold flex items-center justify-center gap-1 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed shadow-2xs"
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+                title="الآية السابقة (ينتقل تلقائياً للآيات السابقة عند بداية الصفحة)"
+              >
+                <span>الآية السابقة ▶</span>
+              </button>
             </div>
           </div>
         </div>
