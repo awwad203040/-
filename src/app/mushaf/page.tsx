@@ -1372,6 +1372,8 @@ function MushafReaderInner() {
         <TafsirModal
           verse={tafsirVerse}
           onClose={() => { setShowTafsir(false); setTafsirVerse(null); }}
+          onPlayVerse={(v) => handlePlayVerse(v)}
+          isPlayingAudio={audio.isPlaying && audio.currentVerseKey === tafsirVerse.verseKey}
         />
       )}
 

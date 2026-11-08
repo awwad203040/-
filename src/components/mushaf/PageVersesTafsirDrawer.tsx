@@ -453,7 +453,7 @@ export default function PageVersesTafsirDrawer({
           <div className="w-[62%] xs:w-[60%] sm:w-[58%] md:w-[65%] lg:w-[68%] flex flex-col h-full flex-1 overflow-hidden bg-transparent">
             
             {/* Top Bar: Tafsir Source Selector (قائمة التفاسير المعتمدة) */}
-            <div className="p-2 sm:p-3.5 bg-white/80 border-b border-[#C8A85B]/30 shrink-0 space-y-1.5">
+            <div className="p-2 sm:p-2.5 bg-white/80 border-b border-[#C8A85B]/30 shrink-0 space-y-1.5">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <label
                   htmlFor="tafsir-selector"
@@ -461,7 +461,7 @@ export default function PageVersesTafsirDrawer({
                   style={{ fontFamily: "'Tajawal', sans-serif" }}
                 >
                   <span className="text-sm sm:text-base text-[#C8A85B]">📚</span>
-                  <span className="hidden xs:inline">المفسر:</span>
+                  <span className="inline">المفسر:</span>
                 </label>
 
                 {/* Dropdown Selector */}
@@ -469,7 +469,7 @@ export default function PageVersesTafsirDrawer({
                   id="tafsir-selector"
                   value={activeTafsirId}
                   onChange={(e) => handleTafsirChange(parseInt(e.target.value, 10))}
-                  className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border-2 text-[11px] sm:text-xs md:text-sm font-bold shadow-xs cursor-pointer focus:outline-none transition-all truncate"
+                  className="flex-1 px-2.5 py-1.5 rounded-xl border-2 text-xs sm:text-sm font-bold shadow-xs cursor-pointer focus:outline-none transition-all truncate"
                   style={{
                     borderColor: '#C8A85B',
                     color: '#123B2A',
@@ -483,41 +483,6 @@ export default function PageVersesTafsirDrawer({
                     </option>
                   ))}
                 </select>
-
-                {/* Compact Actions: Play & Copy in Top Bar */}
-                {selectedVerse && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    {onPlayVerse && (() => {
-                      const isThisVersePlaying = isPlayingAudio && playingVerseKey === selectedVerse.verseKey;
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => onPlayVerse(selectedVerse)}
-                          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 active:scale-95 transition shadow-2xs cursor-pointer ${
-                            isThisVersePlaying
-                              ? 'bg-[#C8A85B] text-[#123B2A] ring-2 ring-[#C8A85B]/60 animate-pulse'
-                              : 'bg-[#123B2A] hover:bg-[#0B5B43] text-white'
-                          }`}
-                          style={{ fontFamily: "'Tajawal', sans-serif" }}
-                          title={isThisVersePlaying ? "إيقاف التلاوة" : "استماع لتلاوة الآية"}
-                        >
-                          <span className="text-xs">{isThisVersePlaying ? '⏹' : '▶'}</span>
-                          <span className="hidden sm:inline">{isThisVersePlaying ? 'إيقاف' : 'استماع'}</span>
-                        </button>
-                      );
-                    })()}
-                    <button
-                      type="button"
-                      onClick={handleCopy}
-                      className="px-2.5 py-1.5 rounded-xl bg-[#C8A85B] hover:bg-[#b5954a] text-[#123B2A] text-xs font-bold flex items-center gap-1 active:scale-95 transition shadow-2xs cursor-pointer"
-                      style={{ fontFamily: "'Tajawal', sans-serif" }}
-                      title="نسخ الآية وتفسيرها"
-                    >
-                      <span className="text-xs">{copied ? '✓' : '📋'}</span>
-                      <span className="hidden sm:inline">{copied ? 'تم' : 'نسخ'}</span>
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* Quick Tafsir Chips for 1-Click Access */}
@@ -529,7 +494,7 @@ export default function PageVersesTafsirDrawer({
                       key={t.id}
                       type="button"
                       onClick={() => handleTafsirChange(t.id)}
-                      className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                         isCur
                           ? 'bg-[#123B2A] text-[#C8A85B] shadow-xs scale-105'
                           : 'bg-black/5 hover:bg-black/10 text-gray-700'
@@ -542,6 +507,56 @@ export default function PageVersesTafsirDrawer({
                 })}
               </div>
             </div>
+
+            {/* Dedicated Slim Verse Bar with Prominent Audio Playback Button & Copy */}
+            {selectedVerse && (
+              <div className="px-2.5 py-1.5 bg-linear-to-r from-[#123B2A]/10 via-[#C8A85B]/15 to-[#123B2A]/10 border-b border-[#C8A85B]/30 flex items-center justify-between gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className="px-2 py-0.5 rounded-lg text-xs font-extrabold bg-[#123B2A] text-[#C8A85B] shadow-2xs"
+                    style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  >
+                    الآية {selectedVerse.verseKey}
+                  </span>
+                  <span className="text-[11px] text-[#0B5B43] font-bold hidden sm:inline">
+                    {currentTafsirMeta.name}
+                  </span>
+                </div>
+
+                {/* Prominent Audio & Copy Action Buttons */}
+                <div className="flex items-center gap-1.5">
+                  {onPlayVerse && (() => {
+                    const isThisVersePlaying = isPlayingAudio && playingVerseKey === selectedVerse.verseKey;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => onPlayVerse(selectedVerse)}
+                        className={`px-2.5 sm:px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer ${
+                          isThisVersePlaying
+                            ? 'bg-[#C8A85B] text-[#123B2A] ring-2 ring-[#C8A85B]/60 animate-pulse'
+                            : 'bg-[#123B2A] hover:bg-[#0B5B43] text-white'
+                        }`}
+                        style={{ fontFamily: "'Tajawal', sans-serif" }}
+                        title={isThisVersePlaying ? "إيقاف التلاوة" : "تشغيل صوت القارئ لهذه الآية"}
+                      >
+                        <span className="text-sm">{isThisVersePlaying ? '⏹' : '▶'}</span>
+                        <span className="font-bold">{isThisVersePlaying ? 'إيقاف الصوت' : 'تشغيل الصوت'}</span>
+                      </button>
+                    );
+                  })()}
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    className="px-2.5 py-1 rounded-xl bg-[#C8A85B] hover:bg-[#b5954a] text-[#123B2A] text-xs font-bold flex items-center gap-1 active:scale-95 transition-all shadow-xs cursor-pointer"
+                    style={{ fontFamily: "'Tajawal', sans-serif" }}
+                    title="نسخ نص الآية وتفسيرها"
+                  >
+                    <span className="text-xs">{copied ? '✓' : '📋'}</span>
+                    <span className="font-bold">{copied ? 'تم النسخ' : 'نسخ'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Tafsir Body Content */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3">

@@ -6,6 +6,8 @@ import type { Verse } from '@/types/quran';
 interface TafsirModalProps {
   verse: Verse;
   onClose: () => void;
+  onPlayVerse?: (verse: Verse) => void;
+  isPlayingAudio?: boolean;
 }
 
 interface TafsirData {
@@ -23,7 +25,12 @@ export const AVAILABLE_TAFSIRS = [
   { id: 93, name: 'التفسير الوسيط', author: 'د. محمد سيد طنطاوي' },
 ];
 
-export default function TafsirModal({ verse, onClose }: TafsirModalProps) {
+export default function TafsirModal({
+  verse,
+  onClose,
+  onPlayVerse,
+  isPlayingAudio = false,
+}: TafsirModalProps) {
   const [tafsir, setTafsir] = useState<TafsirData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,27 +108,45 @@ export default function TafsirModal({ verse, onClose }: TafsirModalProps) {
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-5 py-4 flash-modal-header"
+          className="flex items-center justify-between px-4 sm:px-5 py-3.5 flash-modal-header"
           style={{ backgroundColor: '#123B2A', color: 'white' }}
         >
-          <div>
+          <div className="flex items-center gap-2">
             <h2
-              className="text-lg font-bold"
+              className="text-base sm:text-lg font-bold"
               style={{ fontFamily: "'Tajawal', sans-serif" }}
             >
               تفسير الآية {verse.verseKey}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="إغلاق"
-            className="p-2 rounded-full hover:bg-white/10"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {onPlayVerse && (
+              <button
+                type="button"
+                onClick={() => onPlayVerse(verse)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer ${
+                  isPlayingAudio
+                    ? 'bg-[#C8A85B] text-[#123B2A] ring-2 ring-white animate-pulse'
+                    : 'bg-[#C8A85B] hover:bg-[#b5954a] text-[#123B2A]'
+                }`}
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+                title={isPlayingAudio ? "إيقاف التلاوة" : "تشغيل صوت القارئ لهذه الآية"}
+              >
+                <span className="text-xs">{isPlayingAudio ? '⏹' : '▶'}</span>
+                <span>{isPlayingAudio ? 'إيقاف الصوت' : 'تشغيل الصوت'}</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              aria-label="إغلاق"
+              className="p-2 rounded-full hover:bg-white/10"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Tafsir source selector */}
