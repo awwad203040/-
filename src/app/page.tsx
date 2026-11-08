@@ -747,72 +747,14 @@ export default function HomePage() {
               </div>
             </button>
 
-            {/* ROW 3: RIGHT = المكفوفين */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap');
-                setShowAccessibilityModal(true);
-              }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-5"
-              style={{
-                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
-              }}
-              aria-label="المكفوفين - تسهيل الوصول والتوجيه الصوتي"
-            >
-              <div className="flex items-center justify-between w-full">
-                <span className="text-3xl filter drop-shadow">🦯</span>
-                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
-                  سهولة وصول
-                </span>
-              </div>
-              <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
-                  المكفوفين
-                </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  تسهيل الوصول وقارئ الشاشة
-                </p>
-              </div>
-            </button>
-
-            {/* ROW 3: LEFT = نطق السورة */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap');
-                setShowVoiceAssistantModal(true);
-              }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-6"
-              style={{
-                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
-              }}
-              aria-label="نطق السورة - المساعد الصوتي الذكي"
-            >
-              <div className="flex items-center justify-between w-full">
-                <span className="text-3xl filter drop-shadow animate-bounce">🎙️</span>
-                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
-                  تحكم صوتي
-                </span>
-              </div>
-              <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
-                  نطق السورة
-                </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  انطق اسم السورة لتشغيلها
-                </p>
-              </div>
-            </button>
-
-            {/* ROW 4: RIGHT = أوقات الصلوات */}
+            {/* ROW 3: RIGHT = أوقات الصلوات */}
             <button
               type="button"
               onClick={() => {
                 triggerHaptic('tap');
                 setShowPrayerModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-7"
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-5"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -834,7 +776,7 @@ export default function HomePage() {
               </div>
             </button>
 
-            {/* ROW 4: LEFT = إذاعات القرآن الكريم */}
+            {/* ROW 3: LEFT = إذاعات القرآن الكريم */}
             <button
               type="button"
               onClick={() => {
@@ -845,7 +787,7 @@ export default function HomePage() {
                 quranRadio.isPlaying
                   ? 'border-emerald-400 ring-2 ring-emerald-400/40 flash-window-emerald'
                   : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
-              } flash-delay-8`}
+              } flash-delay-6`}
               style={{
                 background: quranRadio.isPlaying
                   ? 'linear-gradient(135deg, #0B5B43 0%, #123B2A 50%, #082A1C 100%)'
@@ -869,6 +811,64 @@ export default function HomePage() {
                 </h3>
                 <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   {quranRadio.isPlaying ? quranRadio.currentStation?.name : 'مصر • السعودية • كبار القراء'}
+                </p>
+              </div>
+            </button>
+
+            {/* ROW 4: RIGHT = المكفوفين */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowAccessibilityModal(true);
+              }}
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-7"
+              style={{
+                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="المكفوفين - تسهيل الوصول والتوجيه الصوتي"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl filter drop-shadow">🦯</span>
+                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                  سهولة وصول
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  المكفوفين
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  تسهيل الوصول وقارئ الشاشة
+                </p>
+              </div>
+            </button>
+
+            {/* ROW 4: LEFT = نطق السورة */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowVoiceAssistantModal(true);
+              }}
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-8"
+              style={{
+                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="نطق السورة - المساعد الصوتي الذكي"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl filter drop-shadow animate-bounce">🎙️</span>
+                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                  تحكم صوتي
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  نطق السورة
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  انطق اسم السورة لتشغيلها
                 </p>
               </div>
             </button>
