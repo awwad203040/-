@@ -679,82 +679,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* ROW 2: RIGHT = تحميل المصحف */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap');
-                setShowOfflineModal(true);
-              }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-3"
-              style={{
-                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
-              }}
-              aria-label="تحميل المصحف للقراءة بدون إنترنت"
-            >
-              <div className="flex items-center justify-between w-full">
-                <span className="text-3xl filter drop-shadow">📥</span>
-                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
-                  بدون نت
-                </span>
-              </div>
-              <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
-                  تحميل المصحف
-                </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  القراءة بدون اتصال
-                </p>
-              </div>
-            </button>
-
-            {/* ROW 2: LEFT = الأذكار */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap');
-                setShowAthkarModal(true);
-              }}
-              className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
-                autoAthkar?.settings?.enabled
-                  ? 'border-emerald-400 ring-2 ring-emerald-400/30 flash-window-emerald'
-                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
-              } flash-delay-4`}
-              style={{
-                background: autoAthkar?.settings?.enabled
-                  ? 'linear-gradient(135deg, #0E3E2B 0%, #123B2A 50%, #0A271B 100%)'
-                  : 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
-              }}
-              aria-label="الأذكار والتسابيح الصوتية التلقائية والصلاة على النبي"
-            >
-              <div className="flex items-center justify-between w-full">
-                <span className={`text-3xl filter drop-shadow ${autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}`}>🔔</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  autoAthkar?.settings?.enabled
-                    ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50'
-                    : 'bg-black/40 text-[#FFD700] border-[#C8A85B]/40'
-                }`}>
-                  {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
-                </span>
-              </div>
-              <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
-                  الأذكار
-                </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  أذكار تلقائية وصلاة على النبي
-                </p>
-              </div>
-            </button>
-
-            {/* ROW 3: RIGHT = أوقات الصلوات */}
+            {/* ROW 2: RIGHT = أوقات الصلوات (الآذان) */}
             <button
               type="button"
               onClick={() => {
                 triggerHaptic('tap');
                 setShowPrayerModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-5"
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-3"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -776,7 +708,7 @@ export default function HomePage() {
               </div>
             </button>
 
-            {/* ROW 3: LEFT = إذاعات القرآن الكريم */}
+            {/* ROW 2: LEFT = إذاعات القرآن الكريم */}
             <button
               type="button"
               onClick={() => {
@@ -787,7 +719,7 @@ export default function HomePage() {
                 quranRadio.isPlaying
                   ? 'border-emerald-400 ring-2 ring-emerald-400/40 flash-window-emerald'
                   : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
-              } flash-delay-6`}
+              } flash-delay-4`}
               style={{
                 background: quranRadio.isPlaying
                   ? 'linear-gradient(135deg, #0B5B43 0%, #123B2A 50%, #082A1C 100%)'
@@ -811,6 +743,74 @@ export default function HomePage() {
                 </h3>
                 <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   {quranRadio.isPlaying ? quranRadio.currentStation?.name : 'مصر • السعودية • كبار القراء'}
+                </p>
+              </div>
+            </button>
+
+            {/* ROW 3: RIGHT = تحميل المصحف */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowOfflineModal(true);
+              }}
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-5"
+              style={{
+                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="تحميل المصحف للقراءة بدون إنترنت"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl filter drop-shadow">📥</span>
+                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                  بدون نت
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  تحميل المصحف
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  القراءة بدون اتصال
+                </p>
+              </div>
+            </button>
+
+            {/* ROW 3: LEFT = الأذكار */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowAthkarModal(true);
+              }}
+              className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
+                autoAthkar?.settings?.enabled
+                  ? 'border-emerald-400 ring-2 ring-emerald-400/30 flash-window-emerald'
+                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
+              } flash-delay-6`}
+              style={{
+                background: autoAthkar?.settings?.enabled
+                  ? 'linear-gradient(135deg, #0E3E2B 0%, #123B2A 50%, #0A271B 100%)'
+                  : 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="الأذكار والتسابيح الصوتية التلقائية والصلاة على النبي"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className={`text-3xl filter drop-shadow ${autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}`}>🔔</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  autoAthkar?.settings?.enabled
+                    ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50'
+                    : 'bg-black/40 text-[#FFD700] border-[#C8A85B]/40'
+                }`}>
+                  {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  الأذكار
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  أذكار تلقائية وصلاة على النبي
                 </p>
               </div>
             </button>
