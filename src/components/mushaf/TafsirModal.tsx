@@ -217,10 +217,11 @@ export default function TafsirModal({
           {tafsir && !isLoading && (
             <div
               dir="rtl"
-              className="prose prose-lg max-w-none"
+              className="prose prose-lg max-w-none font-bold [&_*]:font-bold [&_p]:font-bold"
               style={{
                 fontFamily: "'Amiri', serif",
                 fontSize: '1.1rem',
+                fontWeight: 700,
                 lineHeight: 2,
                 color: '#17231D',
               }}

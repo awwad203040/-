@@ -597,10 +597,11 @@ export default function PageVersesTafsirDrawer({
               {!isLoading && !error && tafsirText && (
                 <div className="animate-fadeIn">
                   <div
-                    className="prose prose-sm sm:prose-base max-w-none text-[#17231D] leading-relaxed sm:leading-loose text-justify font-normal"
+                    className="prose prose-sm sm:prose-base max-w-none text-[#17231D] leading-relaxed sm:leading-loose text-justify font-bold [&_*]:font-bold [&_p]:font-bold"
                     style={{
                       fontFamily: "'Amiri', serif",
                       fontSize: '1.15rem',
+                      fontWeight: 700,
                       lineHeight: '2.2',
                       color: nightMode ? '#E8E4D9' : '#17231D',
                     }}
