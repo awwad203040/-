@@ -43,12 +43,14 @@ export default function QuranRadiosModal({ isOpen, onClose }: QuranRadiosModalPr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(5px)' }}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div
-        className="w-full max-w-2xl rounded-3xl shadow-2xl relative overflow-hidden flex flex-col max-h-[92vh] border-2 border-[#C8A85B]/60 flash-modal-window"
+        className="relative w-full max-w-2xl max-h-[88vh] sm:max-h-[90vh] my-auto rounded-3xl shadow-2xl overflow-hidden flex flex-col border-2 border-[#C8A85B]/60 flash-modal-window"
         style={{ backgroundColor: '#FBF8EF', color: '#17231D' }}
         onClick={(e) => e.stopPropagation()}
         dir="rtl"

@@ -1422,15 +1422,18 @@ function MushafReaderInner() {
 
       {/* Note Modal */}
       {showNoteModal && noteVerse && (
-        <>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
+          onClick={() => setShowNoteModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="إضافة ملاحظة"
+        >
           <div
-            className="fixed inset-0 z-40"
-            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-            onClick={() => setShowNoteModal(false)}
-          />
-          <div
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-md z-50 rounded-2xl p-6 shadow-2xl border-2 border-[#C8A85B]/60 flash-modal-window"
+            className="relative w-full max-w-md max-h-[88vh] sm:max-h-[90vh] my-auto rounded-3xl p-6 shadow-2xl border-2 border-[#C8A85B]/60 flex flex-col overflow-y-auto flash-modal-window"
             style={{ backgroundColor: bgColor }}
+            onClick={(e) => e.stopPropagation()}
+            dir="rtl"
           >
             <h3
               className="text-lg font-bold mb-4 text-center"
@@ -1472,7 +1475,7 @@ function MushafReaderInner() {
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Offline Download Mushaf Modal */}

@@ -84,18 +84,20 @@ export default function AudioControlModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/65 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-label="الاستماع للقرآن الكريم والتحكم الصوتي والتكرار"
       dir="rtl"
+      onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-xl max-h-[90vh] bg-[#123B2A] border-t-2 sm:border-2 border-[#C8A85B] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-y-auto flex flex-col text-white animate-slide-up flash-modal-window"
+        className="relative w-full max-w-xl max-h-[88vh] sm:max-h-[90vh] my-auto bg-[#123B2A] border-2 border-[#C8A85B] rounded-3xl shadow-2xl overflow-hidden flex flex-col text-white flash-modal-window"
         style={{ fontFamily: "'Tajawal', sans-serif" }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#0E2E21] px-5 py-4 border-b border-[#C8A85B]/40 flex items-center justify-between flash-modal-header">
+        <div className="sticky top-0 z-10 bg-[#0E2E21] px-5 py-4 border-b border-[#C8A85B]/40 flex items-center justify-between shrink-0 flash-modal-header">
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">🎧</span>
             <div>
@@ -119,7 +121,7 @@ export default function AudioControlModal({
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-5 space-y-4">
+        <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
           {/* Main Play / Pause and Sheikh Banner */}
           <div className="p-3.5 rounded-2xl bg-gradient-to-r from-black/40 via-white/5 to-black/40 border border-[#C8A85B]/40 flex items-center gap-3.5">
             {/* Play Button */}

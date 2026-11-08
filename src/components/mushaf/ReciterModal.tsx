@@ -74,19 +74,19 @@ export default function ReciterModal({
   const textColor = nightMode ? '#E8E4D9' : '#17231D';
 
   return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 z-40"
-        style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-        onClick={onClose}
-      />
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="اختيار القارئ"
+    >
       {/* Modal */}
       <div
-        className="fixed inset-x-4 top-[10%] bottom-[10%] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-md z-50 rounded-2xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/60 flash-modal-window"
+        className="relative w-full max-w-md max-h-[88vh] sm:max-h-[90vh] my-auto rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/60 flash-modal-window"
         style={{ backgroundColor: bgColor, color: textColor }}
         dir="rtl"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
@@ -199,6 +199,6 @@ export default function ReciterModal({
           })}
         </div>
       </div>
-    </>
+    </div>
   );
 }

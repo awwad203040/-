@@ -90,12 +90,14 @@ export default function InstallAppModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(5px)' }}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div
-        className="w-full max-w-lg rounded-3xl p-6 shadow-2xl relative overflow-hidden text-right border-2 border-[#C8A85B]/60 max-h-[90vh] overflow-y-auto flash-modal-window"
+        className="relative w-full max-w-lg my-auto rounded-3xl p-6 shadow-2xl overflow-y-auto text-right border-2 border-[#C8A85B]/60 max-h-[88vh] sm:max-h-[90vh] flash-modal-window"
         style={{ backgroundColor: '#FBF8EF', color: '#17231D' }}
         onClick={(e) => e.stopPropagation()}
         dir="rtl"

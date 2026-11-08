@@ -268,12 +268,14 @@ export default function PageVersesTafsirDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
       onClick={onClose}
       dir="rtl"
+      role="dialog"
+      aria-modal="true"
     >
       <div
-        className={`w-full max-w-5xl h-[92vh] max-h-[94vh] rounded-3xl shadow-2xl border-2 border-[#C8A85B]/70 flex flex-col overflow-hidden flash-modal-window ${
+        className={`relative w-full max-w-5xl h-[88vh] sm:h-[90vh] max-h-[88vh] sm:max-h-[90vh] my-auto rounded-3xl shadow-2xl border-2 border-[#C8A85B]/70 flex flex-col overflow-hidden flash-modal-window ${
           nightMode ? 'bg-[#0D1F17] text-[#E8E4D9]' : 'bg-[#FBF8EF] text-[#17231D]'
         }`}
         onClick={(e) => e.stopPropagation()}

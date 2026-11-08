@@ -122,27 +122,24 @@ export default function OfflineDownloadModal({
   const borderColor = nightMode ? 'rgba(200, 168, 91, 0.25)' : 'rgba(18, 59, 42, 0.12)';
 
   return (
-    <>
-      {/* Overlay Backdrop */}
-      <div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity animate-fade-in"
-        onClick={() => {
-          if (!isDownloading) onClose();
-        }}
-        aria-hidden="true"
-      />
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
+      onClick={() => {
+        if (!isDownloading) onClose();
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="offline-modal-title"
+    >
       {/* Modal Dialog */}
       <div
-        className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-md z-50 rounded-3xl p-6 shadow-2xl border-2 transition-all flash-modal-window"
+        className="relative w-full max-w-md max-h-[88vh] sm:max-h-[90vh] my-auto rounded-3xl p-6 shadow-2xl border-2 flex flex-col overflow-y-auto flash-modal-window"
         style={{
           backgroundColor: bgColor,
           borderColor: borderColor,
           direction: 'rtl',
         }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="offline-modal-title"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b mb-4 flash-modal-header" style={{ borderColor }}>
@@ -363,6 +360,6 @@ export default function OfflineDownloadModal({
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

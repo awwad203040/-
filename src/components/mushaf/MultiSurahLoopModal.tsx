@@ -69,18 +69,19 @@ export default function MultiSurahLoopModal({
   };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="تكرار مجموعة من السور"
+    >
       {/* Modal Dialog */}
       <div
-        className="fixed inset-x-3 top-6 bottom-6 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-xl z-50 rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/70 flash-modal-window"
+        className="relative w-full max-w-xl max-h-[88vh] sm:max-h-[90vh] my-auto rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/70 flash-modal-window"
         style={{ backgroundColor: '#FBF8EF', color: '#17231D' }}
         dir="rtl"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <header
@@ -278,6 +279,6 @@ export default function MultiSurahLoopModal({
           </div>
         </footer>
       </div>
-    </>
+    </div>
   );
 }

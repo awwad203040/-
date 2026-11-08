@@ -222,18 +222,21 @@ export default function RecitationCorrectionModal({
         }}
       />
 
-      {/* Backdrop */}
+      {/* Centered Modal Backdrop */}
       <div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
         onClick={onClose}
-      />
-
-      {/* Modal Dialog */}
-      <div
-        className="fixed inset-x-3 top-6 bottom-6 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl z-50 rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/60 flash-modal-window"
-        style={{ backgroundColor: bgColor, color: textColor }}
-        dir="rtl"
+        role="dialog"
+        aria-modal="true"
+        aria-label="تصحيح التلاوة بالذكاء الاصطناعي"
       >
+        {/* Modal Dialog */}
+        <div
+          className="relative w-full max-w-2xl max-h-[88vh] sm:max-h-[90vh] my-auto rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/60 flash-modal-window"
+          style={{ backgroundColor: bgColor, color: textColor }}
+          dir="rtl"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <header
           className="px-6 py-4 flex items-center justify-between shadow-xs flash-modal-header"
@@ -588,6 +591,7 @@ export default function RecitationCorrectionModal({
           </div>
         </footer>
       </div>
+    </div>
     </>
   );
 }

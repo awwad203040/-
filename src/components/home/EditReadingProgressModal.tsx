@@ -56,13 +56,17 @@ export default function EditReadingProgressModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200"
+      onClick={onClose}
+    >
       <div
-        className="w-full max-w-md bg-[#123B2A] text-white rounded-3xl p-6 shadow-2xl border-2 border-[#C8A85B]/60 flex flex-col gap-5 flash-modal-window"
+        className="relative w-full max-w-md my-auto bg-[#123B2A] text-white rounded-3xl p-6 shadow-2xl border-2 border-[#C8A85B]/60 flex flex-col gap-5 max-h-[88vh] sm:max-h-[90vh] overflow-y-auto flash-modal-window"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         dir="rtl"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-3 flash-modal-header">
