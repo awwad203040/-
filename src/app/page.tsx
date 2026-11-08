@@ -7,6 +7,7 @@ import { getReadingProgress, saveReadingProgress, getBookmarks, getPagesVisited,
 import { consumeNativeVoiceLaunch } from '@/lib/athkar-native-bridge';
 import { SURAH_METADATA, JUZ_METADATA, POPULAR_RECITERS, getSurahName, getSurahForPage, parseArabicOrWesternNumber } from '@/lib/quran-meta';
 import InstallAppModal from '@/components/home/InstallAppModal';
+import DownloadBarcodeModal from '@/components/home/DownloadBarcodeModal';
 import AudioPlayerComponent from '@/components/mushaf/AudioPlayer';
 import ReciterModal from '@/components/mushaf/ReciterModal';
 import OfflineAudioModal from '@/components/mushaf/OfflineAudioModal';
@@ -38,6 +39,7 @@ export default function HomePage() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [pagesRead, setPagesRead] = useState(0);
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [selectedReciterId, setSelectedReciterId] = useState<number>(7);
   const [selectedSurahForAudio, setSelectedSurahForAudio] = useState<number>(1);
   const [showReciterModal, setShowReciterModal] = useState(false);
@@ -437,6 +439,17 @@ export default function HomePage() {
                 <p className="text-[11px] sm:text-xs text-[#C8A85B] font-medium mt-0.5 truncate max-w-full" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   لوالديَّ أرجو الدعاء لهما بالرحمة والمغفرة ولجميع موتى المسلمين
                 </p>
+                {/* نافذة صغيرة: حمّل التطبيق (تحولك إلى باركود التحميل) */}
+                <button
+                  type="button"
+                  onClick={() => setShowBarcodeModal(true)}
+                  className="mt-1.5 inline-flex items-center gap-1.5 px-3.5 py-0.5 rounded-full text-xs font-bold bg-[#C8A85B] hover:bg-[#dfc278] text-[#123B2A] border border-[#C8A85B] active:scale-95 transition-all shadow-xs cursor-pointer"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title="اضغط للانتقال إلى باركود تحميل التطبيق"
+                >
+                  <span>📲</span>
+                  <span>حمّل التطبيق</span>
+                </button>
               </div>
 
               {/* Flashing Islamic Star on the Left (نجمة فلاشية على الشمال) */}
@@ -462,49 +475,6 @@ export default function HomePage() {
                   />
                   <circle cx="12" cy="12" r="2.2" fill="#FFFFFF" />
                 </svg>
-              </div>
-            </div>
-
-            {/* نافذة صغيرة فيها باركود تنزيل التطبيق داخل نافذة صدقة جارية */}
-            <div className="mt-2 pt-2 border-t border-[#C8A85B]/40 flex items-center justify-center gap-2.5 sm:gap-3 bg-[#0A271B]/75 py-2 px-3 rounded-xl border border-[#C8A85B]/40 max-w-sm mx-auto shadow-inner">
-              {/* باركود QR code */}
-              <a
-                href="/Noor-AlQuran.apk"
-                download="Noor-AlQuran.apk"
-                title="اضغط لتحميل التطبيق أو امسح الباركود"
-                className="bg-white p-1 rounded-lg border-2 border-[#C8A85B] shrink-0 shadow-sm hover:scale-105 active:scale-95 transition-transform block"
-              >
-                <img
-                  src="/noor-download-qr.png"
-                  alt="باركود تنزيل تطبيق نور القرآن"
-                  className="w-13 h-13 sm:w-15 sm:h-15 object-contain"
-                />
-              </a>
-
-              {/* نصوص وزر تنزيل التطبيق */}
-              <div className="flex flex-col items-start text-right min-w-0">
-                <span
-                  className="text-xs sm:text-sm font-extrabold text-[#F7EED8] flex items-center gap-1 leading-tight"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                >
-                  <span>📲</span>
-                  <span>باركود تنزيل التطبيق (APK)</span>
-                </span>
-                <span
-                  className="text-[10px] text-[#C8A85B] font-medium leading-tight mt-0.5"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                >
-                  امسح الباركود بالكاميرا أو اضغط للتحميل
-                </span>
-                <a
-                  href="/Noor-AlQuran.apk"
-                  download="Noor-AlQuran.apk"
-                  className="mt-1.5 inline-flex items-center gap-1 px-3 py-0.5 rounded-lg text-[10px] sm:text-xs font-bold bg-[#C8A85B] hover:bg-[#dfc278] text-[#123B2A] active:scale-95 transition shadow-xs cursor-pointer"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                >
-                  <span>📥</span>
-                  <span>تحميل مباشر (APK)</span>
-                </a>
               </div>
             </div>
           </div>
@@ -952,6 +922,12 @@ export default function HomePage() {
       <InstallAppModal
         isOpen={showInstallModal}
         onClose={() => setShowInstallModal(false)}
+      />
+
+      {/* Download Barcode Modal */}
+      <DownloadBarcodeModal
+        isOpen={showBarcodeModal}
+        onClose={() => setShowBarcodeModal(false)}
       />
 
       {/* Global Audio Player Bar when audio is active */}
