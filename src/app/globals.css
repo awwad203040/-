@@ -493,4 +493,53 @@ body {
   mix-blend-mode: screen;
 }
 
+/* ============================================================
+   Sadaqah Jariyah Flashing Stars (نجوم فلاشية جذابة لصدقة جارية)
+   ============================================================ */
+@keyframes sadaqahStarFlash {
+  0%, 100% {
+    transform: scale(0.92) rotate(0deg);
+    opacity: 0.85;
+    filter: drop-shadow(0 0 3px rgba(200, 168, 91, 0.6));
+  }
+  50% {
+    transform: scale(1.22) rotate(180deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 10px #FFD700) drop-shadow(0 0 18px rgba(255, 215, 0, 0.95));
+  }
+}
+
+@keyframes starRaysPulse {
+  0%, 100% {
+    transform: scale(0.85);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.9;
+  }
+}
+
+.sadaqah-flash-star-right {
+  animation: sadaqahStarFlash 2.4s ease-in-out infinite;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.sadaqah-flash-star-left {
+  animation: sadaqahStarFlash 2.4s ease-in-out 1.2s infinite;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.sadaqah-star-rays {
+  animation: starRaysPulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+
 

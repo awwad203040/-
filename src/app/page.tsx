@@ -388,27 +388,82 @@ export default function HomePage() {
         style={{ backgroundColor: '#123B2A', color: 'white' }}
       >
         <div className="max-w-xl mx-auto space-y-2 sm:space-y-2.5">
-          {/* 1. TOP BANNER: صدقة جارية (تأثير فلاشي جذاب مع الحفاظ التام على الخطوط) */}
+          {/* 1. TOP BANNER: صدقة جارية (تأثير فلاشي جذاب مع نجمة فلاشية يميناً وشمالاً) */}
           <div
-            className="w-full py-1.5 px-3 rounded-xl border-2 border-[#C8A85B] shadow-md text-center select-none flash-window flash-delay-1"
+            className="w-full py-1.5 px-3 rounded-xl border-2 border-[#C8A85B] shadow-md text-center select-none flash-window flash-delay-1 relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               boxShadow: '0 3px 12px -2px rgba(200, 168, 91, 0.3)',
             }}
           >
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-lg text-[#C8A85B]">🤲</span>
-              <h2
-                className="text-base sm:text-lg font-black text-[#F7EED8] tracking-wider"
-                style={{ fontFamily: "'Amiri', serif" }}
+            <div className="flex items-center justify-between gap-1.5">
+              {/* Flashing Islamic Star on the Right (نجمة فلاشية عن اليمين) */}
+              <div
+                className="sadaqah-flash-star-right shrink-0"
+                aria-hidden="true"
               >
-                صدقة جارية
-              </h2>
-              <span className="text-lg text-[#C8A85B]">🤲</span>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="w-5 h-5 sm:w-6 sm:h-6">
+                  <defs>
+                    <linearGradient id="sadaqahStarGradRight" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FFFFFF" />
+                      <stop offset="45%" stopColor="#FFD700" />
+                      <stop offset="100%" stopColor="#C8A85B" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="12" cy="12" r="8.5" fill="url(#sadaqahStarGradRight)" opacity="0.28" className="sadaqah-star-rays" />
+                  <path
+                    d="M12 2L14.4 7.6L20 5.2L17.6 10.8L22 12L17.6 13.2L20 18.8L14.4 16.4L12 22L9.6 16.4L4 18.8L6.4 13.2L2 12L6.4 10.8L4 5.2L9.6 7.6L12 2Z"
+                    fill="url(#sadaqahStarGradRight)"
+                    stroke="#FFF4B8"
+                    strokeWidth="0.75"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="12" cy="12" r="2.2" fill="#FFFFFF" />
+                </svg>
+              </div>
+
+              {/* Center Content: العنوان والدعاء مع الحفاظ التام على الخطوط والأحجام */}
+              <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
+                <div className="flex items-center justify-center gap-1.5">
+                  <span className="text-base sm:text-lg text-[#C8A85B]">🤲</span>
+                  <h2
+                    className="text-base sm:text-lg font-black text-[#F7EED8] tracking-wider"
+                    style={{ fontFamily: "'Amiri', serif" }}
+                  >
+                    صدقة جارية
+                  </h2>
+                  <span className="text-base sm:text-lg text-[#C8A85B]">🤲</span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-[#C8A85B] font-medium mt-0.5 truncate max-w-full" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  لوالديَّ أرجو الدعاء لهما بالرحمة والمغفرة ولجميع موتى المسلمين
+                </p>
+              </div>
+
+              {/* Flashing Islamic Star on the Left (نجمة فلاشية على الشمال) */}
+              <div
+                className="sadaqah-flash-star-left shrink-0"
+                aria-hidden="true"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="w-5 h-5 sm:w-6 sm:h-6">
+                  <defs>
+                    <linearGradient id="sadaqahStarGradLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FFFFFF" />
+                      <stop offset="45%" stopColor="#FFD700" />
+                      <stop offset="100%" stopColor="#C8A85B" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="12" cy="12" r="8.5" fill="url(#sadaqahStarGradLeft)" opacity="0.28" className="sadaqah-star-rays" />
+                  <path
+                    d="M12 2L14.4 7.6L20 5.2L17.6 10.8L22 12L17.6 13.2L20 18.8L14.4 16.4L12 22L9.6 16.4L4 18.8L6.4 13.2L2 12L6.4 10.8L4 5.2L9.6 7.6L12 2Z"
+                    fill="url(#sadaqahStarGradLeft)"
+                    stroke="#FFF4B8"
+                    strokeWidth="0.75"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="12" cy="12" r="2.2" fill="#FFFFFF" />
+                </svg>
+              </div>
             </div>
-            <p className="text-[11px] sm:text-xs text-[#C8A85B] font-medium mt-0.5" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-              لوالديَّ أرجو الدعاء لهما بالرحمة والمغفرة ولجميع موتى المسلمين
-            </p>
           </div>
 
           {/* 2. CENTER: شعار التطبيق (تأثير فلاشي جذاب مع الحفاظ التام على حجم الشعار وحجم الخطوط) */}
