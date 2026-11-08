@@ -56,12 +56,12 @@ export default function PrayerTimesModal({
       dir="rtl"
     >
       <div
-        className="bg-[#123B2A] border-2 border-[#C8A85B] rounded-2xl sm:rounded-3xl w-full max-w-lg p-3.5 sm:p-4.5 text-white shadow-2xl flex flex-col gap-2.5 sm:gap-3 max-h-[96vh] overflow-y-auto"
+        className="bg-[#123B2A] border-2 border-[#C8A85B] rounded-2xl sm:rounded-3xl w-full max-w-lg p-3.5 sm:p-4.5 text-white shadow-2xl flex flex-col gap-2.5 sm:gap-3 max-h-[96vh] overflow-y-auto flash-modal-window"
         onClick={(e) => e.stopPropagation()}
         style={{ fontFamily: "'Tajawal', sans-serif" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#C8A85B]/30 pb-2 shrink-0">
+        <div className="flex items-center justify-between border-b border-[#C8A85B]/30 pb-2 shrink-0 flash-modal-header">
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">🕌</span>
             <div className="flex items-baseline gap-2">

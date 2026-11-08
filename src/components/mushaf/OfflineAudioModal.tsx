@@ -133,14 +133,14 @@ export default function OfflineAudioModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="w-full max-w-lg bg-[#123B2A] text-white rounded-3xl p-5 shadow-2xl border border-[#C8A85B]/40 flex flex-col max-h-[90vh] overflow-hidden"
+        className="w-full max-w-lg bg-[#123B2A] text-white rounded-3xl p-5 shadow-2xl border-2 border-[#C8A85B]/60 flex flex-col max-h-[90vh] overflow-hidden flash-modal-window"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         dir="rtl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0 flash-modal-header">
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">📥</span>
             <div>

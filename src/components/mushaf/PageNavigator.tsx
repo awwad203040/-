@@ -209,14 +209,14 @@ export default function PageNavigator({
           onClick={() => setShowGoTo(false)}
         >
           <div
-            className="rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border-2 border-[#C8A85B]/50 flex flex-col max-h-[90vh]"
+            className="rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border-2 border-[#C8A85B]/60 flex flex-col max-h-[90vh] flash-modal-window"
             style={{ backgroundColor: '#FBF8EF', color: '#17231D' }}
             onClick={(e) => e.stopPropagation()}
             dir="rtl"
           >
             {/* Header */}
             <div
-              className="px-5 py-4 flex items-center justify-between border-b border-[#C8A85B]/30"
+              className="px-5 py-4 flex items-center justify-between border-b border-[#C8A85B]/30 flash-modal-header"
               style={{ backgroundColor: '#123B2A', color: 'white' }}
             >
               <div className="flex items-center gap-2">

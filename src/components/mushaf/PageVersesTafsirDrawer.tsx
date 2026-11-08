@@ -273,14 +273,14 @@ export default function PageVersesTafsirDrawer({
       dir="rtl"
     >
       <div
-        className={`w-full max-w-5xl h-[92vh] max-h-[94vh] rounded-3xl shadow-2xl border-2 border-[#C8A85B]/70 flex flex-col overflow-hidden ${
+        className={`w-full max-w-5xl h-[92vh] max-h-[94vh] rounded-3xl shadow-2xl border-2 border-[#C8A85B]/70 flex flex-col overflow-hidden flash-modal-window ${
           nightMode ? 'bg-[#0D1F17] text-[#E8E4D9]' : 'bg-[#FBF8EF] text-[#17231D]'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
         <div
-          className="px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between border-b border-[#C8A85B]/40 shrink-0 select-none"
+          className="px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between border-b border-[#C8A85B]/40 shrink-0 select-none flash-modal-header"
           style={{ backgroundColor: '#123B2A', color: 'white' }}
         >
           <div className="flex items-center gap-2 min-w-0">

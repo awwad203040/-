@@ -77,11 +77,11 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
       onClick={onClose}
     >
       <div
-        className="bg-[#123B2A] border-2 border-[#C8A85B] rounded-2xl w-full max-w-md p-5 text-white shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
+        className="bg-[#123B2A] border-2 border-[#C8A85B] rounded-2xl w-full max-w-md p-5 text-white shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto flash-modal-window"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#C8A85B]/30 pb-3">
+        <div className="flex items-center justify-between border-b border-[#C8A85B]/30 pb-3 flash-modal-header">
           <div className="flex items-center gap-2">
             <span className="text-2xl" aria-hidden="true">🦯</span>
             <h2 id="accessibility-title" className="text-lg font-bold text-[#F7EED8]">

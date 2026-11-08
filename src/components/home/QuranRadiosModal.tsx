@@ -48,14 +48,14 @@ export default function QuranRadiosModal({ isOpen, onClose }: QuranRadiosModalPr
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-3xl shadow-2xl relative overflow-hidden flex flex-col max-h-[92vh] border border-[#C8A85B]/40"
+        className="w-full max-w-2xl rounded-3xl shadow-2xl relative overflow-hidden flex flex-col max-h-[92vh] border-2 border-[#C8A85B]/60 flash-modal-window"
         style={{ backgroundColor: '#FBF8EF', color: '#17231D' }}
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
         {/* Header */}
         <div
-          className="p-4 sm:p-5 text-white flex items-center justify-between shadow-md relative"
+          className="p-4 sm:p-5 text-white flex items-center justify-between shadow-md relative flash-modal-header"
           style={{ backgroundColor: '#123B2A' }}
         >
           <div className="flex items-center gap-3">

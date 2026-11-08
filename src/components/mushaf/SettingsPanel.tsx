@@ -27,7 +27,7 @@ export default function SettingsPanel({
         onClick={onClose}
       />
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl px-6 pt-4 pb-8"
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl px-6 pt-4 pb-8 border-t-2 border-[#C8A85B] flash-modal-window"
         style={{ backgroundColor: '#FBF8EF', animation: 'slideUp 0.3s ease-out' }}
       >
         <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: '#C8A85B' }} />

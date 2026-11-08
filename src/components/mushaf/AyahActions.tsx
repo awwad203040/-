@@ -68,7 +68,7 @@ export default function AyahActions({
 
       {/* Bottom Sheet */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl px-6 pt-4 pb-8 max-h-[85vh] overflow-y-auto"
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl px-6 pt-4 pb-8 max-h-[85vh] overflow-y-auto border-t-2 border-[#C8A85B] flash-modal-window"
         style={{ backgroundColor: '#FBF8EF', animation: 'slideUp 0.3s ease-out' }}
       >
         {/* Handle */}

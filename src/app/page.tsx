@@ -388,9 +388,9 @@ export default function HomePage() {
         style={{ backgroundColor: '#123B2A', color: 'white' }}
       >
         <div className="max-w-xl mx-auto space-y-2 sm:space-y-2.5">
-          {/* 1. TOP BANNER: صدقة جارية (تم تصغير النافذة قليلاً مع الحفاظ التام على الخطوط) */}
+          {/* 1. TOP BANNER: صدقة جارية (تأثير فلاشي جذاب مع الحفاظ التام على الخطوط) */}
           <div
-            className="w-full py-1.5 px-3 rounded-xl border-2 border-[#C8A85B] shadow-md text-center select-none"
+            className="w-full py-1.5 px-3 rounded-xl border-2 border-[#C8A85B] shadow-md text-center select-none flash-window flash-delay-1"
             style={{
               background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               boxShadow: '0 3px 12px -2px rgba(200, 168, 91, 0.3)',
@@ -411,9 +411,9 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* 2. CENTER: شعار التطبيق (تم تصغير النافذة قليلاً مع الحفاظ التام على حجم الشعار وحجم الخطوط) */}
+          {/* 2. CENTER: شعار التطبيق (تأثير فلاشي جذاب مع الحفاظ التام على حجم الشعار وحجم الخطوط) */}
           <div
-            className="w-full max-w-[270px] mx-auto py-2 px-3 sm:py-2.5 sm:px-4 rounded-2xl border-2 border-[#C8A85B]/70 shadow-lg flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.01]"
+            className="w-full max-w-[270px] mx-auto py-2 px-3 sm:py-2.5 sm:px-4 rounded-2xl border-2 border-[#C8A85B]/70 shadow-lg flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.01] flash-window flash-delay-2"
             style={{
               background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               boxShadow: '0 4px 16px -3px rgba(0, 0, 0, 0.4), 0 0 10px rgba(200, 168, 91, 0.2)',
@@ -444,9 +444,9 @@ export default function HomePage() {
             </button>
           </div>
 
-          {/* 3. WIDE CARD: تقدمك في القراءة (تم تصغير النافذة قليلاً مع الحفاظ التام على الخطوط والبيانات) */}
+          {/* 3. WIDE CARD: تقدمك في القراءة (تأثير فلاشي جذاب مع الحفاظ التام على الخطوط والبيانات) */}
           <div
-            className="w-full rounded-2xl py-2.5 px-3.5 sm:py-3 sm:px-4 border-2 border-[#C8A85B] shadow-lg text-right transition-all"
+            className="w-full rounded-2xl py-2.5 px-3.5 sm:py-3 sm:px-4 border-2 border-[#C8A85B] shadow-lg text-right transition-all flash-window flash-delay-3"
             style={{
               background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
             }}
@@ -535,7 +535,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowReadQuranModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-1"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -565,9 +565,9 @@ export default function HomePage() {
               }}
               className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
                 audio.isPlaying
-                  ? 'border-emerald-400 ring-2 ring-emerald-400/40'
-                  : 'border-[#C8A85B] hover:brightness-110'
-              }`}
+                  ? 'border-emerald-400 ring-2 ring-emerald-400/40 flash-window-emerald'
+                  : 'border-[#C8A85B] hover:brightness-110 flash-window'
+              } flash-delay-2`}
               style={{
                 background: audio.isPlaying
                   ? 'linear-gradient(135deg, #0B5B43 0%, #123B2A 50%, #082A1C 100%)'
@@ -616,7 +616,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowOfflineModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-3"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -647,9 +647,9 @@ export default function HomePage() {
               }}
               className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
                 autoAthkar?.settings?.enabled
-                  ? 'border-emerald-400 ring-2 ring-emerald-400/30'
-                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95'
-              }`}
+                  ? 'border-emerald-400 ring-2 ring-emerald-400/30 flash-window-emerald'
+                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
+              } flash-delay-4`}
               style={{
                 background: autoAthkar?.settings?.enabled
                   ? 'linear-gradient(135deg, #0E3E2B 0%, #123B2A 50%, #0A271B 100%)'
@@ -684,7 +684,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowAccessibilityModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-5"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -713,7 +713,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowVoiceAssistantModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-6"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -742,7 +742,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowPrayerModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-7"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -773,9 +773,9 @@ export default function HomePage() {
               }}
               className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
                 quranRadio.isPlaying
-                  ? 'border-emerald-400 ring-2 ring-emerald-400/40'
-                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95'
-              }`}
+                  ? 'border-emerald-400 ring-2 ring-emerald-400/40 flash-window-emerald'
+                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
+              } flash-delay-8`}
               style={{
                 background: quranRadio.isPlaying
                   ? 'linear-gradient(135deg, #0B5B43 0%, #123B2A 50%, #082A1C 100%)'

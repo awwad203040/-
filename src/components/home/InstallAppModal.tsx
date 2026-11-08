@@ -95,13 +95,13 @@ export default function InstallAppModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-3xl p-6 shadow-2xl relative overflow-hidden text-right border border-[#C8A85B]/40 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-3xl p-6 shadow-2xl relative overflow-hidden text-right border-2 border-[#C8A85B]/60 max-h-[90vh] overflow-y-auto flash-modal-window"
         style={{ backgroundColor: '#FBF8EF', color: '#17231D' }}
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#123B2A]/10">
+        <div className="flex items-center justify-between pb-4 border-b border-[#123B2A]/10 flash-modal-header">
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"

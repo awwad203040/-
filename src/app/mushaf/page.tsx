@@ -1429,7 +1429,7 @@ function MushafReaderInner() {
             onClick={() => setShowNoteModal(false)}
           />
           <div
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-md z-50 rounded-2xl p-6 shadow-2xl"
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-md z-50 rounded-2xl p-6 shadow-2xl border-2 border-[#C8A85B]/60 flash-modal-window"
             style={{ backgroundColor: bgColor }}
           >
             <h3

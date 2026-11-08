@@ -230,13 +230,13 @@ export default function RecitationCorrectionModal({
 
       {/* Modal Dialog */}
       <div
-        className="fixed inset-x-3 top-6 bottom-6 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl z-50 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-[#C8A85B]/40"
+        className="fixed inset-x-3 top-6 bottom-6 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl z-50 rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/60 flash-modal-window"
         style={{ backgroundColor: bgColor, color: textColor }}
         dir="rtl"
       >
         {/* Header */}
         <header
-          className="px-6 py-4 flex items-center justify-between shadow-xs"
+          className="px-6 py-4 flex items-center justify-between shadow-xs flash-modal-header"
           style={{ backgroundColor: '#123B2A', color: 'white' }}
         >
           <div className="flex items-center gap-3">

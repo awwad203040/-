@@ -134,7 +134,7 @@ export default function OfflineDownloadModal({
 
       {/* Modal Dialog */}
       <div
-        className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-md z-50 rounded-3xl p-6 shadow-2xl border transition-all"
+        className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-md z-50 rounded-3xl p-6 shadow-2xl border-2 transition-all flash-modal-window"
         style={{
           backgroundColor: bgColor,
           borderColor: borderColor,
@@ -145,7 +145,7 @@ export default function OfflineDownloadModal({
         aria-labelledby="offline-modal-title"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b mb-4" style={{ borderColor }}>
+        <div className="flex items-center justify-between pb-3 border-b mb-4 flash-modal-header" style={{ borderColor }}>
           <div className="flex items-center gap-2.5">
             <div
               className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl shadow-xs"

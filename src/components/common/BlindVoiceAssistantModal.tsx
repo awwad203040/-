@@ -241,7 +241,7 @@ export default function BlindVoiceAssistantModal({
       onClick={handleBackdropClick}
     >
       <div
-        className="bg-gradient-to-b from-[#123B2A] to-[#0A2318] border-2 border-[#C8A85B] rounded-3xl w-full max-w-md p-6 text-white shadow-2xl flex flex-col items-center gap-5 relative overflow-hidden"
+        className="bg-gradient-to-b from-[#123B2A] to-[#0A2318] border-2 border-[#C8A85B] rounded-3xl w-full max-w-md p-6 text-white shadow-2xl flex flex-col items-center gap-5 relative overflow-hidden flash-modal-window"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -259,7 +259,7 @@ export default function BlindVoiceAssistantModal({
         </button>
 
         {/* Header */}
-        <div className="text-center pt-1">
+        <div className="text-center pt-1 w-full flash-modal-header">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C8A85B]/20 border border-[#C8A85B]/40 text-[#F7EED8] text-xs font-semibold mb-2">
             <span>🎙️</span>
             <span>المساعد الصوتي الذكي للمكفوفين</span>

@@ -82,12 +82,12 @@ export default function ReadQuranModal({
       dir="rtl"
     >
       <div
-        className="w-full max-w-2xl bg-[#FBF8EF] text-[#17231D] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border-2 border-[#C8A85B]/60 animate-in fade-in zoom-in-95 duration-200"
+        className="w-full max-w-2xl bg-[#FBF8EF] text-[#17231D] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border-2 border-[#C8A85B]/70 animate-in fade-in zoom-in-95 duration-200 flash-modal-window"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div
-          className="px-5 py-4 border-b border-[#C8A85B]/30 flex items-center justify-between shadow-sm relative overflow-hidden"
+          className="px-5 py-4 border-b border-[#C8A85B]/30 flex items-center justify-between shadow-sm relative overflow-hidden flash-modal-header"
           style={{ backgroundColor: '#123B2A', color: 'white' }}
         >
           {/* Animated Sheen in Header */}

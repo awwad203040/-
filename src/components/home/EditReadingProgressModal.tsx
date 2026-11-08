@@ -58,14 +58,14 @@ export default function EditReadingProgressModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="w-full max-w-md bg-[#123B2A] text-white rounded-3xl p-6 shadow-2xl border border-[#C8A85B]/40 flex flex-col gap-5"
+        className="w-full max-w-md bg-[#123B2A] text-white rounded-3xl p-6 shadow-2xl border-2 border-[#C8A85B]/60 flex flex-col gap-5 flash-modal-window"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         dir="rtl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3 flash-modal-header">
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">📱</span>
             <div>

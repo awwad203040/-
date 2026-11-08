@@ -95,12 +95,12 @@ export default function TafsirModal({ verse, onClose }: TafsirModalProps) {
 
       {/* Modal */}
       <div
-        className="fixed inset-x-4 top-[10%] bottom-[10%] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl z-50 rounded-2xl overflow-hidden flex flex-col shadow-2xl"
+        className="fixed inset-x-4 top-[10%] bottom-[10%] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-2xl z-50 rounded-2xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/60 flash-modal-window"
         style={{ backgroundColor: '#FBF8EF' }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-5 py-4"
+          className="flex items-center justify-between px-5 py-4 flash-modal-header"
           style={{ backgroundColor: '#123B2A', color: 'white' }}
         >
           <div>

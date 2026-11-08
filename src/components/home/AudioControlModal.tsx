@@ -91,11 +91,11 @@ export default function AudioControlModal({
       dir="rtl"
     >
       <div
-        className="w-full sm:max-w-xl max-h-[90vh] bg-[#123B2A] border-t-2 sm:border-2 border-[#C8A85B] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-y-auto flex flex-col text-white animate-slide-up"
+        className="w-full sm:max-w-xl max-h-[90vh] bg-[#123B2A] border-t-2 sm:border-2 border-[#C8A85B] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-y-auto flex flex-col text-white animate-slide-up flash-modal-window"
         style={{ fontFamily: "'Tajawal', sans-serif" }}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#0E2E21] px-5 py-4 border-b border-[#C8A85B]/40 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-[#0E2E21] px-5 py-4 border-b border-[#C8A85B]/40 flex items-center justify-between flash-modal-header">
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">🎧</span>
             <div>
