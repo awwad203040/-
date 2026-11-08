@@ -21,6 +21,8 @@ import EditReadingProgressModal from '@/components/home/EditReadingProgressModal
 import { AccessibilityModal } from '@/components/common/AccessibilityModal';
 import PrayerTimesModal from '@/components/home/PrayerTimesModal';
 import ReadQuranModal from '@/components/home/ReadQuranModal';
+import QuranRadiosModal from '@/components/home/QuranRadiosModal';
+import { useQuranRadio } from '@/hooks/useQuranRadio';
 import BlindVoiceAssistantModal from '@/components/common/BlindVoiceAssistantModal';
 import type { VoiceCommandResult } from '@/lib/voice-command-engine';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
@@ -51,6 +53,8 @@ export default function HomePage() {
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [showReadQuranModal, setShowReadQuranModal] = useState(false);
   const [showVoiceAssistantModal, setShowVoiceAssistantModal] = useState(false);
+  const quranRadio = useQuranRadio();
+  const [showRadiosModal, setShowRadiosModal] = useState(false);
 
   // Refresh reading progress freshly from localStorage
   const refreshProgress = useCallback(() => {
@@ -487,6 +491,47 @@ export default function HomePage() {
               رفيقك مع القرآن الكريم • المصحف الشريف
             </p>
             <div className="flex flex-col items-center gap-2 mb-3 w-full">
+              {/* Row 0: Quran Radios Button (إذاعات القرآن الكريم - مصر والسعودية والدول الإسلامية) */}
+              <div className="flex items-center justify-center gap-1.5 w-full max-w-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('tap');
+                    setShowRadiosModal(true);
+                  }}
+                  className={`w-full inline-flex items-center justify-between px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all border active:scale-95 cursor-pointer shadow-md ${
+                    quranRadio.isPlaying
+                      ? 'border-emerald-400 bg-gradient-to-r from-emerald-950 via-[#123B2A] to-emerald-950 text-white ring-2 ring-emerald-400/40'
+                      : 'border-[#C8A85B] bg-gradient-to-r from-[#123B2A] via-[#1c4b38] to-[#123B2A] text-[#F7EED8] hover:brightness-110'
+                  }`}
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  title="إذاعات القرآن الكريم المباشرة - مصر والسعودية والدول الإسلامية وكبار القراء"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="text-base sm:text-lg shrink-0">📻</span>
+                    <span className="font-extrabold text-[#FFD700] whitespace-nowrap">إذاعات القرآن الكريم المباشرة</span>
+                    {quranRadio.isPlaying ? (
+                      <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse shrink-0">
+                        بث حي LIVE
+                      </span>
+                    ) : (
+                      <span className="hidden sm:inline bg-[#C8A85B]/25 text-[#F7EED8] text-[9px] px-1.5 py-0.5 rounded-md font-normal shrink-0">
+                        مصر • السعودية • الدول الإسلامية
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-[#C8A85B] shrink-0">
+                    {quranRadio.isPlaying ? (
+                      <span className="text-emerald-300 font-bold text-[11px] truncate max-w-[90px]">
+                        {quranRadio.currentStation?.name}
+                      </span>
+                    ) : (
+                      <span>فتح ◀</span>
+                    )}
+                  </div>
+                </button>
+              </div>
+
               {/* Row 1: Install APK & Download Mushaf */}
               <div className="flex items-center justify-center gap-2 w-full max-w-sm">
                 <button
@@ -1488,6 +1533,58 @@ export default function HomePage() {
         onClose={handleCloseVoiceModal}
         onExecuteCommand={handleVoiceCommandResult}
       />
+
+      {/* Quran Live Radios Modal */}
+      <QuranRadiosModal
+        isOpen={showRadiosModal}
+        onClose={() => setShowRadiosModal(false)}
+      />
+
+      {/* Floating Radio Mini Player when a station is active and playing */}
+      {quranRadio.currentStation && quranRadio.isPlaying && (
+        <div
+          className={`fixed ${audio.currentSurah > 0 ? 'bottom-20' : 'bottom-4'} right-4 left-4 sm:left-auto sm:right-6 sm:w-96 z-40 p-3 rounded-2xl border-2 border-[#C8A85B] shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 text-white transition-all`}
+          style={{ backgroundColor: 'rgba(18, 59, 42, 0.95)' }}
+          dir="rtl"
+        >
+          <div
+            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+            onClick={() => setShowRadiosModal(true)}
+          >
+            <span className="text-2xl shrink-0">{quranRadio.currentStation.flag}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping shrink-0" />
+                <p className="text-xs font-bold text-[#FFD700] truncate">
+                  {quranRadio.currentStation.name}
+                </p>
+              </div>
+              <p className="text-[10px] text-white/70 truncate">
+                بث مباشر • انقر لفتح قائمة الإذاعات
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => quranRadio.togglePlayPause()}
+              className="p-2 rounded-xl bg-[#C8A85B] text-[#123B2A] font-bold text-xs hover:bg-[#d6b76c] transition active:scale-95 cursor-pointer shadow-sm"
+              title={quranRadio.isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
+            >
+              {quranRadio.isPlaying ? '⏸' : '▶️'}
+            </button>
+            <button
+              type="button"
+              onClick={() => quranRadio.stopRadio()}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 transition active:scale-95 cursor-pointer text-xs"
+              title="إغلاق الإذاعة"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

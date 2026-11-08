@@ -70,6 +70,18 @@
 
         </LinearLayout>
 
+        <!-- Line 3: Next Prayer and Time (الصلاة القادمة ووقتها) -->
+        <TextView
+            android:id="@+id/salatuk_next_prayer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textSize="12sp"
+            android:textColor="#4B5563"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="الصلاة القادمة: العصر . 02:45" />
+
     </LinearLayout>
 
 </RelativeLayout>

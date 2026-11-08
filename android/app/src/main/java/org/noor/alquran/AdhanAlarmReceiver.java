@@ -60,6 +60,13 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             return;
         }
 
+        // Handle Restore Ringer Action after 20 minutes of prayer
+        if (PrayerFlashSilentHelper.ACTION_RESTORE_RINGER.equals(action)) {
+            Log.i(TAG, "Restoring ringer mode after prayer silent duration.");
+            PrayerFlashSilentHelper.restoreRingerMode(context);
+            return;
+        }
+
         // On reboot or app update, reschedule all prayer alarms
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) || "android.intent.action.MY_PACKAGE_REPLACED".equals(action)) {
             Log.i(TAG, "Device booted or package replaced, rescheduling Adhan alarms.");
@@ -72,7 +79,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
 
         final String prayerKey = intent.getStringExtra("prayer_key");
         final String prayerName = intent.getStringExtra("prayer_name");
-        final String cityName = intent.getStringExtra("city_name") != null ? intent.getStringExtra("city_name") : "موقعك";
+        String cityParam = intent.getStringExtra("city_name");
+        final String cityName = (cityParam != null && !cityParam.trim().isEmpty() && !cityParam.equals("موقعك")) ? cityParam : "الهفوف";
         String prayerTime12 = intent.getStringExtra("prayer_time12");
         String hijriDate = intent.getStringExtra("hijri_date");
 
@@ -176,6 +184,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         new Handler(Looper.getMainLooper()).postDelayed(cleanup, 220000L);
 
         try {
+            PrayerFlashSilentHelper.flashCameraTorch(context, 10, 300);
+            PrayerFlashSilentHelper.setSilentModeForPrayer(context, 20);
             showAdhanHeadsUpNotification(context, prayerName, cityName, prayerTime12, hijriDate);
 
             int soundResId = context.getResources().getIdentifier("adhan", "raw", context.getPackageName());
@@ -463,7 +473,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         boolean masterEnabled = prefs.getBoolean("adhan_master_enabled", true);
         if (!masterEnabled) return;
 
-        String cityName = prefs.getString("city_name", "موقعك");
+        String cityName = prefs.getString("city_name", "الهفوف");
+        if (cityName.equals("موقعك")) cityName = "الهفوف";
         String fajr = prefs.getString("time_fajr", "04:45");
         String dhuhr = prefs.getString("time_dhuhr", "12:05");
         String asr = prefs.getString("time_asr", "15:25");

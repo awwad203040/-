@@ -34,7 +34,7 @@ import java.util.Locale;
  * Icon:  Rounded cyan square with turquoise mosque dome, gold base and crescent.
  */
 public class PrayerNotificationHelper {
-    public static final String CHANNEL_ADHAN_ID = "noor_adhan_fg_channel_v1";
+    public static final String CHANNEL_ADHAN_ID = "noor_adhan_fg_channel_v2";
     public static final String CHANNEL_PRAYER_BAR_ID = "noor_prayer_bar_channel_v1";
     public static final int NOTIFICATION_ID_PRAYER = 8881;
 
@@ -188,7 +188,7 @@ public class PrayerNotificationHelper {
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
 
-        // 1. High-importance Adhan channel for alerts & playback
+        // 1. High-importance Adhan channel (NO system ding/chime, flash lights enabled)
         NotificationChannel adhanChannel = nm.getNotificationChannel(CHANNEL_ADHAN_ID);
         if (adhanChannel == null) {
             adhanChannel = new NotificationChannel(
@@ -196,9 +196,11 @@ public class PrayerNotificationHelper {
                     "أذان الصلوات (صوتي مباشر)",
                     NotificationManager.IMPORTANCE_HIGH
             );
-            adhanChannel.setDescription("تنبيه أذان الصلوات المباشر بصوت الشيخ محمد جازي");
+            adhanChannel.setDescription("تنبيه أذان الصلوات المباشر بصوت الشيخ محمد جازي مع فلاش وبدون صوت تنبيه النظام المزعج");
+            // Delete system chime ding completely so only the Adhan audio plays!
+            adhanChannel.setSound(null, null);
             adhanChannel.enableLights(true);
-            adhanChannel.setLightColor(Color.parseColor("#C8A85B"));
+            adhanChannel.setLightColor(Color.WHITE);
             adhanChannel.enableVibration(true);
             adhanChannel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
             nm.createNotificationChannel(adhanChannel);
@@ -224,6 +226,9 @@ public class PrayerNotificationHelper {
     /**
      * Builds the complete Salatuk-style notification
      */
+    /**
+     * Builds the complete Salatuk-style notification
+     */
     public static Notification buildSalatukNotification(
             Context context,
             String prayerName,
@@ -231,13 +236,15 @@ public class PrayerNotificationHelper {
             String cityName,
             String hijriDate,
             String timerText,
+            String nextPrayerName,
+            String nextPrayerTime12,
             boolean isAdhanAlert
     ) {
         ensureChannels(context);
 
         String channelId = isAdhanAlert ? CHANNEL_ADHAN_ID : CHANNEL_PRAYER_BAR_ID;
 
-        String safeCity = (cityName != null && !cityName.trim().isEmpty()) ? cityName : "موقعك";
+        String safeCity = (cityName != null && !cityName.trim().isEmpty() && !cityName.equals("موقعك")) ? cityName : "الهفوف";
         String safeHijri = (hijriDate != null && !hijriDate.trim().isEmpty()) ? hijriDate : getHijriDateArabic(context);
         String title = safeCity + " | " + safeHijri;
 
@@ -269,6 +276,10 @@ public class PrayerNotificationHelper {
             safeTimerOnly = safeTimerOnly.substring(1).trim();
         }
         customViews.setTextViewText(R.id.salatuk_timer, "د " + safeTimerOnly);
+
+        String safeNextName = (nextPrayerName != null && !nextPrayerName.isEmpty()) ? nextPrayerName : "العصر";
+        String safeNextTime = (nextPrayerTime12 != null && !nextPrayerTime12.isEmpty()) ? nextPrayerTime12 : "00:00";
+        customViews.setTextViewText(R.id.salatuk_next_prayer, "الصلاة القادمة: " + safeNextName + " . " + safeNextTime);
 
         Bitmap mosqueIcon = getSalatukMosqueIcon(context);
         if (mosqueIcon != null) {
@@ -318,17 +329,41 @@ public class PrayerNotificationHelper {
         return notification;
     }
 
+    public static Notification buildSalatukNotification(
+            Context context,
+            String prayerName,
+            String prayerTime12,
+            String cityName,
+            String hijriDate,
+            String timerText,
+            boolean isAdhanAlert
+    ) {
+        String nextName = null;
+        String nextTime = null;
+        try {
+            ActivePrayerInfo info = calculateCurrentActivePrayer(context);
+            if (info != null) {
+                nextName = info.nextPrayerName;
+                nextTime = info.nextPrayerTime12;
+            }
+        } catch (Exception ignored) {}
+        return buildSalatukNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextName, nextTime, isAdhanAlert);
+    }
+
     public static class ActivePrayerInfo {
         public String prayerName;
         public String prayerTime12;
         public String cityName;
         public String hijriDate;
         public String timerText;
+        public String nextPrayerName;
+        public String nextPrayerTime12;
     }
 
     public static ActivePrayerInfo calculateCurrentActivePrayer(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(AdhanAlarmReceiver.PREFS_NAME, Context.MODE_PRIVATE);
-        String cityName = prefs.getString("city_name", "موقعك");
+        String cityName = prefs.getString("city_name", "الهفوف");
+        if (cityName.equals("موقعك")) cityName = "الهفوف";
         String hijriDate = prefs.getString("hijri_date", null);
         if (hijriDate == null) hijriDate = getHijriDateArabic(context);
 
@@ -392,12 +427,20 @@ public class PrayerNotificationHelper {
             time12 = formatTime12(times24[activeIdx]);
         }
 
+        int nextIdx = (activeIdx + 1) % 5;
+        String nextTime12 = prefs.getString("time12_" + keys[nextIdx], null);
+        if (nextTime12 == null || nextTime12.isEmpty()) {
+            nextTime12 = formatTime12(times24[nextIdx]);
+        }
+
         ActivePrayerInfo info = new ActivePrayerInfo();
         info.prayerName = names[activeIdx];
         info.prayerTime12 = time12;
         info.cityName = cityName;
         info.hijriDate = hijriDate;
         info.timerText = timerText;
+        info.nextPrayerName = names[nextIdx];
+        info.nextPrayerTime12 = nextTime12;
         return info;
     }
 
@@ -411,6 +454,8 @@ public class PrayerNotificationHelper {
                     info.cityName,
                     info.hijriDate,
                     info.timerText,
+                    info.nextPrayerName,
+                    info.nextPrayerTime12,
                     false
             );
         } catch (Exception ignored) {}
@@ -423,14 +468,37 @@ public class PrayerNotificationHelper {
             String cityName,
             String hijriDate,
             String timerText,
+            String nextPrayerName,
+            String nextPrayerTime12,
             boolean isAdhanAlert
     ) {
         try {
             NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm == null) return;
-            Notification notif = buildSalatukNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, isAdhanAlert);
+            Notification notif = buildSalatukNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextPrayerName, nextPrayerTime12, isAdhanAlert);
             nm.notify(NOTIFICATION_ID_PRAYER, notif);
         } catch (Exception ignored) {}
+    }
+
+    public static void showOngoingPrayerNotification(
+            Context context,
+            String prayerName,
+            String prayerTime12,
+            String cityName,
+            String hijriDate,
+            String timerText,
+            boolean isAdhanAlert
+    ) {
+        String nextName = null;
+        String nextTime = null;
+        try {
+            ActivePrayerInfo info = calculateCurrentActivePrayer(context);
+            if (info != null) {
+                nextName = info.nextPrayerName;
+                nextTime = info.nextPrayerTime12;
+            }
+        } catch (Exception ignored) {}
+        showOngoingPrayerNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextName, nextTime, isAdhanAlert);
     }
 
     public static void cancelOngoingPrayerNotification(Context context) {

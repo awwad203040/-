@@ -40,7 +40,7 @@ public class NoorAudioService extends Service {
     public static final String ACTION_PLAY_THIKR = "org.noor.alquran.action.PLAY_THIKR";
     public static final String ACTION_STOP_AUDIO = "org.noor.alquran.action.STOP_AUDIO";
 
-    public static final String CHANNEL_ADHAN_ID = "noor_adhan_fg_channel_v1";
+    public static final String CHANNEL_ADHAN_ID = PrayerNotificationHelper.CHANNEL_ADHAN_ID;
     public static final String CHANNEL_ATHKAR_ID = "noor_athkar_fg_channel_v1";
 
     public static final int NOTIFICATION_ID_ADHAN = 8881;
@@ -116,6 +116,12 @@ public class NoorAudioService extends Service {
 
         // Acquire WakeLock for up to 4 minutes (Azan length is ~3.5 min)
         acquireWakeLock(240000L);
+
+        // Flash camera LED strobe alert when Adhan starts
+        PrayerFlashSilentHelper.flashCameraTorch(this, 10, 300);
+
+        // Put phone on silent mode for 20 minutes of Salah with auto-restore
+        PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
 
         // Build Salatuk notification
         Notification notification = PrayerNotificationHelper.buildSalatukNotification(
@@ -331,10 +337,11 @@ public class NoorAudioService extends Service {
                 "أذان الصلوات (صوتي مباشر)",
                 NotificationManager.IMPORTANCE_HIGH
         );
-        adhanChannel.setDescription("تنبيه صوتي بأذان الصلوات في موعدها بدقة متناهية");
+        adhanChannel.setDescription("تنبيه أذان الصلوات المباشر بصوت الشيخ محمد جازي مع فلاش وبدون صوت تنبيه النظام المزعج");
+        adhanChannel.setSound(null, null); // Mute system alert chime
         adhanChannel.enableLights(true);
-        adhanChannel.setLightColor(Color.parseColor("#C8A85B"));
-        adhanChannel.enableVibration(true);
+        adhanChannel.setLightColor(Color.WHITE);
+        adhanChannel.enableVibration(false); // No chime/vibration beep
         adhanChannel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         nm.createNotificationChannel(adhanChannel);
 

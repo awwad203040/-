@@ -141,26 +141,28 @@ export default function KhatmahTracker() {
             <label className="block text-xs font-bold text-[#123B2A] mb-2 text-right">
               ١. اختر مدة الختمة:
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
               {[
+                { days: 3, label: '3 أيام (ختمة سريعة)', sub: '10 أحزاب يومياً (~200 صفحة)' },
+                { days: 6, label: '6 أيام (ختمة أسبوعية)', sub: '5 أحزاب يومياً (~100 صفحة)' },
                 { days: 15, label: '15 يوماً', sub: 'حزبان يومياً (~40 صفحة)' },
-                { days: 30, label: '30 يوماً', sub: 'جزء يومياً (~20 صفحة)' },
+                { days: 30, label: '30 يوماً (شهرية)', sub: 'جزء يومياً (~20 صفحة)' },
                 { days: 60, label: '60 يوماً', sub: 'نصف جزء (~10 صفحات)' },
               ].map((choice) => (
                 <button
                   key={choice.days}
                   type="button"
                   onClick={() => setTargetDays(choice.days)}
-                  className={`p-3 md:p-4 rounded-2xl border-2 transition-all text-center cursor-pointer ${
+                  className={`p-3 rounded-2xl border-2 transition-all text-center cursor-pointer ${
                     targetDays === choice.days
                       ? 'border-[#C8A85B] bg-[#123B2A] text-white shadow-md'
                       : 'border-[#123B2A]/10 bg-white text-[#123B2A] hover:border-[#C8A85B]/50'
                   }`}
                 >
-                  <div className="font-bold text-sm md:text-base" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  <div className="font-bold text-xs sm:text-sm" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                     {choice.label}
                   </div>
-                  <div className="text-[10px] md:text-[11px] opacity-75 mt-1 leading-tight" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  <div className="text-[10px] opacity-75 mt-1 leading-tight" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                     {choice.sub}
                   </div>
                 </button>
