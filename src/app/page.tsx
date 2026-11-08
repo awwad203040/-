@@ -22,6 +22,7 @@ import { AccessibilityModal } from '@/components/common/AccessibilityModal';
 import PrayerTimesModal from '@/components/home/PrayerTimesModal';
 import ReadQuranModal from '@/components/home/ReadQuranModal';
 import QuranRadiosModal from '@/components/home/QuranRadiosModal';
+import AudioControlModal from '@/components/home/AudioControlModal';
 import { useQuranRadio } from '@/hooks/useQuranRadio';
 import BlindVoiceAssistantModal from '@/components/common/BlindVoiceAssistantModal';
 import type { VoiceCommandResult } from '@/lib/voice-command-engine';
@@ -53,6 +54,7 @@ export default function HomePage() {
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [showReadQuranModal, setShowReadQuranModal] = useState(false);
   const [showVoiceAssistantModal, setShowVoiceAssistantModal] = useState(false);
+  const [showAudioModal, setShowAudioModal] = useState(false);
   const quranRadio = useQuranRadio();
   const [showRadiosModal, setShowRadiosModal] = useState(false);
 
@@ -369,312 +371,98 @@ export default function HomePage() {
 
   return (
     <div className={`min-h-screen ${audio.currentSurah > 0 ? 'pb-28' : 'pb-8'}`} style={{ backgroundColor: '#FBF8EF' }}>
-      {/* Header */}
+      {/* Main Container */}
       <header
-        className="px-6 pt-8 pb-6 shadow-md"
+        className="px-4 sm:px-6 pt-5 pb-8 shadow-md"
         style={{ backgroundColor: '#123B2A', color: 'white' }}
       >
-        <div className="max-w-2xl mx-auto">
-          {/* Dedication Banner: صدقة جارية لوالديَّ */}
+        <div className="max-w-xl mx-auto space-y-4">
+          {/* 1. TOP BANNER: صدقة جارية */}
           <div
-            className="mb-5 mx-auto max-w-fit flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-2xl border border-[#C8A85B]/60 shadow-md transition-all"
+            className="w-full py-3.5 px-4 rounded-2xl border-2 border-[#C8A85B] shadow-xl text-center select-none"
             style={{
-              background: 'linear-gradient(135deg, rgba(200, 168, 91, 0.22) 0%, rgba(11, 91, 67, 0.45) 100%)',
-              backdropFilter: 'blur(6px)',
+              background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              boxShadow: '0 8px 24px -4px rgba(200, 168, 91, 0.45)',
             }}
           >
-            <span className="text-[#C8A85B] text-base select-none">🤲</span>
-            <p
-              className="text-xs sm:text-sm font-bold text-[#F7EED8] text-center tracking-wide leading-relaxed"
-              style={{ fontFamily: "'Tajawal', 'Amiri', serif" }}
-            >
-              صدقة جارية لوالديَّ أرجو الدعاء لهما بالرحمة
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xl text-[#C8A85B]">🤲</span>
+              <h2
+                className="text-base sm:text-lg font-black text-[#F7EED8] tracking-wider"
+                style={{ fontFamily: "'Amiri', serif" }}
+              >
+                صدقة جارية
+              </h2>
+              <span className="text-xl text-[#C8A85B]">🤲</span>
+            </div>
+            <p className="text-[11px] sm:text-xs text-[#C8A85B] font-medium mt-0.5" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+              لوالديَّ أرجو الدعاء لهما بالرحمة والمغفرة ولجميع موتى المسلمين
             </p>
-            <span className="text-[#C8A85B] text-base select-none">🤲</span>
           </div>
 
-          <div className="text-center mb-5 flex flex-col items-center">
-            {/* Header Row: Animated "اقرأ القرآن" Portal Window on the Right & Official Animated Logo */}
-            <div className="flex items-center justify-center gap-3.5 sm:gap-6 mb-3 w-full">
-              {/* 1. On the Right (يمين الشعار في RTL): نافذة "اقرأ القرآن" الجذابة والمتحركة بنفس حركة وبريق الشعار */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('tap');
-                  stopAccessibilitySpeech();
-                  setShowReadQuranModal(true);
-                }}
-                className="group relative inline-block select-none cursor-pointer focus:outline-none"
-                title="اقرأ القرآن - فهرس السور والأجزاء والختمة وتصحيح التلاوة"
-                aria-label="اقرأ القرآن - فتح الفهرس الشامل للسور والأجزاء وتتبع الختمة"
-              >
-                {/* 1. Pulsing Golden Radiant Aura Behind */}
-                <div className="absolute -inset-2 rounded-3xl bg-gradient-to-tr from-[#C8A85B]/40 via-[#F5D88A]/30 to-[#C8A85B]/40 animate-logo-aura -z-10 pointer-events-none" />
-                <div className="absolute -inset-1 rounded-3xl bg-radial from-[#C8A85B]/30 via-transparent to-transparent animate-pulse -z-10 pointer-events-none" />
-
-                {/* 2. Main Container with Floating Breathing Animation & Metallic Rim */}
-                <div
-                  className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl border-2 sm:border-[2.5px] border-[#C8A85B]/80 overflow-hidden shadow-2xl animate-logo-breathing transform-gpu transition-all duration-300 group-hover:scale-105 active:scale-95 flex flex-col items-center justify-center p-1.5 sm:p-2"
-                  style={{
-                    background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
-                    boxShadow: '0 8px 24px -4px rgba(200, 168, 91, 0.45), 0 4px 12px rgba(18, 59, 42, 0.25)',
-                  }}
-                >
-                  {/* Glowing Islamic Mushaf Icon */}
-                  <div className="relative mb-0.5">
-                    <span className="text-2xl sm:text-3xl filter drop-shadow-[0_2px_8px_rgba(200,168,91,0.6)]">
-                      📖
-                    </span>
-                  </div>
-
-                  {/* Title: اقرأ القرآن */}
-                  <span
-                    className="font-bold text-xs sm:text-sm text-[#F7EED8] tracking-wide leading-tight text-center"
-                    style={{ fontFamily: "'Amiri', serif" }}
-                  >
-                    اقرأ القرآن
-                  </span>
-
-                  {/* Subtitle Badge */}
-                  <span
-                    className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-full bg-[#C8A85B]/25 text-[#F5D88A] border border-[#C8A85B]/40 font-medium mt-1 whitespace-nowrap"
-                    style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  >
-                    الفهرس الشامل
-                  </span>
-
-                  {/* 3. The Animated Flash Light Beam Sheen (Sweep) */}
-                  <div
-                    className="absolute inset-0 pointer-events-none overflow-hidden"
-                    style={{ mixBlendMode: 'screen' }}
-                  >
-                    <div
-                      className="w-[200%] h-full animate-logo-flash"
-                      style={{
-                        background:
-                          'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.05) 15%, rgba(255,255,255,0.4) 30%, rgba(255,248,220,0.95) 45%, rgba(255,255,255,0.9) 50%, rgba(255,248,220,0.95) 55%, rgba(255,255,255,0.4) 70%, rgba(255,255,255,0.05) 85%, transparent 100%)',
-                        filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.8))',
-                      }}
-                    />
-                  </div>
-
-                  {/* 4. Subtle Inner Golden Frame Rim Glow */}
-                  <div className="absolute inset-0 rounded-3xl border border-white/25 pointer-events-none" />
-                </div>
-
-                {/* 5. Glowing Star Glint Sparkles */}
-                <div className="absolute -top-1 -right-1 text-xs text-[#FFD700] animate-logo-sparkle pointer-events-none">
-                  ✦
-                </div>
-                <div
-                  className="absolute -bottom-1 -left-1 text-[10px] text-[#FFD700] animate-logo-sparkle pointer-events-none"
-                  style={{ animationDelay: '1.5s' }}
-                >
-                  ✦
-                </div>
-              </button>
-
-              {/* 2. Official Animated Logo */}
-              <AnimatedLogo size="lg" />
-            </div>
-
+          {/* 2. CENTER: شعار التطبيق */}
+          <div
+            className="w-full max-w-xs mx-auto p-4 sm:p-5 rounded-3xl border-2 border-[#C8A85B]/70 shadow-2xl flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.02]"
+            style={{
+              background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(200, 168, 91, 0.25)',
+            }}
+          >
+            <AnimatedLogo size="lg" />
             <h1
-              className="text-3xl md:text-4xl font-bold mb-1 tracking-wide"
+              className="text-2xl sm:text-3xl font-black text-[#F7EED8] mt-2 tracking-wide"
               style={{ fontFamily: "'Amiri', serif" }}
             >
               نور القرآن
             </h1>
             <p
-              className="text-sm opacity-80 mb-3"
+              className="text-xs text-[#C8A85B] font-bold mt-0.5"
               style={{ fontFamily: "'Tajawal', sans-serif" }}
             >
-              رفيقك مع القرآن الكريم • المصحف الشريف
+              المصحف الشريف • رفيقك مع القرآن الكريم
             </p>
-            <div className="flex flex-col items-center gap-2 mb-3 w-full">
-              {/* Row 0: Quran Radios Button (إذاعات القرآن الكريم - مصر والسعودية والدول الإسلامية) */}
-              <div className="flex items-center justify-center gap-1.5 w-full max-w-sm">
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('tap');
-                    setShowRadiosModal(true);
-                  }}
-                  className={`w-full inline-flex items-center justify-between px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all border active:scale-95 cursor-pointer shadow-md ${
-                    quranRadio.isPlaying
-                      ? 'border-emerald-400 bg-gradient-to-r from-emerald-950 via-[#123B2A] to-emerald-950 text-white ring-2 ring-emerald-400/40'
-                      : 'border-[#C8A85B] bg-gradient-to-r from-[#123B2A] via-[#1c4b38] to-[#123B2A] text-[#F7EED8] hover:brightness-110'
-                  }`}
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title="إذاعات القرآن الكريم المباشرة - مصر والسعودية والدول الإسلامية وكبار القراء"
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="text-base sm:text-lg shrink-0">📻</span>
-                    <span className="font-extrabold text-[#FFD700] whitespace-nowrap">إذاعات القرآن الكريم المباشرة</span>
-                    {quranRadio.isPlaying ? (
-                      <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-pulse shrink-0">
-                        بث حي LIVE
-                      </span>
-                    ) : (
-                      <span className="hidden sm:inline bg-[#C8A85B]/25 text-[#F7EED8] text-[9px] px-1.5 py-0.5 rounded-md font-normal shrink-0">
-                        مصر • السعودية • الدول الإسلامية
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-[#C8A85B] shrink-0">
-                    {quranRadio.isPlaying ? (
-                      <span className="text-emerald-300 font-bold text-[11px] truncate max-w-[90px]">
-                        {quranRadio.currentStation?.name}
-                      </span>
-                    ) : (
-                      <span>فتح ◀</span>
-                    )}
-                  </div>
-                </button>
-              </div>
-
-              {/* Row 1: Install APK & Download Mushaf */}
-              <div className="flex items-center justify-center gap-2 w-full max-w-sm">
-                <button
-                  onClick={() => setShowInstallModal(true)}
-                  className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
-                  style={{
-                    backgroundColor: 'rgba(200, 168, 91, 0.18)',
-                    color: '#C8A85B',
-                    fontFamily: "'Tajawal', sans-serif",
-                  }}
-                >
-                  <span className="shrink-0">📲</span>
-                  <span className="whitespace-nowrap">تثبيت التطبيق (APK)</span>
-                </button>
-
-                <button
-                  onClick={() => setShowOfflineModal(true)}
-                  className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all hover:bg-white/15 border border-[#C8A85B]/40 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
-                  style={{
-                    backgroundColor: 'rgba(200, 168, 91, 0.18)',
-                    color: '#C8A85B',
-                    fontFamily: "'Tajawal', sans-serif",
-                  }}
-                  title="تحميل المصحف كاملاً للقراءة بدون إنترنت"
-                >
-                  <span className="shrink-0">📥</span>
-                  <span className="whitespace-nowrap">تحميل المصحف بدون نت</span>
-                </button>
-              </div>
-
-              {/* Row 2: Athkar Button, Blind Accessibility, and Voice Assistant Button */}
-              <div className="flex items-center justify-center gap-1.5 w-full max-w-sm">
-                {/* 1. Athkar Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('tap');
-                    setShowAthkarModal(true);
-                  }}
-                  className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border active:scale-95 cursor-pointer shadow-xs whitespace-nowrap ${
-                    autoAthkar?.settings?.enabled
-                      ? 'border-emerald-400/60 bg-emerald-700/40 text-emerald-200 hover:bg-emerald-700/60'
-                      : 'border-white/20 bg-white/10 text-white/80 hover:bg-white/20'
-                  }`}
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title="إعداد الأذكار الصوتية التلقائية"
-                  aria-label="إعداد الأذكار الصوتية التلقائية"
-                >
-                  <span className={`shrink-0 ${autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}`}>🔔</span>
-                  <span className="whitespace-nowrap truncate">
-                    الأذكار: {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
-                  </span>
-                  <span className="text-[10px] opacity-80 bg-black/20 px-1 py-0.5 rounded-md shrink-0">⚙️</span>
-                </button>
-
-                {/* 2. Blind Accessibility Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('tap');
-                    setShowAccessibilityModal(true);
-                  }}
-                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border border-[#C8A85B]/60 bg-[#C8A85B]/20 text-[#F7EED8] hover:bg-[#C8A85B]/30 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title="تسهيل الوصول وخدمة المكفوفين"
-                  aria-label="فتح إعدادات خدمة المكفوفين وتسهيل الوصول"
-                >
-                  <span className="text-sm shrink-0">🦯</span>
-                  <span className="whitespace-nowrap">المكفوفين</span>
-                </button>
-
-                {/* 3. Voice Assistant Button for Blind Users */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('tap');
-                    setShowVoiceAssistantModal(true);
-                  }}
-                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border border-[#C8A85B] bg-gradient-to-r from-[#C8A85B]/30 via-[#C8A85B]/40 to-[#997732]/40 text-[#F7EED8] hover:brightness-110 active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title="المساعد الصوتي الذكي للمكفوفين - انطق اسم السورة لتشغيلها"
-                  aria-label="المساعد الصوتي الذكي للمكفوفين - انطق اسم السورة لتشغيلها"
-                >
-                  <span className="text-sm shrink-0 animate-bounce">🎙️</span>
-                  <span className="whitespace-nowrap font-extrabold text-[#FFD700]">نطق السورة</span>
-                </button>
-              </div>
-
-              {/* Row 3: Prayer Times & Countdown Bar */}
-              <div className="w-full max-w-sm">
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('tap');
-                    setShowPrayerModal(true);
-                  }}
-                  className="w-full inline-flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all border border-emerald-500/50 bg-[#0E3E2B]/85 text-[#F7EED8] hover:bg-[#124D36] active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  title="مواقيت الصلاة وموعد الأذان"
-                  aria-label={`مواقيت الصلاة، موعد أذان ${prayerTimes.prayerData.nextPrayer.name} الساعة ${prayerTimes.prayerData.nextPrayer.time12}، متبقي على الأذان ${prayerTimes.prayerData.nextPrayer.remainingFormatted}`}
-                >
-                  <div className="inline-flex items-center gap-1.5 truncate min-w-0">
-                    <span className="text-sm shrink-0">🕌</span>
-                    <span className="whitespace-nowrap truncate">
-                      أذان {prayerTimes.prayerData.nextPrayer.name}: {prayerTimes.prayerData.nextPrayer.time12}
-                    </span>
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-medium bg-black/35 border border-[#C8A85B]/40 px-2 py-0.5 rounded-full text-[#F5D88A] shadow-xs whitespace-nowrap shrink-0">
-                    <span className="opacity-75">متبقي:</span>
-                    <span className="font-bold text-[#FFD700]" dir="rtl">
-                      {prayerTimes.prayerData.nextPrayer.remainingFormatted}
-                    </span>
-                  </span>
-                </button>
-              </div>
-            </div>
+            {/* Install APK badge */}
+            <button
+              type="button"
+              onClick={() => setShowInstallModal(true)}
+              className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#C8A85B]/25 hover:bg-[#C8A85B]/35 text-[#FFD700] border border-[#C8A85B]/50 active:scale-95 transition cursor-pointer shadow-xs"
+              style={{ fontFamily: "'Tajawal', sans-serif" }}
+            >
+              <span>📲</span>
+              <span>تثبيت التطبيق (APK)</span>
+            </button>
           </div>
 
-          {/* Compact Reading Progress Card linked to the mobile user */}
-          <div className="w-full text-right rounded-2xl p-2.5 sm:p-3.5 mb-2.5 sm:mb-3 border border-[#C8A85B]/40 bg-gradient-to-r from-white/12 via-white/16 to-[#123B2A]/35 shadow-md backdrop-blur-md transition-all">
+          {/* 3. WIDE CARD: تقدمك في القراءة */}
+          <div
+            className="w-full rounded-3xl p-4 sm:p-5 border-2 border-[#C8A85B] shadow-xl text-right transition-all"
+            style={{
+              background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+            }}
+          >
             {/* Header: Title, Owner Badge, Percentage & Edit */}
-            <div className="flex justify-between items-center mb-1.5 whitespace-nowrap">
-              <div className="flex items-center gap-1.5 whitespace-nowrap">
-                <span className="text-base shrink-0">📖</span>
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl shrink-0">📖</span>
                 <span
-                  className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 whitespace-nowrap"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                  className="text-sm sm:text-base font-extrabold text-[#F7EED8] flex items-center gap-2"
+                  style={{ fontFamily: "'Amiri', serif" }}
                 >
-                  <span className="whitespace-nowrap">تقدمك في القراءة</span>
-                  <span className="text-[9px] font-normal px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
+                  <span>تقدمك في القراءة</span>
+                  <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     صاحب الجوال
                   </span>
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="text-xs font-mono font-bold text-[#C8A85B]" dir="ltr">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-mono font-black text-[#FFD700]" dir="ltr">
                   {percentage}%
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowEditProgressModal(true)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border border-[#C8A85B]/30 active:scale-95 transition cursor-pointer whitespace-nowrap"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#C8A85B]/25 hover:bg-[#C8A85B]/35 text-[#FFD700] border border-[#C8A85B]/40 active:scale-95 transition cursor-pointer"
                   title="تعديل صفحة التوقف وعدد الصفحات المقروءة"
                 >
                   <span>✏️</span>
@@ -684,671 +472,417 @@ export default function HomePage() {
             </div>
 
             {/* Quick Stats Line */}
-            <div className="flex items-center justify-between text-xs mb-1.5 bg-black/20 rounded-xl px-2.5 py-1.5 border border-white/10 whitespace-nowrap overflow-hidden">
-              <div className="flex items-center gap-1.5 min-w-0 truncate">
-                <span className="text-[#C8A85B] font-bold text-sm whitespace-nowrap shrink-0" style={{ fontFamily: "'Amiri', serif" }}>
+            <div className="flex items-center justify-between text-xs mb-2 bg-black/35 rounded-xl px-3 py-2 border border-white/10">
+              <div className="flex items-center gap-2 min-w-0 truncate">
+                <span className="text-[#FFD700] font-black text-sm sm:text-base shrink-0" style={{ fontFamily: "'Amiri', serif" }}>
                   صفحة {currentStoppedPage}
                 </span>
                 {stoppedSurahMeta && (
-                  <span className="text-[11px] text-white/80 truncate whitespace-nowrap">
-                    ({stoppedSurahMeta.name} • ج {stoppedSurahMeta.startPage})
+                  <span className="text-xs text-white/90 truncate">
+                    ({stoppedSurahMeta.name} • جزء {stoppedSurahMeta.startPage})
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-white/70 flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-                <span className="whitespace-nowrap">{actualPagesRead} من 604 ص</span>
+              <div className="text-[11px] text-white/70 flex items-center gap-2 shrink-0">
+                <span>{actualPagesRead} من 604 ص</span>
                 <span className="text-white/40">•</span>
-                <span className="text-[10px] text-white/60 whitespace-nowrap">{formatLastReadTime(progress?.updatedAt)}</span>
+                <span className="text-[10px] text-white/60">{formatLastReadTime(progress?.updatedAt)}</span>
               </div>
             </div>
 
             {/* Slim Progress Bar */}
-            <div className="h-1.5 rounded-full overflow-hidden bg-white/15 mb-2 relative">
+            <div className="h-2 rounded-full overflow-hidden bg-white/15 mb-3 relative">
               <div
                 className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#C8A85B] via-[#eed596] to-[#C8A85B]"
                 style={{ width: `${Math.max(2, percentage)}%` }}
               />
             </div>
 
-            {/* Compact Action Button */}
+            {/* Action Button: Continue Reading */}
             <button
               type="button"
               onClick={handleContinueReading}
-              className="w-full py-2 px-3 rounded-xl font-bold text-xs bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-xs cursor-pointer flex items-center justify-between border border-[#C8A85B]/70 whitespace-nowrap"
+              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-md cursor-pointer flex items-center justify-between border border-[#C8A85B]"
               style={{ fontFamily: "'Tajawal', sans-serif" }}
             >
-              <div className="flex items-center gap-1.5 truncate min-w-0">
-                <span>▶</span>
-                <span className="truncate whitespace-nowrap">
+              <div className="flex items-center gap-2 truncate min-w-0">
+                <span className="text-sm">▶</span>
+                <span className="truncate">
                   متابعة القراءة من صفحة {currentStoppedPage} {stoppedSurahMeta ? `(سورة ${stoppedSurahMeta.name})` : ''}
                 </span>
               </div>
-              <span className="text-[11px] font-extrabold flex-shrink-0 mr-2 whitespace-nowrap">فتح المصحف ←</span>
+              <span className="text-xs font-black shrink-0 mr-2">فتح المصحف ←</span>
             </button>
           </div>
 
-          {/* Audio Listening & Sheikh Selection Card */}
-          <div
-            className="rounded-2xl p-4 border border-[#C8A85B]/40 bg-white/10 backdrop-blur-md shadow-md select-none"
-            onDoubleClick={handleTogglePlay}
-            title="انقر نقراً مزدوجاً في أي مكان هنا للتشغيل أو الإيقاف السريع"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🎧</span>
-                <span className="text-sm font-bold text-[#C8A85B]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  الاستماع المباشر للقرآن الكريم
+          {/* 4. THE 2-COLUMN GRID (8 SECTIONS EXACTLY AS IN THE DIAGRAM) */}
+          <div className="w-full grid grid-cols-2 gap-3 sm:gap-4">
+            {/* ROW 1: RIGHT = اقرأ القرآن */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowReadQuranModal(true);
+              }}
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="اقرأ القرآن - الفهرس الشامل للسور والأجزاء والختمة"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl filter drop-shadow">📖</span>
+                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                  فهرس
                 </span>
               </div>
-              {audio.isPlaying && (
-                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>جاري الاستماع الآن</span>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  اقرأ القرآن
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  السور • الأجزاء • الختمة
+                </p>
+              </div>
+            </button>
+
+            {/* ROW 1: LEFT = استمع للقرآن */}
+            <div
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowAudioModal(true);
+              }}
+              className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
+                audio.isPlaying
+                  ? 'border-emerald-400 ring-2 ring-emerald-400/40'
+                  : 'border-[#C8A85B] hover:brightness-110'
+              }`}
+              style={{
+                background: audio.isPlaying
+                  ? 'linear-gradient(135deg, #0B5B43 0%, #123B2A 50%, #082A1C 100%)'
+                  : 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="استمع للقرآن - اختيار القارئ والتلاوة والتكرار"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className={`text-3xl filter drop-shadow ${audio.isPlaying ? 'animate-pulse' : ''}`}>🎧</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTogglePlay();
+                  }}
+                  className="w-9 h-9 rounded-full bg-[#C8A85B] hover:bg-[#d4b66d] text-[#123B2A] flex items-center justify-center font-bold text-sm shadow-md transition active:scale-90 cursor-pointer"
+                  title={audio.isPlaying ? 'إيقاف مؤقت' : 'تشغيل الاستماع'}
+                  aria-label={audio.isPlaying ? 'إيقاف مؤقت' : 'تشغيل الاستماع'}
+                >
+                  {audio.isPlaying ? '⏸' : '▶'}
+                </button>
+              </div>
+              <div className="mt-auto">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                    استمع للقرآن
+                  </h3>
+                  {audio.isPlaying && (
+                    <span className="text-[9px] bg-emerald-500/30 text-emerald-300 px-1.5 py-0.5 rounded-full font-bold">
+                      نشط
+                    </span>
+                  )}
                 </div>
-              )}
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  الشيخ: {currentReciter.name}
+                </p>
+              </div>
             </div>
 
-            {/* Listening Icon & Sheikh Selection Field */}
-            <div className="flex items-center gap-3">
-              {/* Play / Listening Icon Button on the Right */}
-              <button
-                type="button"
-                onClick={handleTogglePlay}
-                className={`w-13 h-13 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-95 shadow-lg flex-shrink-0 cursor-pointer border ${
-                  audio.isPlaying
-                    ? 'bg-[#0B5B43] text-white border-emerald-400/50 ring-4 ring-emerald-500/25 animate-pulse'
-                    : audio.isLoading
-                    ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] animate-pulse'
-                    : 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] hover:bg-[#d4b66d]'
-                }`}
-                aria-label={audio.isLoading ? 'جاري التحميل - اضغط للإيقاف' : audio.isPlaying ? 'إيقاف الاستماع' : 'استمع الآن للقرآن الكريم'}
-                title={audio.isLoading ? 'جاري التحميل - اضغط للإيقاف' : audio.isPlaying ? 'إيقاف التلاوة' : `استمع الآن بصوت الشيخ ${currentReciter.name}`}
-              >
-                {audio.isLoading ? (
-                  <div className="w-5 h-5 border-2 border-[#123B2A] border-t-transparent rounded-full animate-spin" />
-                ) : audio.isPlaying ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="6" y="4" width="4" height="16" />
-                    <rect x="14" y="4" width="4" height="16" />
-                  </svg>
-                ) : (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5,3 19,12 5,21" />
-                  </svg>
-                )}
-              </button>
+            {/* ROW 2: RIGHT = تحميل المصحف */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowOfflineModal(true);
+              }}
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="تحميل المصحف للقراءة بدون إنترنت"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl filter drop-shadow">📥</span>
+                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                  بدون نت
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  تحميل المصحف
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  القراءة بدون اتصال
+                </p>
+              </div>
+            </button>
 
-              {/* Sheikh Names Field (حقل أسماء المشايخ) on the Left */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1 gap-1">
-                  <label className="text-[11px] font-medium text-white/80" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                    اختر الشيخ / القارئ:
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowOfflineAudioModal(true)}
-                      className="text-[10px] text-emerald-300 hover:text-emerald-200 bg-emerald-950/70 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer font-bold transition-all hover:bg-emerald-900 shadow-xs"
-                      title="تنزيل صوت الشيخ للاستماع بدون نت"
-                    >
-                      <span>📥</span>
-                      <span>تنزيل بدون نت</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowReciterModal(true)}
-                      className="text-[10px] text-[#C8A85B] hover:underline cursor-pointer"
-                    >
-                      عرض القراء 🔍
-                    </button>
-                  </div>
-                </div>
-                <div className="relative">
-                  <select
-                    value={selectedReciterId}
-                    onChange={handleReciterChange}
-                    className="w-full pl-3 pr-9 py-2.5 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white text-xs md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#C8A85B] cursor-pointer shadow-inner appearance-none"
+            {/* ROW 2: LEFT = الأذكار */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowAthkarModal(true);
+              }}
+              className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
+                autoAthkar?.settings?.enabled
+                  ? 'border-emerald-400 ring-2 ring-emerald-400/30'
+                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95'
+              }`}
+              style={{
+                background: autoAthkar?.settings?.enabled
+                  ? 'linear-gradient(135deg, #0E3E2B 0%, #123B2A 50%, #0A271B 100%)'
+                  : 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="الأذكار والتسابيح الصوتية التلقائية والصلاة على النبي"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className={`text-3xl filter drop-shadow ${autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}`}>🔔</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  autoAthkar?.settings?.enabled
+                    ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50'
+                    : 'bg-black/40 text-[#FFD700] border-[#C8A85B]/40'
+                }`}>
+                  {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  الأذكار
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  أذكار تلقائية وصلاة على النبي
+                </p>
+              </div>
+            </button>
+
+            {/* ROW 3: RIGHT = المكفوفين */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowAccessibilityModal(true);
+              }}
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="المكفوفين - تسهيل الوصول والتوجيه الصوتي"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl filter drop-shadow">🦯</span>
+                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                  سهولة وصول
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  المكفوفين
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  تسهيل الوصول وقارئ الشاشة
+                </p>
+              </div>
+            </button>
+
+            {/* ROW 3: LEFT = نطق السورة */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowVoiceAssistantModal(true);
+              }}
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="نطق السورة - المساعد الصوتي الذكي"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl filter drop-shadow animate-bounce">🎙️</span>
+                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                  تحكم صوتي
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  نطق السورة
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  انطق اسم السورة لتشغيلها
+                </p>
+              </div>
+            </button>
+
+            {/* ROW 4: RIGHT = أوقات الصلوات */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowPrayerModal(true);
+              }}
+              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="أوقات الصلوات - مواقيت الصلاة والآذان"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl filter drop-shadow">🕌</span>
+                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40 truncate max-w-[95px]">
+                  {prayerTimes.prayerData.nextPrayer.name}: {prayerTimes.prayerData.nextPrayer.time12}
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  أوقات الصلوات
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  متبقي: {prayerTimes.prayerData.nextPrayer.remainingFormatted}
+                </p>
+              </div>
+            </button>
+
+            {/* ROW 4: LEFT = إذاعات القرآن الكريم */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                setShowRadiosModal(true);
+              }}
+              className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
+                quranRadio.isPlaying
+                  ? 'border-emerald-400 ring-2 ring-emerald-400/40'
+                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95'
+              }`}
+              style={{
+                background: quranRadio.isPlaying
+                  ? 'linear-gradient(135deg, #0B5B43 0%, #123B2A 50%, #082A1C 100%)'
+                  : 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              }}
+              aria-label="إذاعات القرآن الكريم - بث مباشر متواصل"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-3xl filter drop-shadow">📻</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  quranRadio.isPlaying
+                    ? 'bg-red-500 text-white border-red-400 animate-pulse'
+                    : 'bg-black/40 text-[#FFD700] border-[#C8A85B]/40'
+                }`}>
+                  {quranRadio.isPlaying ? 'بث حي LIVE' : 'بث مباشر'}
+                </span>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  إذاعات القرآن الكريم
+                </h3>
+                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                  {quranRadio.isPlaying ? quranRadio.currentStation?.name : 'مصر • السعودية • كبار القراء'}
+                </p>
+              </div>
+            </button>
+          </div>
+
+          {/* 5. BOTTOM BAR: وصول لذوي الاحتياجات الخاصة: حاضر لما تريده */}
+          <div className="w-full pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap');
+                stopAccessibilitySpeech();
+                speakAccessibility('حاضر لما تريده، تفضل وتحدث ونفذ طلبك');
+                setShowVoiceAssistantModal(true);
+              }}
+              className="w-full p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-[0.99] transition shadow-xl flex items-center justify-between text-right cursor-pointer"
+              style={{
+                background: 'linear-gradient(135deg, rgba(200, 168, 91, 0.25) 0%, #123B2A 50%, rgba(200, 168, 91, 0.25) 100%)',
+              }}
+              aria-label="وصول لذوي الاحتياجات الخاصة: حاضر لما تريده"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl sm:text-3xl filter drop-shadow animate-bounce">🎙️</span>
+                <div>
+                  <h3
+                    className="text-sm sm:text-base font-black text-[#FFD700]"
                     style={{ fontFamily: "'Tajawal', sans-serif" }}
                   >
-                    {POPULAR_RECITERS.map((r) => (
-                      <option key={r.id} value={r.id} className="bg-[#123B2A] text-white py-1">
-                        الشيخ: {r.name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#C8A85B] pointer-events-none">
-                    👳‍♂️
-                  </span>
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#C8A85B] pointer-events-none">
-                    ▾
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Surah selection for audio with Prev/Next buttons */}
-            <div className="mt-3 pt-2.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="opacity-80 text-[11px] flex items-center gap-1">
-                <span>📖</span>
-                <span>سورة التلاوة:</span>
-              </span>
-
-              <div className="flex items-center gap-1.5 flex-1 max-w-[240px] justify-end">
-                {/* Next Surah button on the right */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = Math.min(114, selectedSurahForAudio + 1);
-                    handlePlaySurah(next);
-                  }}
-                  disabled={selectedSurahForAudio >= 114}
-                  className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-white/10"
-                  title="السورة التالية"
-                  aria-label="السورة التالية"
-                >
-                  ⏭
-                </button>
-
-                <select
-                  value={selectedSurahForAudio}
-                  onChange={(e) => {
-                    const sNum = parseInt(e.target.value, 10);
-                    handlePlaySurah(sNum);
-                  }}
-                  className="flex-1 bg-[#123B2A]/80 text-[#C8A85B] font-bold text-xs px-2 py-1.5 rounded-lg border border-[#C8A85B]/40 focus:outline-none cursor-pointer truncate"
-                  style={{ fontFamily: "'Tajawal', sans-serif" }}
-                >
-                  {Object.values(SURAH_METADATA).map((s) => (
-                    <option key={s.number} value={s.number} className="bg-[#123B2A] text-white">
-                      {s.number}. سورة {s.name}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Previous Surah button on the left */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const prev = Math.max(1, selectedSurahForAudio - 1);
-                    handlePlaySurah(prev);
-                  }}
-                  disabled={selectedSurahForAudio <= 1}
-                  className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-white/10"
-                  title="السورة السابقة"
-                  aria-label="السورة السابقة"
-                >
-                  ⏮
-                </button>
-              </div>
-            </div>
-
-            {/* Auto Transition to Next Surah (الانتقال التلقائي للسورة التالية) */}
-            <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-white/90 flex items-center gap-1">
-                  <span>⏭</span>
-                  <span>الانتقال التلقائي للسورة التالية:</span>
-                </span>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${
-                    audio.autoPlayNext
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
-                      : 'bg-white/10 text-white/50 border border-white/10'
-                  }`}
-                >
-                  {audio.autoPlayNext ? 'مفعّل تلقائياً ✓' : 'متوقف'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={audio.toggleAutoPlayNext}
-                className={`text-[10px] px-2.5 py-1 rounded-lg font-bold transition cursor-pointer border ${
-                  audio.autoPlayNext
-                    ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-xs'
-                    : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
-                }`}
-                title="تفعيل أو إيقاف الانتقال التلقائي للسورة التالية بعد نهاية السورة الحالية"
-              >
-                {audio.autoPlayNext ? 'إيقاف التتابع' : 'تشغيل التتابع'}
-              </button>
-            </div>
-
-            {/* Live Active Ayah Range Loop Card */}
-            {audio.isAyahRangeLooping && (
-              <div className="mt-3 p-3 rounded-xl bg-emerald-950/90 border-2 border-emerald-400 text-white shadow-lg animate-pulse">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-300">
-                    <span className="text-base">🎧</span>
-                    <span>جاري تكرار الآيات: سورة {SURAH_METADATA[audio.currentSurah]?.name || ''}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={audio.stopAyahRangeLoop}
-                    className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold cursor-pointer transition shadow-xs flex items-center gap-1"
-                  >
-                    <span>⏹</span>
-                    <span>إيقاف التكرار</span>
-                  </button>
-                </div>
-                <div className="flex flex-wrap items-center justify-between text-xs gap-2 pt-1.5 border-t border-emerald-500/30">
-                  <span className="bg-black/30 px-2.5 py-1 rounded-md text-emerald-200">
-                    النطاق: من الآية {audio.ayahRangeStart} إلى {audio.ayahRangeEnd}
-                  </span>
-                  <span className="bg-emerald-500/20 px-2.5 py-1 rounded-md font-bold text-[#FBF8EF]">
-                    الآية الجارية: {audio.currentAyahNumber || audio.ayahRangeStart}
-                  </span>
-                  <span className="bg-[#C8A85B] text-[#123B2A] px-2.5 py-1 rounded-md font-extrabold">
-                    {audio.repeatCount === 999
-                      ? 'تكرار مستمر ∞'
-                      : `متبقي: ${audio.remainingRepeats} من ${audio.repeatCount} مرات`}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Repetition & Segment Looping Controls (تكرار التلاوة وتحديد المقاطع) */}
-            <div className="mt-3 pt-2.5 border-t border-white/15">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-[#C8A85B] flex items-center gap-1.5">
-                  <span className="text-base">🔁</span>
-                  <span>تكرار التلاوة للحفظ والإتقان:</span>
-                </span>
-                {audio.repeatCount > 1 && !audio.isAyahRangeLooping && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C8A85B] text-[#123B2A] font-extrabold shadow-sm animate-pulse">
-                    {audio.repeatCount === 999
-                      ? 'تكرار مستمر ∞'
-                      : `متبقي: ${audio.remainingRepeats} من ${audio.repeatCount} مرات`}
-                  </span>
-                )}
-              </div>
-
-              {/* Mode Tabs: Ayah Range vs Whole Surah vs Time AB */}
-              <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-black/20 mb-3 border border-white/10 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setRepeatTab('ayahs')}
-                  className={`py-1.5 px-2 rounded-lg font-bold transition text-center cursor-pointer ${
-                    repeatTab === 'ayahs'
-                      ? 'bg-[#C8A85B] text-[#123B2A] shadow-sm'
-                      : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  📖 تكرار بالآيات
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRepeatTab('surah')}
-                  className={`py-1.5 px-2 rounded-lg font-bold transition text-center cursor-pointer ${
-                    repeatTab === 'surah'
-                      ? 'bg-[#C8A85B] text-[#123B2A] shadow-sm'
-                      : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  🔁 كامل السورة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRepeatTab('multi')}
-                  className={`py-1.5 px-2 rounded-lg font-bold transition text-center cursor-pointer ${
-                    repeatTab === 'multi'
-                      ? 'bg-[#C8A85B] text-[#123B2A] shadow-sm'
-                      : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  📚 تكرار عدة سور
-                </button>
-              </div>
-
-              {/* TAB 1: Ayah Range Repetition (اختيار بداية ونهاية المقطع بالآيات) */}
-              {repeatTab === 'ayahs' && (
-                <div className="bg-[#123B2A]/90 rounded-2xl p-3 border border-[#C8A85B]/40 flex flex-col gap-2.5 shadow-md">
-                  <div className="flex items-center justify-between text-xs text-white/90">
-                    <span className="font-bold flex items-center gap-1 text-[#C8A85B]">
-                      <span>🎯</span>
-                      <span>حدد بداية ونهاية المقطع ليتكرر:</span>
-                    </span>
-                    <span className="text-[11px] opacity-75">
-                      سورة {currentSurahMeta.name} ({totalVerses} آية)
-                    </span>
-                  </div>
-
-                  {/* Start Ayah & End Ayah Selectors */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Start Ayah */}
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-white/80 font-medium flex items-center gap-1">
-                        <span>🟢</span>
-                        <span>بداية المقطع (من الآية):</span>
-                      </label>
-                      <select
-                        value={ayahRangeStart}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          setAyahRangeStart(val);
-                          if (ayahRangeEnd < val) {
-                            setAyahRangeEnd(val);
-                          }
-                          triggerHaptic('tap');
-                          announceToScreenReader(`بداية المقطع من الآية ${val}`);
-                        }}
-                        aria-label="اختيار بداية المقطع من الآية"
-                        className="w-full bg-[#0D281C] text-[#C8A85B] font-bold text-xs p-2 rounded-xl border border-[#C8A85B]/50 focus:outline-none cursor-pointer"
-                        style={{ fontFamily: "'Tajawal', sans-serif" }}
-                      >
-                        {Array.from({ length: totalVerses }, (_, i) => i + 1).map((num) => (
-                          <option key={num} value={num} className="bg-[#123B2A] text-white">
-                            الآية {num}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* End Ayah */}
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-white/80 font-medium flex items-center gap-1">
-                        <span>🛑</span>
-                        <span>نهاية المقطع (إلى الآية):</span>
-                      </label>
-                      <select
-                        value={ayahRangeEnd}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          const finalEnd = Math.max(ayahRangeStart, val);
-                          setAyahRangeEnd(finalEnd);
-                          triggerHaptic('tap');
-                          announceToScreenReader(`نهاية المقطع إلى الآية ${finalEnd}`);
-                        }}
-                        aria-label="اختيار نهاية المقطع إلى الآية"
-                        className="w-full bg-[#0D281C] text-[#C8A85B] font-bold text-xs p-2 rounded-xl border border-[#C8A85B]/50 focus:outline-none cursor-pointer"
-                        style={{ fontFamily: "'Tajawal', sans-serif" }}
-                      >
-                        {Array.from({ length: totalVerses - ayahRangeStart + 1 }, (_, i) => ayahRangeStart + i).map((num) => (
-                          <option key={num} value={num} className="bg-[#123B2A] text-white">
-                            الآية {num}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Custom Repetition Count Defined by the User */}
-                  <div className="pt-2 border-t border-white/10">
-                    <div className="text-xs text-white/90 mb-2 flex items-center justify-between">
-                      <span className="font-bold flex items-center gap-1.5 text-[#C8A85B]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                        <span>🔢</span>
-                        <span>حدد عدد مرات التكرار بنفسك:</span>
-                      </span>
-                      <span className="text-[11px] font-bold text-[#F7EED8] bg-black/40 px-2.5 py-0.5 rounded-lg border border-[#C8A85B]/30">
-                        {rangeRepeatCount === 999 ? 'مستمر بلا توقف ∞' : `${rangeRepeatCount} مرات`}
-                      </span>
-                    </div>
-
-                    {/* Stepper & Direct Custom Number Input */}
-                    <div className="flex items-center gap-2 mb-2 bg-[#0D281C] p-2 rounded-xl border border-[#C8A85B]/40">
-                      <span className="text-[11px] text-white/80 font-bold shrink-0">مرات التكرار:</span>
-                      
-                      {/* Decrease button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic('tap');
-                          if (rangeRepeatCount === 999) {
-                            setRangeRepeatCount(10);
-                            announceToScreenReader('عدد التكرار 10');
-                          } else {
-                            const nextVal = Math.max(1, rangeRepeatCount - 1);
-                            setRangeRepeatCount(nextVal);
-                            announceToScreenReader(`عدد التكرار ${nextVal}`);
-                          }
-                        }}
-                        aria-label="إنقاص عدد مرات التكرار بمقدار واحد"
-                        className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
-                        title="إنقاص مرة واحدة"
-                      >
-                        -
-                      </button>
-
-                      {/* Direct Numeric Input Box */}
-                      <input
-                        type="number"
-                        min="1"
-                        max="500"
-                        value={rangeRepeatCount === 999 ? '' : rangeRepeatCount}
-                        placeholder={rangeRepeatCount === 999 ? '∞ مستمر' : '1'}
-                        aria-label="إدخال عدد مرات التكرار يدوياً"
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          if (!isNaN(val) && val >= 1) {
-                            const clamped = Math.min(500, val);
-                            setRangeRepeatCount(clamped);
-                            announceToScreenReader(`عدد التكرار ${clamped}`);
-                          } else if (e.target.value === '') {
-                            setRangeRepeatCount(1);
-                          }
-                        }}
-                        className="flex-1 bg-black/40 text-[#C8A85B] text-center font-bold text-base py-1 px-2 rounded-lg border border-[#C8A85B]/60 focus:outline-none focus:ring-1 focus:ring-[#C8A85B]"
-                      />
-
-                      {/* Increase button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic('tap');
-                          if (rangeRepeatCount === 999) {
-                            setRangeRepeatCount(1);
-                            announceToScreenReader('عدد التكرار 1');
-                          } else {
-                            const nextVal = Math.min(500, rangeRepeatCount + 1);
-                            setRangeRepeatCount(nextVal);
-                            announceToScreenReader(`عدد التكرار ${nextVal}`);
-                          }
-                        }}
-                        aria-label="زيادة عدد مرات التكرار بمقدار واحد"
-                        className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
-                        title="زيادة مرة واحدة"
-                      >
-                        +
-                      </button>
-
-                      {/* Infinite Loop Toggle */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic('tap');
-                          const nextVal = rangeRepeatCount === 999 ? 3 : 999;
-                          setRangeRepeatCount(nextVal);
-                          announceToScreenReader(nextVal === 999 ? 'تكرار مستمر بلا توقف' : 'تكرار 3 مرات');
-                        }}
-                        aria-label="تفعيل أو إيقاف التكرار المستمر"
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border shrink-0 ${
-                          rangeRepeatCount === 999
-                            ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-xs'
-                            : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
-                        }`}
-                      >
-                        مستمر ∞
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Compact Yellow Button: تشغيل وتكرار من آية إلى آية */}
-                  <button
-                    type="button"
-                    onClick={handleStartAyahRangeLoop}
-                    disabled={audio.isLoading}
-                    className="w-full mt-2 py-1.5 px-3 rounded-lg font-bold text-xs bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-md cursor-pointer flex items-center justify-center gap-1.5 border border-[#C8A85B]"
-                    style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  >
-                    <span className="text-xs">🔁</span>
-                    <span className="font-extrabold text-xs">
-                      تشغيل وتكرار من آية {ayahRangeStart} إلى {ayahRangeEnd}
-                    </span>
-                    <span className="bg-[#123B2A]/15 px-1.5 py-0.5 rounded text-[10px] font-black">
-                      ({rangeRepeatCount === 999 ? 'مستمر ∞' : `${rangeRepeatCount} مرات`})
-                    </span>
-                  </button>
-                </div>
-              )}
-
-              {/* TAB 2: Full Surah Repetition */}
-              {repeatTab === 'surah' && (
-                <div className="bg-[#123B2A]/90 rounded-2xl p-3 border border-[#C8A85B]/40 flex flex-col gap-2.5 shadow-md">
-                  <div className="flex items-center justify-between text-xs text-white/90">
-                    <span className="font-bold text-[#C8A85B]" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                      تكرار سورة {currentSurahMeta.name} بالكامل:
-                    </span>
-                    {audio.repeatCount > 1 && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#C8A85B] text-[#123B2A] font-bold">
-                        {audio.repeatCount === 999
-                          ? 'مستمر ∞'
-                          : `متبقي: ${audio.remainingRepeats} من ${audio.repeatCount}`}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Stepper & Direct Custom Number Input for Surah */}
-                  <div className="flex items-center gap-2 bg-[#0D281C] p-2 rounded-xl border border-[#C8A85B]/40">
-                    <span className="text-[11px] text-white/80 font-bold shrink-0">مرات التكرار:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('tap');
-                        if (audio.repeatCount === 999) {
-                          audio.setRepeatCount(10);
-                          announceToScreenReader('تكرار السورة 10 مرات');
-                        } else {
-                          const nextVal = Math.max(1, audio.repeatCount - 1);
-                          audio.setRepeatCount(nextVal);
-                          announceToScreenReader(`تكرار السورة ${nextVal} مرات`);
-                        }
-                      }}
-                      aria-label="إنقاص عدد تكرار السورة"
-                      className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
-                      title="إنقاص مرة واحدة"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      max="500"
-                      value={audio.repeatCount === 999 ? '' : audio.repeatCount}
-                      placeholder={audio.repeatCount === 999 ? '∞ مستمر' : '1'}
-                      aria-label="إدخال عدد مرات تكرار السورة يدوياً"
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        if (!isNaN(val) && val >= 1) {
-                          const clamped = Math.min(500, val);
-                          audio.setRepeatCount(clamped);
-                          announceToScreenReader(`تكرار السورة ${clamped} مرات`);
-                        } else if (e.target.value === '') {
-                          audio.setRepeatCount(1);
-                        }
-                      }}
-                      className="flex-1 bg-black/40 text-[#C8A85B] text-center font-bold text-base py-1 px-2 rounded-lg border border-[#C8A85B]/60 focus:outline-none focus:ring-1 focus:ring-[#C8A85B]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('tap');
-                        if (audio.repeatCount === 999) {
-                          audio.setRepeatCount(1);
-                          announceToScreenReader('تكرار السورة مرة واحدة');
-                        } else {
-                          const nextVal = Math.min(500, audio.repeatCount + 1);
-                          audio.setRepeatCount(nextVal);
-                          announceToScreenReader(`تكرار السورة ${nextVal} مرات`);
-                        }
-                      }}
-                      aria-label="زيادة عدد تكرار السورة"
-                      className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-[#C8A85B] font-bold text-lg flex items-center justify-center border border-white/10 cursor-pointer active:scale-95"
-                      title="زيادة مرة واحدة"
-                    >
-                      +
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('tap');
-                        const nextVal = audio.repeatCount === 999 ? 3 : 999;
-                        audio.setRepeatCount(nextVal);
-                        announceToScreenReader(nextVal === 999 ? 'تكرار السورة مستمر بلا توقف' : 'تكرار السورة 3 مرات');
-                      }}
-                      aria-label="تفعيل أو إلغاء تكرار السورة المستمر"
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border shrink-0 ${
-                        audio.repeatCount === 999
-                          ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-xs'
-                          : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
-                      }`}
-                    >
-                      مستمر ∞
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleTogglePlay}
-                    className="w-full mt-1.5 py-1.5 px-3 rounded-lg font-bold text-xs bg-[#C8A85B] text-[#123B2A] hover:bg-[#d4b66d] transition cursor-pointer shadow-md"
-                  >
-                    {audio.isPlaying ? '⏸ إيقاف مؤقت' : `▶ تشغيل سورة ${currentSurahMeta.name}`}
-                  </button>
-                </div>
-              )}
-
-              {/* TAB 3: Multi-Surah Loop */}
-              {repeatTab === 'multi' && (
-                <div className="bg-[#123B2A]/90 rounded-2xl p-3 border border-[#C8A85B]/40 flex flex-col gap-2.5 shadow-md">
-                  <div className="flex items-center justify-between text-xs text-white/90">
-                    <span className="font-bold flex items-center gap-1.5 text-[#C8A85B]">
-                      <span>📚</span>
-                      <span>تكرار قائمة سور مخصصة:</span>
-                    </span>
-                    {audio.isMultiSurahLoop && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold animate-pulse">
-                        مفعّل ({audio.selectedSurahsToLoop.length} سور)
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-[11px] text-white/80 leading-relaxed">
-                    اختر مجموعة سور محددة (مثل المعوذات، جزء عم، يس والواقعة والملك) ليقوم المشغل بتكرارها تتابعاً بلا توقف للحفظ والمراجعة.
+                    وصول لذوي الاحتياجات الخاصة: حاضر لما تريده
+                  </h3>
+                  <p className="text-[11px] text-[#F7EED8]/80 mt-0.5">
+                    انقر هنا للتحدث صوتياً وطلب تشغيل أي سورة أو أمر مباشر
                   </p>
-
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowMultiSurahModal(true)}
-                      className="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs bg-[#C8A85B] text-[#123B2A] hover:bg-[#d4b66d] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-                    >
-                      <span>⚙️</span>
-                      <span>
-                        {audio.selectedSurahsToLoop.length > 0
-                          ? `تعديل السور المحددة (${audio.selectedSurahsToLoop.length})`
-                          : 'تحديد السور للتكرار'}
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => audio.toggleMultiSurahLoop()}
-                      disabled={audio.selectedSurahsToLoop.length === 0}
-                      className={`py-2.5 px-4 rounded-xl font-bold text-xs transition cursor-pointer border ${
-                        audio.isMultiSurahLoop
-                          ? 'bg-emerald-600 text-white border-emerald-400'
-                          : audio.selectedSurahsToLoop.length > 0
-                          ? 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-                          : 'bg-white/5 text-white/30 border-white/10 cursor-not-allowed'
-                      }`}
-                    >
-                      {audio.isMultiSurahLoop ? 'إيقاف التكرار' : 'بدء التكرار'}
-                    </button>
-                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+              <span className="text-xs font-black text-[#123B2A] bg-[#C8A85B] px-3.5 py-1.5 rounded-xl shadow-md shrink-0">
+                تحدث الآن
+              </span>
+            </button>
           </div>
         </div>
       </header>
+
+      {/* Audio Control & Repetition Modal */}
+      <AudioControlModal
+        isOpen={showAudioModal}
+        onClose={() => setShowAudioModal(false)}
+        isPlaying={audio.isPlaying}
+        isLoading={audio.isLoading}
+        currentSurah={audio.currentSurah}
+        selectedSurahForAudio={selectedSurahForAudio}
+        selectedReciterId={selectedReciterId}
+        currentReciter={currentReciter}
+        autoPlayNext={audio.autoPlayNext}
+        repeatCount={audio.repeatCount}
+        remainingRepeats={audio.remainingRepeats}
+        isAyahRangeLooping={audio.isAyahRangeLooping}
+        ayahRangeStart={ayahRangeStart}
+        ayahRangeEnd={ayahRangeEnd}
+        currentAyahNumber={audio.currentAyahNumber}
+        rangeRepeatCount={rangeRepeatCount}
+        repeatTab={repeatTab}
+        isMultiSurahLoop={audio.isMultiSurahLoop}
+        selectedSurahsToLoop={audio.selectedSurahsToLoop}
+        onTogglePlay={handleTogglePlay}
+        onPlaySurah={handlePlaySurah}
+        onReciterChange={(newId) => {
+          setSelectedReciterId(newId);
+          saveSettings({ selectedReciterId: newId });
+          const newReciter = POPULAR_RECITERS.find((r) => r.id === newId) || POPULAR_RECITERS[0];
+          triggerHaptic('tap');
+          announceToScreenReader(`تم اختيار القارئ الشيخ ${newReciter.name}`);
+          if (audio.isPlaying) {
+            const targetSurah = audio.currentSurah || selectedSurahForAudio;
+            audio.loadAndPlay(
+              targetSurah,
+              newId,
+              getSurahName(targetSurah),
+              newReciter.name
+            );
+          }
+        }}
+        onOpenReciterModal={() => setShowReciterModal(true)}
+        onOpenOfflineAudioModal={() => setShowOfflineAudioModal(true)}
+        onToggleAutoPlayNext={audio.toggleAutoPlayNext}
+        onStopAyahRangeLoop={audio.stopAyahRangeLoop}
+        onStartAyahRangeLoop={handleStartAyahRangeLoop}
+        setAyahRangeStart={setAyahRangeStart}
+        setAyahRangeEnd={setAyahRangeEnd}
+        setRangeRepeatCount={setRangeRepeatCount}
+        setRepeatTab={setRepeatTab}
+        setRepeatCount={audio.setRepeatCount}
+        onOpenMultiSurahModal={() => setShowMultiSurahModal(true)}
+        onToggleMultiSurahLoop={(enable) => audio.toggleMultiSurahLoop(enable)}
+      />
 
       {/* Android & PWA Installation Modal */}
       <InstallAppModal
