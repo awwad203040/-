@@ -564,7 +564,9 @@ function MushafReaderInner() {
     handleUpdateSettings({ selectedReciterId: id });
     if (audio.currentSurah > 0) {
       const surahName = SURAH_NAMES[audio.currentSurah] || `سورة ${audio.currentSurah}`;
-      audio.loadAndPlay(audio.currentSurah, id, surahName, name);
+      audio.loadAndPlay(audio.currentSurah, id, surahName, name, audio.currentVerseKey || undefined);
+    } else {
+      audio.stop();
     }
   }, [audio, handleUpdateSettings]);
 

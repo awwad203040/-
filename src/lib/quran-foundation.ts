@@ -1,4 +1,5 @@
 import 'server-only';
+import { getDirectReciterAudioUrl } from './quran-meta';
 
 const QF_AUTH_URL = 'https://oauth2.quran.foundation';
 const QF_API_URL = 'https://apis.quran.foundation';
@@ -135,33 +136,42 @@ export async function getReciters() {
   return data.reciters || data.recitations || [];
 }
 
+export const RECITER_AYAH_FOLDERS: Record<number, string> = {
+  100: 'Minshawy_Teacher_128kbps',
+  9: 'Minshawy_Murattal_128kbps',
+  101: 'Minshawy_Mujawwad_192kbps',
+  102: 'Husary_Muallim_128kbps',
+  6: 'Husary_128kbps',
+  103: 'Husary_128kbps_Mujawwad',
+  7: 'Alafasy_128kbps',
+  1: 'Abdul_Basit_Murattal_192kbps',
+  2: 'Abdul_Basit_Mujawwad_128kbps',
+  104: 'Yasser_Ad-Dussary_128kbps',
+  8: 'MaherAlMuaiqly128kbps',
+  3: 'Abdurrahmaan_As-Sudais_192kbps',
+  10: 'Saood_ash-Shuraym_128kbps',
+  105: 'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net',
+  12: 'Ghamadi_40kbps',
+  106: 'Fares_Abbad_64kbps',
+  107: 'Nasser_Alqatami_128kbps',
+  108: 'Hudhaify_128kbps',
+  109: 'Ali_Jaber_64kbps',
+  110: 'Abdullah_Basfar_192kbps',
+  111: 'Alafasy_128kbps',
+  112: 'Muhammad_Ayyoub_128kbps',
+  113: 'Muhammad_Jibreel_128kbps',
+  4: 'Abu_Bakr_Ash-Shaatree_128kbps',
+  5: 'Hani_Rifai_192kbps',
+};
+
 export async function getChapterRecitation(reciterId: number, chapterNumber: number) {
-  // 1. Minshawi Teacher / Muallim (بترديد الأطفال)
-  if (reciterId === 100) {
-    const pad3 = chapterNumber.toString().padStart(3, '0');
-    const audioUrl = `https://cdn.mp3quran.net/audio/muhammad-minshawi/r3/${pad3}.mp3`;
-    return {
-      id: chapterNumber,
-      chapter_id: chapterNumber,
-      audio_url: audioUrl,
-      url: audioUrl,
-    };
-  }
-
-  // 2. Husary Teacher / Muallim (بترديد الأطفال)
-  if (reciterId === 102) {
-    const audioUrl = `https://download.quranicaudio.com/qdc/khalil_al_husary/muallim/${chapterNumber}.mp3`;
-    return {
-      id: chapterNumber,
-      chapter_id: chapterNumber,
-      audio_url: audioUrl,
-      url: audioUrl,
-    };
-  }
-
-  type Resp = { audio_file: Record<string, unknown> };
-  const data = await qfFetch<Resp>(`/api/v4/chapter_recitations/${reciterId}/${chapterNumber}`);
-  return data.audio_file;
+  const audioUrl = getDirectReciterAudioUrl(reciterId, chapterNumber);
+  return {
+    id: chapterNumber,
+    chapter_id: chapterNumber,
+    audio_url: audioUrl,
+    url: audioUrl,
+  };
 }
 
 export async function getAyahRecitation(reciterId: number, verseKey: string) {
@@ -169,53 +179,12 @@ export async function getAyahRecitation(reciterId: number, verseKey: string) {
   const surahPad = (parts[0] || '1').padStart(3, '0');
   const ayahPad = (parts[1] || '1').padStart(3, '0');
 
-  // 1. Minshawi Teacher / Muallim (بترديد الأطفال - آية آية)
-  if (reciterId === 100) {
-    const audioUrl = `https://everyayah.com/data/Minshawy_Teacher_128kbps/${surahPad}${ayahPad}.mp3`;
-    return {
-      verse_key: verseKey,
-      audio_url: audioUrl,
-      url: audioUrl,
-    };
-  }
-
-  // 2. Husary Teacher / Muallim (بترديد الأطفال - آية آية)
-  if (reciterId === 102) {
-    const audioUrl = `https://everyayah.com/data/Husary_Muallim_128kbps/${surahPad}${ayahPad}.mp3`;
-    return {
-      verse_key: verseKey,
-      audio_url: audioUrl,
-      url: audioUrl,
-    };
-  }
-
-  try {
-    type Resp = { audio_files: { verse_key: string; url: string }[] };
-    const data = await qfFetch<Resp>(`/api/v4/recitations/${reciterId}/by_ayah/${verseKey}`);
-    const file = data.audio_files?.[0];
-    if (file && file.url) {
-      let audioUrl = file.url.trim();
-      if (audioUrl.startsWith('//')) {
-        audioUrl = `https:${audioUrl}`;
-      } else if (!audioUrl.startsWith('http://') && !audioUrl.startsWith('https://')) {
-        audioUrl = `https://verses.quran.com/${audioUrl.replace(/^\/+/, '')}`;
-      }
-      return {
-        verse_key: file.verse_key,
-        audio_url: audioUrl,
-        url: audioUrl,
-      };
-    }
-  } catch (err) {
-    console.warn(`Error fetching ayah audio for reciter ${reciterId}, verse ${verseKey}:`, err);
-  }
-
-  // Guaranteed fallback to official Alafasy CDN
-  const fallbackUrl = `https://verses.quran.com/Alafasy/mp3/${surahPad}${ayahPad}.mp3`;
+  const folder = RECITER_AYAH_FOLDERS[reciterId] || 'Alafasy_128kbps';
+  const audioUrl = `https://everyayah.com/data/${folder}/${surahPad}${ayahPad}.mp3`;
   return {
     verse_key: verseKey,
-    audio_url: fallbackUrl,
-    url: fallbackUrl,
+    audio_url: audioUrl,
+    url: audioUrl,
   };
 }
 

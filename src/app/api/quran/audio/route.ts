@@ -32,27 +32,10 @@ export async function GET(request: NextRequest) {
     const directUrl = getDirectReciterAudioUrl(reciterId, chapterId);
     const fallbackUrl = getFallbackReciterAudioUrl(reciterId, chapterId);
 
-    let audioFile: Record<string, unknown> | null = null;
-    if (reciterId === 100 || reciterId === 102) {
-      audioFile = {
-        chapter_id: chapterId,
-        audio_url: directUrl,
-        url: directUrl,
-      };
-    } else if (reciterId < 100) {
-      try {
-        audioFile = await getChapterRecitation(reciterId, chapterId);
-      } catch {
-        // API fallback
-      }
-    }
-
-    const audioUrl = (audioFile?.audio_url as string) || (audioFile?.url as string) || directUrl;
-
     return NextResponse.json({
-      audioUrl,
+      audioUrl: directUrl,
       fallbackUrl,
-      audio_file: audioFile || { audio_url: audioUrl },
+      audio_file: { audio_url: directUrl },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

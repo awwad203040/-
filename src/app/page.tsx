@@ -161,7 +161,11 @@ export default function HomePage() {
       triggerHaptic('pause');
       announceToScreenReader('تم إيقاف التلاوة مؤقتاً');
       audio.pause();
-    } else if (audio.currentSurah === selectedSurahForAudio && audio.currentTime > 0) {
+    } else if (
+      audio.currentSurah === selectedSurahForAudio &&
+      audio.currentReciter === selectedReciterId &&
+      audio.currentTime > 0
+    ) {
       triggerHaptic('play');
       stopAccessibilitySpeech();
       announceToScreenReader(`استئناف تلاوة سورة ${sName}`);
@@ -196,6 +200,8 @@ export default function HomePage() {
         getSurahName(targetSurah),
         newReciter.name
       );
+    } else {
+      audio.stop();
     }
   }, [audio, selectedSurahForAudio]);
 
@@ -203,7 +209,7 @@ export default function HomePage() {
   const handlePlaySurah = useCallback((surahNumber: number) => {
     setSelectedSurahForAudio(surahNumber);
     const sName = getSurahName(surahNumber);
-    if (audio.isPlaying && audio.currentSurah === surahNumber) {
+    if (audio.isPlaying && audio.currentSurah === surahNumber && audio.currentReciter === selectedReciterId) {
       triggerHaptic('pause');
       announceToScreenReader(`تم إيقاف تلاوة سورة ${sName}`);
       audio.pause();
@@ -344,6 +350,8 @@ export default function HomePage() {
     if (audio.isPlaying) {
       const targetSurah = audio.currentSurah || selectedSurahForAudio;
       audio.loadAndPlay(targetSurah, id, getSurahName(targetSurah), name);
+    } else {
+      audio.stop();
     }
   }, [audio, selectedSurahForAudio]);
 
@@ -841,6 +849,8 @@ export default function HomePage() {
               getSurahName(targetSurah),
               newReciter.name
             );
+          } else {
+            audio.stop();
           }
         }}
         onOpenReciterModal={() => setShowReciterModal(true)}

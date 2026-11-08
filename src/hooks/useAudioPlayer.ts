@@ -53,6 +53,7 @@ export function useAudioPlayer() {
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fallbackUrlRef = useRef<string | null>(null);
   const fallbackTriedRef = useRef<boolean>(false);
+  const playRequestIdRef = useRef<number>(0);
 
   const [state, setState] = useState<AudioPlayerState>(() => {
     let initialMultiLoop = false;
@@ -427,6 +428,15 @@ export function useAudioPlayer() {
       preserveRepeatState = false
     ) => {
       stopAccessibilitySpeech();
+      const requestId = ++playRequestIdRef.current;
+
+      // Immediately pause old audio to prevent overlaps or ghost playback
+      if (audioRef.current) {
+        try {
+          audioRef.current.pause();
+        } catch {}
+      }
+
       setState((prev) => ({
         ...prev,
         isLoading: true,
@@ -471,7 +481,9 @@ export function useAudioPlayer() {
 
       // Watchdog: Clear loading state if playback is delayed over 4.5 seconds
       loadTimeoutRef.current = setTimeout(() => {
-        setState((prev) => (prev.isLoading ? { ...prev, isLoading: false } : prev));
+        if (requestId === playRequestIdRef.current) {
+          setState((prev) => (prev.isLoading ? { ...prev, isLoading: false } : prev));
+        }
       }, 4500);
 
       try {
@@ -490,6 +502,8 @@ export function useAudioPlayer() {
             // Non-critical fallback
           }
         }
+
+        if (requestId !== playRequestIdRef.current) return;
 
         // 2. If not offline, resolve online URL
         if (!playableAudioSrc) {
@@ -513,6 +527,8 @@ export function useAudioPlayer() {
           }
         }
 
+        if (requestId !== playRequestIdRef.current) return;
+
         if (!playableAudioSrc) {
           playableAudioSrc = getDirectReciterAudioUrl(reciterId, surahNumber);
         }
@@ -525,8 +541,12 @@ export function useAudioPlayer() {
           audioRef.current = new Audio();
         }
         const audio = audioRef.current;
+        audio.preload = 'auto';
+
         if (audio.src !== playableAudioSrc) {
           audio.src = playableAudioSrc;
+          audio.currentTime = 0;
+          audio.load();
         }
         audio.playbackRate = state.playbackRate;
 
@@ -534,6 +554,7 @@ export function useAudioPlayer() {
         if (playPromise !== undefined) {
           playPromise
             .then(() => {
+              if (requestId !== playRequestIdRef.current) return;
               if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
               setState((prev) => ({
                 ...prev,
@@ -544,13 +565,16 @@ export function useAudioPlayer() {
               }));
             })
             .catch((playErr) => {
+              if (requestId !== playRequestIdRef.current) return;
               console.warn('Audio play() error:', playErr);
               if (fallbackUrlRef.current && !fallbackTriedRef.current) {
                 fallbackTriedRef.current = true;
                 const fbUrl = fallbackUrlRef.current;
                 console.log('Attempting playback with backup CDN URL:', fbUrl);
                 audio.src = fbUrl;
+                audio.load();
                 audio.play().catch((fbErr) => {
+                  if (requestId !== playRequestIdRef.current) return;
                   console.error('Fallback playback also rejected:', fbErr);
                   setState((prev) => ({
                     ...prev,
@@ -570,6 +594,7 @@ export function useAudioPlayer() {
             });
         }
       } catch (err: unknown) {
+        if (requestId !== playRequestIdRef.current) return;
         if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
         const message = err instanceof Error ? err.message : 'خطأ غير معروف';
         setState((prev) => ({

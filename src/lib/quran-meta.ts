@@ -227,7 +227,7 @@ export const RECITER_AUDIO_SERVERS: Record<number, string> = {
   12: 'https://cdn.mp3quran.net/audio/saad-ghamdi/r1', // Saad Al-Ghamdi
   106: 'https://cdn.mp3quran.net/audio/fares-abbad/r1', // Fares Abbad
   107: 'https://cdn.mp3quran.net/audio/nasser-qatami/r1', // Nasser Al-Qatami
-  108: 'https://server9.mp3quran.net/hthfi', // Ali Al-Huthaifi
+  108: 'https://cdn.mp3quran.net/audio/ali-hudhaifi/r1', // Ali Al-Huthaifi
   109: 'https://cdn.mp3quran.net/audio/ali-jaber/r1', // Ali Jaber
   110: 'https://cdn.mp3quran.net/audio/abdullah-basfar/r1', // Abdullah Basfar
   111: 'https://cdn.mp3quran.net/audio/idrees-abkar/r1', // Idrees Abkar
@@ -254,17 +254,17 @@ export const RECITER_AUDIO_FALLBACK_SERVERS: Record<number, string> = {
   6: 'https://download.quranicaudio.com/qdc/khalil_al_husary/murattal',
   103: 'https://server13.mp3quran.net/husr/Almusshaf-Al-Mojawwad',
   7: 'https://download.quranicaudio.com/qdc/mishari_al_afasy/murattal',
-  1: 'https://download.quranicaudio.com/qdc/abdul_baset/mujawwad',
-  2: 'https://download.quranicaudio.com/qdc/abdul_baset/murattal',
+  1: 'https://download.quranicaudio.com/qdc/abdul_baset/murattal',
+  2: 'https://download.quranicaudio.com/qdc/abdul_baset/mujawwad',
   104: 'https://server11.mp3quran.net/yasser',
   8: 'https://server12.mp3quran.net/maher',
   3: 'https://download.quranicaudio.com/qdc/abdurrahmaan_as_sudais/murattal',
   10: 'https://download.quranicaudio.com/qdc/saud_ash-shuraym/murattal',
   105: 'https://server10.mp3quran.net/ajm',
-  12: 'https://download.quranicaudio.com/qdc/khalil_al_husary/muallim',
+  12: 'https://server7.mp3quran.net/s_gmd',
   106: 'https://server8.mp3quran.net/frs_a',
   107: 'https://server6.mp3quran.net/qtm',
-  108: 'https://server9.mp3quran.net/hthfi',
+  108: 'https://cdn.mp3quran.net/audio/ali-hudhaifi/r1',
   109: 'https://server11.mp3quran.net/a_jbr',
   110: 'https://server6.mp3quran.net/bsfr',
   111: 'https://server6.mp3quran.net/abkr',
