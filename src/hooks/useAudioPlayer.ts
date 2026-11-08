@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { getSurahName, getDirectReciterAudioUrl, getFallbackReciterAudioUrl } from '@/lib/quran-meta';
 import { getOfflineAudioBlob, isAudioDownloaded } from '@/lib/offline-audio-manager';
-import { triggerHaptic, stopAccessibilitySpeech, announceToScreenReader } from '@/lib/accessibility';
+import { triggerHaptic, stopAccessibilitySpeech, announceToScreenReader, speakAccessibility, getAccessibilitySettings } from '@/lib/accessibility';
 
 export interface AudioPlayerState {
   isPlaying: boolean;
@@ -57,11 +57,14 @@ export function useAudioPlayer() {
   const [state, setState] = useState<AudioPlayerState>(() => {
     let initialMultiLoop = false;
     let initialSurahs: number[] = [];
+    let initialAutoPlay = true;
     if (typeof window !== 'undefined') {
       try {
         initialMultiLoop = localStorage.getItem('noor_multi_surah_loop_enabled') === 'true';
         const raw = localStorage.getItem('noor_multi_surah_loop_list');
         if (raw) initialSurahs = JSON.parse(raw);
+        const savedAutoPlay = localStorage.getItem('noor_auto_play_next');
+        if (savedAutoPlay !== null) initialAutoPlay = savedAutoPlay === 'true';
       } catch {}
     }
     return {
@@ -77,7 +80,7 @@ export function useAudioPlayer() {
       segmentA: null,
       segmentB: null,
       isSegmentLooping: false,
-      autoPlayNext: true,
+      autoPlayNext: initialAutoPlay,
       currentSurah: 0,
       currentVerseKey: null,
       currentReciter: 7,
@@ -330,10 +333,10 @@ export function useAudioPlayer() {
       }
 
       // =========================================================================
-      // 3) Standard Sequential Auto-play Next Surah
+      // 3) Standard Sequential Auto-play Next Surah (التتابع التلقائي للسورة التالية)
       // =========================================================================
-      if (!wasSingleRepeatActive && autoPlayNext && currentSurah > 0 && currentSurah < 114) {
-        const nextSurah = currentSurah + 1;
+      if (!wasSingleRepeatActive && autoPlayNext && currentSurah > 0) {
+        const nextSurah = currentSurah < 114 ? currentSurah + 1 : 1;
         const nextSurahName = getSurahName(nextSurah);
         setState((prev) => ({
           ...prev,
@@ -341,9 +344,18 @@ export function useAudioPlayer() {
           remainingRepeats: 1,
           isRepeat: false,
         }));
+        triggerHaptic('next');
+        announceToScreenReader(`انتقال تلقائي إلى سورة ${nextSurahName}`);
+        try {
+          const accSettings = getAccessibilitySettings();
+          if (accSettings.blindMode || accSettings.voiceGuidance) {
+            speakAccessibility(`سورة ${nextSurahName}`);
+          }
+        } catch {}
         if (loadAndPlayRef.current) {
           loadAndPlayRef.current(nextSurah, currentReciter, nextSurahName, reciterName);
         }
+        return;
       } else {
         setState((prev) => ({
           ...prev,
@@ -625,12 +637,18 @@ export function useAudioPlayer() {
     setState((prev) => {
       const nextVal = !prev.autoPlayNext;
       loopRef.current.autoPlayNext = nextVal;
+      try {
+        localStorage.setItem('noor_auto_play_next', String(nextVal));
+      } catch {}
       return { ...prev, autoPlayNext: nextVal };
     });
   }, []);
 
   const setAutoPlayNext = useCallback((enabled: boolean) => {
     loopRef.current.autoPlayNext = enabled;
+    try {
+      localStorage.setItem('noor_auto_play_next', String(enabled));
+    } catch {}
     setState((prev) => ({ ...prev, autoPlayNext: enabled }));
   }, []);
 

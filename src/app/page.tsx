@@ -170,6 +170,7 @@ export default function HomePage() {
       triggerHaptic('play');
       stopAccessibilitySpeech();
       announceToScreenReader(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
+      audio.setAutoPlayNext(true);
       audio.loadAndPlay(
         selectedSurahForAudio,
         selectedReciterId,
@@ -210,6 +211,7 @@ export default function HomePage() {
       triggerHaptic('play');
       stopAccessibilitySpeech();
       announceToScreenReader(`تشغيل سورة ${sName} بصوت الشيخ ${currentReciter.name}`);
+      audio.setAutoPlayNext(true);
       audio.loadAndPlay(
         surahNumber,
         selectedReciterId,
@@ -232,9 +234,12 @@ export default function HomePage() {
         saveSettings({ selectedReciterId: res.reciterId });
       }
 
+      // تفعيل الانتقال التلقائي للسور التالية للمكفوفين والمستخدمين
+      audio.setAutoPlayNext(true);
+
       setSelectedSurahForAudio(sNum);
       triggerHaptic('play');
-      announceToScreenReader(`جاري تشغيل سورة ${sName} بصوت الشيخ ${rName}`);
+      announceToScreenReader(`جاري تشغيل سورة ${sName} بصوت الشيخ ${rName} وسوف تتلوها السور التالية تلقائياً`);
       audio.loadAndPlay(sNum, recId, sName, rName);
     } else if (res.action === 'pause') {
       triggerHaptic('pause');
@@ -373,16 +378,16 @@ export default function HomePage() {
     <div className={`min-h-screen ${audio.currentSurah > 0 ? 'pb-28' : 'pb-8'}`} style={{ backgroundColor: '#FBF8EF' }}>
       {/* Main Container */}
       <header
-        className="px-4 sm:px-6 pt-5 pb-8 shadow-md"
+        className="px-4 sm:px-6 pt-3 pb-6 shadow-md"
         style={{ backgroundColor: '#123B2A', color: 'white' }}
       >
-        <div className="max-w-xl mx-auto space-y-4">
-          {/* 1. TOP BANNER: صدقة جارية */}
+        <div className="max-w-xl mx-auto space-y-2.5 sm:space-y-3">
+          {/* 1. TOP BANNER: صدقة جارية (تم تصغير النافذة مع الحفاظ على حجم الخطوط) */}
           <div
-            className="w-full py-3.5 px-4 rounded-2xl border-2 border-[#C8A85B] shadow-xl text-center select-none"
+            className="w-full py-2 px-3 rounded-xl border-2 border-[#C8A85B] shadow-lg text-center select-none"
             style={{
               background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
-              boxShadow: '0 8px 24px -4px rgba(200, 168, 91, 0.45)',
+              boxShadow: '0 4px 16px -2px rgba(200, 168, 91, 0.35)',
             }}
           >
             <div className="flex items-center justify-center gap-2">
@@ -400,17 +405,17 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* 2. CENTER: شعار التطبيق */}
+          {/* 2. CENTER: شعار التطبيق (تم تصغير النافذة مع الحفاظ على حجم الشعار وحجم الخطوط) */}
           <div
-            className="w-full max-w-xs mx-auto p-4 sm:p-5 rounded-3xl border-2 border-[#C8A85B]/70 shadow-2xl flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.02]"
+            className="w-full max-w-xs mx-auto py-2.5 px-3 sm:py-3 sm:px-4 rounded-2xl border-2 border-[#C8A85B]/70 shadow-xl flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.01]"
             style={{
               background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
-              boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(200, 168, 91, 0.25)',
+              boxShadow: '0 6px 20px -4px rgba(0, 0, 0, 0.4), 0 0 12px rgba(200, 168, 91, 0.2)',
             }}
           >
             <AnimatedLogo size="lg" />
             <h1
-              className="text-2xl sm:text-3xl font-black text-[#F7EED8] mt-2 tracking-wide"
+              className="text-2xl sm:text-3xl font-black text-[#F7EED8] mt-1 tracking-wide"
               style={{ fontFamily: "'Amiri', serif" }}
             >
               نور القرآن
@@ -425,7 +430,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setShowInstallModal(true)}
-              className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#C8A85B]/25 hover:bg-[#C8A85B]/35 text-[#FFD700] border border-[#C8A85B]/50 active:scale-95 transition cursor-pointer shadow-xs"
+              className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#C8A85B]/25 hover:bg-[#C8A85B]/35 text-[#FFD700] border border-[#C8A85B]/50 active:scale-95 transition cursor-pointer shadow-xs"
               style={{ fontFamily: "'Tajawal', sans-serif" }}
             >
               <span>📲</span>
@@ -790,42 +795,6 @@ export default function HomePage() {
                   {quranRadio.isPlaying ? quranRadio.currentStation?.name : 'مصر • السعودية • كبار القراء'}
                 </p>
               </div>
-            </button>
-          </div>
-
-          {/* 5. BOTTOM BAR: وصول لذوي الاحتياجات الخاصة: حاضر لما تريده */}
-          <div className="w-full pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap');
-                stopAccessibilitySpeech();
-                speakAccessibility('حاضر لما تريده، تفضل وتحدث ونفذ طلبك');
-                setShowVoiceAssistantModal(true);
-              }}
-              className="w-full p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-[0.99] transition shadow-xl flex items-center justify-between text-right cursor-pointer"
-              style={{
-                background: 'linear-gradient(135deg, rgba(200, 168, 91, 0.25) 0%, #123B2A 50%, rgba(200, 168, 91, 0.25) 100%)',
-              }}
-              aria-label="وصول لذوي الاحتياجات الخاصة: حاضر لما تريده"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl sm:text-3xl filter drop-shadow animate-bounce">🎙️</span>
-                <div>
-                  <h3
-                    className="text-sm sm:text-base font-black text-[#FFD700]"
-                    style={{ fontFamily: "'Tajawal', sans-serif" }}
-                  >
-                    وصول لذوي الاحتياجات الخاصة: حاضر لما تريده
-                  </h3>
-                  <p className="text-[11px] text-[#F7EED8]/80 mt-0.5">
-                    انقر هنا للتحدث صوتياً وطلب تشغيل أي سورة أو أمر مباشر
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs font-black text-[#123B2A] bg-[#C8A85B] px-3.5 py-1.5 rounded-xl shadow-md shrink-0">
-                تحدث الآن
-              </span>
             </button>
           </div>
         </div>
