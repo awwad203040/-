@@ -15,6 +15,22 @@ export interface OfflineAudioRecord {
   createdAt: string;
 }
 
+const OFFLINE_KEYS_CACHE = 'noor_downloaded_audio_keys';
+
+function getDownloadedKeys(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(OFFLINE_KEYS_CACHE);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function isAudioKeyDownloaded(reciterId: number, surahNumber: number): boolean {
+  return getDownloadedKeys().has(`${reciterId}_${surahNumber}`);
+}
+
 function openAudioDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
@@ -44,6 +60,11 @@ export async function getOfflineAudioBlob(
   reciterId: number,
   surahNumber: number
 ): Promise<Blob | null> {
+  // Fast check: if not in downloaded keys set, return null in 0ms without opening IndexedDB
+  if (!isAudioKeyDownloaded(reciterId, surahNumber)) {
+    return null;
+  }
+
   try {
     const db = await openAudioDB();
     const key = `${reciterId}_${surahNumber}`;
@@ -102,6 +123,11 @@ export async function saveOfflineAudioBlob(
     const request = store.put(record);
     request.onsuccess = () => {
       if (typeof window !== 'undefined') {
+        try {
+          const keys = getDownloadedKeys();
+          keys.add(key);
+          localStorage.setItem(OFFLINE_KEYS_CACHE, JSON.stringify(Array.from(keys)));
+        } catch {}
         window.dispatchEvent(
           new CustomEvent('noor-offline-audio-updated', {
             detail: { reciterId, surahNumber, downloaded: true },
@@ -132,6 +158,11 @@ export async function deleteOfflineAudio(
 
       request.onsuccess = () => {
         if (typeof window !== 'undefined') {
+          try {
+            const keys = getDownloadedKeys();
+            keys.delete(key);
+            localStorage.setItem(OFFLINE_KEYS_CACHE, JSON.stringify(Array.from(keys)));
+          } catch {}
           window.dispatchEvent(
             new CustomEvent('noor-offline-audio-updated', {
               detail: { reciterId, surahNumber, downloaded: false },

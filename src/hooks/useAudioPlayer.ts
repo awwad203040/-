@@ -546,7 +546,6 @@ export function useAudioPlayer() {
         if (audio.src !== playableAudioSrc) {
           audio.src = playableAudioSrc;
           audio.currentTime = 0;
-          audio.load();
         }
         audio.playbackRate = state.playbackRate;
 

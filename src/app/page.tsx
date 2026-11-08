@@ -152,11 +152,6 @@ export default function HomePage() {
   // Toggle audio playback
   const handleTogglePlay = useCallback(() => {
     const sName = getSurahName(selectedSurahForAudio);
-    if (audio.isLoading) {
-      triggerHaptic('pause');
-      audio.pause();
-      return;
-    }
     if (audio.isPlaying) {
       triggerHaptic('pause');
       announceToScreenReader('تم إيقاف التلاوة مؤقتاً');
@@ -347,12 +342,13 @@ export default function HomePage() {
     setSelectedReciterId(id);
     saveSettings({ selectedReciterId: id });
     setShowReciterModal(false);
-    if (audio.isPlaying) {
-      const targetSurah = audio.currentSurah || selectedSurahForAudio;
-      audio.loadAndPlay(targetSurah, id, getSurahName(targetSurah), name);
-    } else {
-      audio.stop();
-    }
+    const targetSurah = audio.currentSurah || selectedSurahForAudio;
+    const sName = getSurahName(targetSurah);
+    triggerHaptic('play');
+    stopAccessibilitySpeech();
+    announceToScreenReader(`تشغيل سورة ${sName} بصوت الشيخ ${name}`);
+    audio.setAutoPlayNext(true);
+    audio.loadAndPlay(targetSurah, id, sName, name);
   }, [audio, selectedSurahForAudio]);
 
   const currentStoppedPage =
@@ -839,19 +835,18 @@ export default function HomePage() {
           setSelectedReciterId(newId);
           saveSettings({ selectedReciterId: newId });
           const newReciter = POPULAR_RECITERS.find((r) => r.id === newId) || POPULAR_RECITERS[0];
-          triggerHaptic('tap');
-          announceToScreenReader(`تم اختيار القارئ الشيخ ${newReciter.name}`);
-          if (audio.isPlaying) {
-            const targetSurah = audio.currentSurah || selectedSurahForAudio;
-            audio.loadAndPlay(
-              targetSurah,
-              newId,
-              getSurahName(targetSurah),
-              newReciter.name
-            );
-          } else {
-            audio.stop();
-          }
+          triggerHaptic('play');
+          stopAccessibilitySpeech();
+          const targetSurah = audio.currentSurah || selectedSurahForAudio;
+          const sName = getSurahName(targetSurah);
+          announceToScreenReader(`تشغيل سورة ${sName} بصوت الشيخ ${newReciter.name}`);
+          audio.setAutoPlayNext(true);
+          audio.loadAndPlay(
+            targetSurah,
+            newId,
+            sName,
+            newReciter.name
+          );
         }}
         onOpenReciterModal={() => setShowReciterModal(true)}
         onOpenOfflineAudioModal={() => setShowOfflineAudioModal(true)}
