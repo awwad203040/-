@@ -33,7 +33,13 @@ export async function GET(request: NextRequest) {
     const fallbackUrl = getFallbackReciterAudioUrl(reciterId, chapterId);
 
     let audioFile: Record<string, unknown> | null = null;
-    if (reciterId < 100) {
+    if (reciterId === 100 || reciterId === 102) {
+      audioFile = {
+        chapter_id: chapterId,
+        audio_url: directUrl,
+        url: directUrl,
+      };
+    } else if (reciterId < 100) {
       try {
         audioFile = await getChapterRecitation(reciterId, chapterId);
       } catch {

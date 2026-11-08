@@ -210,10 +210,10 @@ export const POPULAR_RECITERS: ReciterInfo[] = [
 ];
 
 export const RECITER_AUDIO_SERVERS: Record<number, string> = {
-  100: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r3', // Minshawi Teacher / Muallim
+  100: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r3', // Minshawi Teacher / Muallim (بترديد الأطفال)
   9: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1', // Mohamed Siddiq al-Minshawi Murattal
   101: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r2', // Minshawi Mujawwad
-  102: 'https://server13.mp3quran.net/husr', // Husary Teacher / Muallim
+  102: 'https://download.quranicaudio.com/qdc/khalil_al_husary/muallim', // Husary Teacher / Muallim (بترديد الأطفال)
   6: 'https://cdn.mp3quran.net/audio/mahmoud-husary/r1', // Mahmoud Khalil Al-Husary Murattal
   103: 'https://cdn.mp3quran.net/audio/mahmoud-husary/r2', // Husary Mujawwad
   7: 'https://cdn.mp3quran.net/audio/mishary-alafasy/r1', // Mishari Rashid Alafasy
@@ -240,11 +240,14 @@ export const RECITER_AUDIO_SERVERS: Record<number, string> = {
 export function getDirectReciterAudioUrl(reciterId: number, surahNumber: number): string {
   const pad3 = surahNumber.toString().padStart(3, '0');
   const server = RECITER_AUDIO_SERVERS[reciterId] || RECITER_AUDIO_SERVERS[100] || RECITER_AUDIO_SERVERS[7];
+  if (reciterId === 102) {
+    return `${server}/${surahNumber}.mp3`;
+  }
   return `${server}/${pad3}.mp3`;
 }
 
 export const RECITER_AUDIO_FALLBACK_SERVERS: Record<number, string> = {
-  100: 'https://server10.mp3quran.net/minsh',
+  100: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r3',
   9: 'https://download.quranicaudio.com/qdc/siddiq_minshawi/murattal',
   101: 'https://server10.mp3quran.net/minsh/Almusshaf-Al-Mojawwad',
   102: 'https://download.quranicaudio.com/qdc/khalil_al_husary/muallim',
@@ -274,6 +277,9 @@ export const RECITER_AUDIO_FALLBACK_SERVERS: Record<number, string> = {
 export function getFallbackReciterAudioUrl(reciterId: number, surahNumber: number): string {
   const pad3 = surahNumber.toString().padStart(3, '0');
   const server = RECITER_AUDIO_FALLBACK_SERVERS[reciterId] || RECITER_AUDIO_FALLBACK_SERVERS[7];
+  if (reciterId === 102) {
+    return `${server}/${surahNumber}.mp3`;
+  }
   if (reciterId === 8 || reciterId === 10 || (reciterId >= 100 && reciterId !== 102)) {
     return `${server}/${pad3}.mp3`;
   }

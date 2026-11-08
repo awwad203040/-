@@ -136,12 +136,59 @@ export async function getReciters() {
 }
 
 export async function getChapterRecitation(reciterId: number, chapterNumber: number) {
+  // 1. Minshawi Teacher / Muallim (بترديد الأطفال)
+  if (reciterId === 100) {
+    const pad3 = chapterNumber.toString().padStart(3, '0');
+    const audioUrl = `https://cdn.mp3quran.net/audio/muhammad-minshawi/r3/${pad3}.mp3`;
+    return {
+      id: chapterNumber,
+      chapter_id: chapterNumber,
+      audio_url: audioUrl,
+      url: audioUrl,
+    };
+  }
+
+  // 2. Husary Teacher / Muallim (بترديد الأطفال)
+  if (reciterId === 102) {
+    const audioUrl = `https://download.quranicaudio.com/qdc/khalil_al_husary/muallim/${chapterNumber}.mp3`;
+    return {
+      id: chapterNumber,
+      chapter_id: chapterNumber,
+      audio_url: audioUrl,
+      url: audioUrl,
+    };
+  }
+
   type Resp = { audio_file: Record<string, unknown> };
   const data = await qfFetch<Resp>(`/api/v4/chapter_recitations/${reciterId}/${chapterNumber}`);
   return data.audio_file;
 }
 
 export async function getAyahRecitation(reciterId: number, verseKey: string) {
+  const parts = verseKey.split(':');
+  const surahPad = (parts[0] || '1').padStart(3, '0');
+  const ayahPad = (parts[1] || '1').padStart(3, '0');
+
+  // 1. Minshawi Teacher / Muallim (بترديد الأطفال - آية آية)
+  if (reciterId === 100) {
+    const audioUrl = `https://everyayah.com/data/Minshawy_Teacher_128kbps/${surahPad}${ayahPad}.mp3`;
+    return {
+      verse_key: verseKey,
+      audio_url: audioUrl,
+      url: audioUrl,
+    };
+  }
+
+  // 2. Husary Teacher / Muallim (بترديد الأطفال - آية آية)
+  if (reciterId === 102) {
+    const audioUrl = `https://everyayah.com/data/Husary_Muallim_128kbps/${surahPad}${ayahPad}.mp3`;
+    return {
+      verse_key: verseKey,
+      audio_url: audioUrl,
+      url: audioUrl,
+    };
+  }
+
   try {
     type Resp = { audio_files: { verse_key: string; url: string }[] };
     const data = await qfFetch<Resp>(`/api/v4/recitations/${reciterId}/by_ayah/${verseKey}`);
@@ -164,9 +211,6 @@ export async function getAyahRecitation(reciterId: number, verseKey: string) {
   }
 
   // Guaranteed fallback to official Alafasy CDN
-  const parts = verseKey.split(':');
-  const surahPad = (parts[0] || '1').padStart(3, '0');
-  const ayahPad = (parts[1] || '1').padStart(3, '0');
   const fallbackUrl = `https://verses.quran.com/Alafasy/mp3/${surahPad}${ayahPad}.mp3`;
   return {
     verse_key: verseKey,
