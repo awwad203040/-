@@ -14,6 +14,7 @@ interface MushafToolbarProps {
   onOpenCorrection?: () => void;
   onOpenPageJump?: () => void;
   onOpenOfflineModal?: () => void;
+  onOpenCopyModal?: () => void;
 }
 
 export default function MushafToolbar({
@@ -27,6 +28,7 @@ export default function MushafToolbar({
   onOpenCorrection,
   onOpenPageJump,
   onOpenOfflineModal,
+  onOpenCopyModal,
 }: MushafToolbarProps) {
   return (
     <header
@@ -102,6 +104,16 @@ export default function MushafToolbar({
             className="p-2 rounded-full hover:bg-white/10 transition-colors text-[#C8A85B]"
           >
             <span className="text-lg">🎙️</span>
+          </button>
+        )}
+        {onOpenCopyModal && (
+          <button
+            onClick={onOpenCopyModal}
+            aria-label="تحديد ونسخ أي آية من الصفحة"
+            title="تحديد ونسخ أي آية أو جزء من صفحة التلاوة"
+            className="p-2 rounded-full hover:bg-white/10 active:scale-95 transition-colors text-[#C8A85B]"
+          >
+            <span className="text-base sm:text-lg">📋</span>
           </button>
         )}
         <button

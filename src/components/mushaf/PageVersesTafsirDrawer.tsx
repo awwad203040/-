@@ -397,10 +397,15 @@ export default function PageVersesTafsirDrawer({
                     <div
                       key={verse.id || verse.verseKey}
                       id={`drawer-verse-${idx}`}
-                      onClick={() => setSelectedVerseIndex(idx)}
+                      onClick={() => {
+                        const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
+                        if (!sel) {
+                          setSelectedVerseIndex(idx);
+                        }
+                      }}
                       role="button"
                       tabIndex={0}
-                      className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all cursor-pointer border text-right select-none ${
+                      className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all cursor-pointer border text-right select-text ${
                         isSelected
                           ? 'bg-[#123B2A] text-white border-[#C8A85B] shadow-md scale-[1.01]'
                           : nightMode
@@ -409,16 +414,31 @@ export default function PageVersesTafsirDrawer({
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span
-                          className={`font-bold px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
-                            isSelected
-                              ? 'bg-[#C8A85B] text-[#123B2A]'
-                              : 'bg-[#123B2A]/10 text-[#123B2A]'
-                          }`}
-                          style={{ fontFamily: "'Tajawal', sans-serif" }}
-                        >
-                          الآية {verse.verseKey}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`font-bold px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
+                              isSelected
+                                ? 'bg-[#C8A85B] text-[#123B2A]'
+                                : 'bg-[#123B2A]/10 text-[#123B2A]'
+                            }`}
+                            style={{ fontFamily: "'Tajawal', sans-serif" }}
+                          >
+                            الآية {verse.verseKey}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (navigator.clipboard && navigator.clipboard.writeText) {
+                                navigator.clipboard.writeText(`﴿ ${verse.textUthmani} ﴾ [${verse.verseKey}]`);
+                              }
+                            }}
+                            className="p-1 rounded-md text-[10px] text-[#C8A85B] hover:bg-black/10 transition cursor-pointer"
+                            title="نسخ نص هذه الآية"
+                          >
+                            📋
+                          </button>
+                        </div>
                         <div className="flex items-center gap-1">
                           {isPlayingAudio && playingVerseKey === verse.verseKey && (
                             <span className="text-[10px] text-[#C8A85B] font-bold animate-pulse flex items-center gap-0.5">
@@ -435,8 +455,12 @@ export default function PageVersesTafsirDrawer({
                       </div>
 
                       <p
-                        className="text-xs sm:text-sm md:text-base leading-relaxed font-bold line-clamp-3"
-                        style={{ fontFamily: "'Amiri', serif" }}
+                        className="text-xs sm:text-sm md:text-base leading-relaxed font-bold select-text cursor-text"
+                        style={{
+                          fontFamily: "'Amiri', serif",
+                          userSelect: 'text',
+                          WebkitUserSelect: 'text',
+                        }}
                       >
                         {verse.textUthmani}
                       </p>

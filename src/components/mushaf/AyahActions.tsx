@@ -84,19 +84,33 @@ export default function AyahActions({
           </span>
         </div>
 
-        {/* Verse preview */}
-        <p
-          className="text-center mb-5 px-4 line-clamp-2"
-          dir="rtl"
-          style={{
-            fontFamily: "'Amiri', serif",
-            fontSize: '1.2rem',
-            lineHeight: 2,
-            color: '#17231D',
-          }}
-        >
-          {verse.textUthmani}
-        </p>
+        {/* Verse preview - Selectable and Copyable */}
+        <div className="mb-5 px-3 py-2.5 rounded-2xl bg-white/70 border border-[#C8A85B]/40">
+          <p
+            className="text-center select-text cursor-text leading-relaxed font-bold text-base sm:text-lg"
+            dir="rtl"
+            style={{
+              fontFamily: "'Amiri', serif",
+              lineHeight: 2.2,
+              color: '#123B2A',
+              userSelect: 'text',
+              WebkitUserSelect: 'text',
+            }}
+          >
+            {verse.textUthmani}
+          </p>
+          <div className="mt-2 pt-1.5 border-t border-[#C8A85B]/20 flex items-center justify-between text-[11px] text-gray-500 font-medium">
+            <span>💡 يمكنك تحديد وتظليل أي جزء لنسخه</span>
+            <button
+              type="button"
+              onClick={onCopy}
+              className="text-[#0B5B43] hover:text-[#123B2A] font-bold flex items-center gap-1 active:scale-95 transition"
+            >
+              <span>📋</span>
+              <span>نسخ الآية كاملة</span>
+            </button>
+          </div>
+        </div>
 
         {/* Range Looping Picker Box if user clicked 'تكرار مقطع بالآيات' */}
         {showRangePicker && (

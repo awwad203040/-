@@ -38,6 +38,7 @@ import RecitationCorrectionModal from '@/components/mushaf/RecitationCorrectionM
 import OfflineDownloadModal from '@/components/mushaf/OfflineDownloadModal';
 import MushafSkeleton from '@/components/mushaf/MushafSkeleton';
 import PageVersesTafsirDrawer from '@/components/mushaf/PageVersesTafsirDrawer';
+import VerseCopyModal from '@/components/mushaf/VerseCopyModal';
 import { useAutoAthkar } from '@/hooks/useAutoAthkar';
 import AthkarToast from '@/components/common/AthkarToast';
 import { getPageFromIDB } from '@/lib/offline-manager';
@@ -182,6 +183,7 @@ function MushafReaderInner() {
   const [showPageVersesDrawer, setShowPageVersesDrawer] = useState(false);
   const [pageImageError, setPageImageError] = useState(false);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
   const [offlineBlobUrl, setOfflineBlobUrl] = useState<string | null>(null);
   const [stopMarkToast, setStopMarkToast] = useState<string | null>(null);
 
@@ -838,6 +840,7 @@ function MushafReaderInner() {
           onSearch={() => setShowSearch(true)}
           onOpenPageJump={() => setShowPageJumpModal(true)}
           onOpenOfflineModal={() => setShowOfflineModal(true)}
+          onOpenCopyModal={() => setShowCopyModal(true)}
           onOpenCorrection={() => {
             if (verses.length > 0) {
               handleOpenCorrection(verses[0]);
@@ -958,27 +961,32 @@ function MushafReaderInner() {
                 {group.verses.map((verse) => (
                   <div
                     key={verse.id || verse.verseKey}
-                    className="py-4 px-3 rounded-xl mb-2 cursor-pointer transition-colors hover:bg-[#123B2A]/5"
+                    className="py-4 px-3 rounded-xl mb-2 cursor-pointer transition-colors hover:bg-[#123B2A]/5 select-text"
                     style={{
                       borderBottom: `1px solid ${settings.nightMode ? 'rgba(200,168,91,0.1)' : 'rgba(18,59,42,0.08)'}`,
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedVerse(verse);
+                      const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
+                      if (!sel) {
+                        setSelectedVerse(verse);
+                      }
                     }}
                     role="button"
                     tabIndex={0}
                     aria-label={`الآية ${verse.verseKey}`}
                   >
                     <p
-                      className="quran-text"
+                      className="quran-text select-text cursor-text"
                       style={{
                         fontSize: `${Math.round((settings.fontSize * pageZoom) / 100)}px`,
                         color: textColor,
+                        userSelect: 'text',
+                        WebkitUserSelect: 'text',
                       }}
                     >
                       {verse.textUthmani}
-                      <span className="verse-number" style={{ backgroundColor: verseNumberBg }}>
+                      <span className="verse-number select-none" style={{ backgroundColor: verseNumberBg }}>
                         {verse.verseNumber}
                       </span>
                     </p>
@@ -1013,14 +1021,26 @@ function MushafReaderInner() {
           <div className="relative w-full flex flex-col items-center justify-center select-none py-1">
             {/* Quick Top Info Bar */}
             <div
-              className={`w-full mb-1.5 flex items-center justify-between text-xs font-bold px-2.5 transition-all ${
+              className={`w-full mb-1.5 flex items-center justify-between text-xs font-bold px-2.5 gap-1.5 transition-all ${
                 isLandscape ? 'max-w-none bg-[#123B2A]/5 py-1 rounded-lg' : 'max-w-2xl mx-auto'
               }`}
               style={{ fontFamily: "'Tajawal', sans-serif" }}
             >
-              <span className="px-3 py-1 rounded-full bg-[#123B2A]/10 text-[#123B2A] border border-[#123B2A]/20">
-                {mainSurahName}
-              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="px-3 py-1 rounded-full bg-[#123B2A]/10 text-[#123B2A] border border-[#123B2A]/20">
+                  {mainSurahName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowCopyModal(true)}
+                  className="px-2.5 py-1 rounded-full bg-[#C8A85B]/20 hover:bg-[#C8A85B]/35 text-[#123B2A] border border-[#C8A85B]/50 flex items-center gap-1 font-bold text-[11px] active:scale-95 transition cursor-pointer shadow-2xs"
+                  title="تحديد ونسخ أي آية أو جزء من صفحة التلاوة"
+                >
+                  <span>📋</span>
+                  <span>تحديد ونسخ</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
@@ -1033,7 +1053,7 @@ function MushafReaderInner() {
                 صفحة {currentPage} من 604 {pageZoom !== 100 ? `(تكبير ${pageZoom}%)` : ''}
               </button>
               {juzNumber && (
-                <span className="px-3 py-1 rounded-full bg-[#C8A85B]/20 text-[#123B2A] border border-[#C8A85B]/30">
+                <span className="px-3 py-1 rounded-full bg-[#C8A85B]/20 text-[#123B2A] border border-[#C8A85B]/30 shrink-0">
                   الجزء {juzNumber}
                 </span>
               )}
@@ -1111,6 +1131,18 @@ function MushafReaderInner() {
                 title="الانتقال إلى الصفحة التالية"
               >
                 <span>◀ الصفحة التالية ({currentPage < 604 ? currentPage + 1 : 604})</span>
+              </button>
+
+              {/* Copy Verses Trigger */}
+              <button
+                type="button"
+                onClick={() => setShowCopyModal(true)}
+                className="py-3 px-3 sm:px-3.5 rounded-xl border border-[#C8A85B]/70 bg-white/95 text-[#123B2A] hover:bg-[#FBF8EF] active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                style={{ fontFamily: "'Tajawal', sans-serif" }}
+                title="تحديد ونسخ أي آية أو جزء من نص الصفحة"
+              >
+                <span>📋</span>
+                <span className="hidden xs:inline">نسخ الآيات</span>
               </button>
 
               {/* Verses Drawer Trigger */}
@@ -1202,26 +1234,31 @@ function MushafReaderInner() {
                 )}
 
                 <p
-                  className="quran-text-mushaf"
+                  className="quran-text-mushaf select-text cursor-text"
                   style={{
                     fontSize: `${Math.round((settings.fontSize * pageZoom) / 100)}px`,
                     color: textColor,
+                    userSelect: 'text',
+                    WebkitUserSelect: 'text',
                   }}
                 >
                   {group.verses.map((verse) => (
                     <span
                       key={verse.id || verse.verseKey}
-                      className="cursor-pointer hover:bg-[#C8A85B]/10 rounded px-0.5 transition-colors"
+                      className="cursor-pointer hover:bg-[#C8A85B]/10 rounded px-0.5 transition-colors select-text"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedVerse(verse);
+                        const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
+                        if (!sel) {
+                          setSelectedVerse(verse);
+                        }
                       }}
                       role="button"
                       tabIndex={0}
                       aria-label={`الآية ${verse.verseKey}`}
                     >
                       {verse.textUthmani}
-                      <span className="verse-number" style={{ backgroundColor: verseNumberBg }}>
+                      <span className="verse-number select-none" style={{ backgroundColor: verseNumberBg }}>
                         {verse.verseNumber}
                       </span>
                       {' '}
@@ -1484,6 +1521,16 @@ function MushafReaderInner() {
       <OfflineDownloadModal
         isOpen={showOfflineModal}
         onClose={() => setShowOfflineModal(false)}
+        nightMode={settings.nightMode}
+      />
+
+      {/* Verse Selection and Copy Modal */}
+      <VerseCopyModal
+        isOpen={showCopyModal}
+        onClose={() => setShowCopyModal(false)}
+        currentPage={currentPage}
+        verses={verses}
+        surahName={mainSurahName}
         nightMode={settings.nightMode}
       />
 
