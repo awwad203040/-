@@ -27,8 +27,8 @@ export const QURAN_RADIO_STATIONS: QuranRadioStation[] = [
     country: 'السعودية',
     flag: '🇸🇦',
     category: 'country',
-    streamUrl: 'https://n01.radiojar.com/0tpy1h0kxtzuv',
-    backupUrl: 'https://qurango.net/radio/mix',
+    streamUrl: 'https://qurango.net/radio/mix',
+    backupUrl: 'https://backup.qurango.net/radio/mix',
     description: 'بث حي ومباشر لتلاوات الحرمين الشريفين والبرامج الإيمانية من مكة المكرمة والرياض.',
   },
   {

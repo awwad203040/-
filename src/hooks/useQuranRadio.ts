@@ -32,7 +32,7 @@ export function useQuranRadio() {
 
     if (!globalRadioAudio) {
       globalRadioAudio = new Audio();
-      globalRadioAudio.preload = 'none';
+      globalRadioAudio.preload = 'auto';
     }
 
     const audio = globalRadioAudio;
@@ -50,6 +50,10 @@ export function useQuranRadio() {
     };
 
     const onPlaying = () => {
+      setState((prev) => ({ ...prev, isPlaying: true, isLoading: false, error: null }));
+    };
+
+    const onCanPlay = () => {
       setState((prev) => ({ ...prev, isPlaying: true, isLoading: false, error: null }));
     };
 
@@ -80,6 +84,7 @@ export function useQuranRadio() {
     audio.addEventListener('pause', onPause);
     audio.addEventListener('waiting', onWaiting);
     audio.addEventListener('playing', onPlaying);
+    audio.addEventListener('canplay', onCanPlay);
     audio.addEventListener('error', onError);
 
     return () => {
@@ -87,14 +92,16 @@ export function useQuranRadio() {
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('waiting', onWaiting);
       audio.removeEventListener('playing', onPlaying);
+      audio.removeEventListener('canplay', onCanPlay);
       audio.removeEventListener('error', onError);
     };
   }, []);
 
-  const playStation = useCallback(async (station: QuranRadioStation) => {
+  const playStation = useCallback((station: QuranRadioStation) => {
     if (typeof window === 'undefined') return;
     if (!globalRadioAudio) {
       globalRadioAudio = new Audio();
+      globalRadioAudio.preload = 'auto';
     }
     const audio = globalRadioAudio;
 
@@ -113,38 +120,50 @@ export function useQuranRadio() {
     }));
 
     try {
-      audio.pause();
-      audio.src = station.streamUrl;
-      audio.load();
-      await audio.play();
-      setState((prev) => ({
-        ...prev,
-        isPlaying: true,
-        isLoading: false,
-      }));
-    } catch (err) {
-      console.warn('Primary stream failed, attempting backup if available:', err);
-      if (station.backupUrl) {
-        try {
-          audio.src = station.backupUrl;
-          audio.load();
-          await audio.play();
-          setState((prev) => ({
-            ...prev,
-            isPlaying: true,
-            isLoading: false,
-          }));
-          return;
-        } catch (e2) {
-          console.error('Backup stream also failed:', e2);
-        }
+      if (!audio.paused) {
+        audio.pause();
       }
-      setState((prev) => ({
-        ...prev,
-        isPlaying: false,
-        isLoading: false,
-        error: 'تعذر بدء البث المباشر لهذه الإذاعة. تأكد من اتصالك بالإنترنت.',
-      }));
+      audio.src = station.streamUrl;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setState((prev) => ({
+              ...prev,
+              isPlaying: true,
+              isLoading: false,
+              error: null,
+            }));
+          })
+          .catch((err) => {
+            console.warn('Primary stream play rejected, switching to backup:', err);
+            if (station.backupUrl && audio.src !== station.backupUrl) {
+              audio.src = station.backupUrl;
+              audio.play().catch((err2) => {
+                console.error('Backup stream also rejected:', err2);
+                setState((prev) => ({
+                  ...prev,
+                  isPlaying: false,
+                  isLoading: false,
+                  error: 'تعذر بدء البث المباشر لهذه الإذاعة. تأكد من اتصال الإنترنت.',
+                }));
+              });
+            } else {
+              setState((prev) => ({
+                ...prev,
+                isPlaying: false,
+                isLoading: false,
+                error: 'تعذر بدء البث المباشر لهذه الإذاعة.',
+              }));
+            }
+          });
+      }
+    } catch (err) {
+      console.warn('Primary stream failed synchronously:', err);
+      if (station.backupUrl) {
+        audio.src = station.backupUrl;
+        audio.play().catch(() => {});
+      }
     }
   }, []);
 

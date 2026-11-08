@@ -10,6 +10,7 @@ import {
   announceToScreenReader,
 } from '@/lib/accessibility';
 import { openNativeVoiceMatchSettings } from '@/lib/athkar-native-bridge';
+import { setAutoVoiceAssistantOnLaunch, isAutoVoiceAssistantOnLaunch } from '@/lib/storage';
 
 interface AccessibilityModalProps {
   isOpen: boolean;
@@ -37,9 +38,12 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
       voiceGuidance: newVal ? true : settings.voiceGuidance,
       hapticFeedback: true,
     });
+    setAutoVoiceAssistantOnLaunch(newVal);
     setSettings(updated);
     triggerHaptic('success');
-    const msg = newVal ? 'تم تفعيل وضع المكفوفين والمساعد الصوتي' : 'تم إيقاف وضع المكفوفين';
+    const msg = newVal
+      ? 'تم تفعيل وضع المكفوفين الشامل، وسيعمل المساعد الصوتي تلقائياً عند فتح التطبيق'
+      : 'تم إيقاف وضع المكفوفين الشامل، ولن يفتح المساعد الصوتي تلقائياً';
     speakAccessibility(msg, { force: true });
     announceToScreenReader(msg, true);
   };

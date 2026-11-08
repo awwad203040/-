@@ -27,7 +27,7 @@ import { useQuranRadio } from '@/hooks/useQuranRadio';
 import BlindVoiceAssistantModal from '@/components/common/BlindVoiceAssistantModal';
 import type { VoiceCommandResult } from '@/lib/voice-command-engine';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
-import { triggerHaptic, speakAccessibility, stopAccessibilitySpeech, announceToScreenReader } from '@/lib/accessibility';
+import { triggerHaptic, speakAccessibility, stopAccessibilitySpeech, announceToScreenReader, getAccessibilitySettings } from '@/lib/accessibility';
 
 export default function HomePage() {
   const router = useRouter();
@@ -283,11 +283,15 @@ export default function HomePage() {
 
   // Listen for native voice commands triggered by Android intents (Google Assistant / Voice Match)
   useEffect(() => {
-    // 1. Immediately check if auto voice assistant is enabled for this session
+    // 1. Check if Comprehensive Blind Mode (وضع المكفوفين الشامل) or auto voice launch is enabled
     if (!hasAutoVoiceCheckedRef.current) {
       hasAutoVoiceCheckedRef.current = true;
-      if (isAutoVoiceAssistantOnLaunch()) {
-        setShowVoiceAssistantModal(true);
+      const acc = getAccessibilitySettings();
+      const shouldLaunch = acc.blindMode || isAutoVoiceAssistantOnLaunch();
+      if (shouldLaunch) {
+        setTimeout(() => {
+          setShowVoiceAssistantModal(true);
+        }, 350);
       }
     }
 
