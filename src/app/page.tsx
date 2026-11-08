@@ -464,11 +464,54 @@ export default function HomePage() {
                 </svg>
               </div>
             </div>
+
+            {/* نافذة صغيرة فيها باركود تنزيل التطبيق داخل نافذة صدقة جارية */}
+            <div className="mt-2 pt-2 border-t border-[#C8A85B]/40 flex items-center justify-center gap-2.5 sm:gap-3 bg-[#0A271B]/75 py-2 px-3 rounded-xl border border-[#C8A85B]/40 max-w-sm mx-auto shadow-inner">
+              {/* باركود QR code */}
+              <a
+                href="/Noor-AlQuran.apk"
+                download="Noor-AlQuran.apk"
+                title="اضغط لتحميل التطبيق أو امسح الباركود"
+                className="bg-white p-1 rounded-lg border-2 border-[#C8A85B] shrink-0 shadow-sm hover:scale-105 active:scale-95 transition-transform block"
+              >
+                <img
+                  src="/noor-download-qr.png"
+                  alt="باركود تنزيل تطبيق نور القرآن"
+                  className="w-13 h-13 sm:w-15 sm:h-15 object-contain"
+                />
+              </a>
+
+              {/* نصوص وزر تنزيل التطبيق */}
+              <div className="flex flex-col items-start text-right min-w-0">
+                <span
+                  className="text-xs sm:text-sm font-extrabold text-[#F7EED8] flex items-center gap-1 leading-tight"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
+                  <span>📲</span>
+                  <span>باركود تنزيل التطبيق (APK)</span>
+                </span>
+                <span
+                  className="text-[10px] text-[#C8A85B] font-medium leading-tight mt-0.5"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
+                  امسح الباركود بالكاميرا أو اضغط للتحميل
+                </span>
+                <a
+                  href="/Noor-AlQuran.apk"
+                  download="Noor-AlQuran.apk"
+                  className="mt-1.5 inline-flex items-center gap-1 px-3 py-0.5 rounded-lg text-[10px] sm:text-xs font-bold bg-[#C8A85B] hover:bg-[#dfc278] text-[#123B2A] active:scale-95 transition shadow-xs cursor-pointer"
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
+                  <span>📥</span>
+                  <span>تحميل مباشر (APK)</span>
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* 2. CENTER: شعار التطبيق (تأثير فلاشي جذاب مع الحفاظ التام على حجم الشعار وحجم الخطوط) */}
           <div
-            className="w-full max-w-[270px] mx-auto py-2 px-3 sm:py-2.5 sm:px-4 rounded-2xl border-2 border-[#C8A85B]/70 shadow-lg flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.01] flash-window flash-delay-2"
+            className="w-full max-w-[270px] mx-auto py-2.5 px-3 sm:py-3 sm:px-4 rounded-2xl border-2 border-[#C8A85B]/70 shadow-lg flex flex-col items-center justify-center text-center transition-transform hover:scale-[1.01] flash-window flash-delay-2"
             style={{
               background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               boxShadow: '0 4px 16px -3px rgba(0, 0, 0, 0.4), 0 0 10px rgba(200, 168, 91, 0.2)',
@@ -487,16 +530,6 @@ export default function HomePage() {
             >
               المصحف الشريف • رفيقك مع القرآن الكريم
             </p>
-            {/* Install APK badge */}
-            <button
-              type="button"
-              onClick={() => setShowInstallModal(true)}
-              className="mt-1 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold bg-[#C8A85B]/25 hover:bg-[#C8A85B]/35 text-[#FFD700] border border-[#C8A85B]/50 active:scale-95 transition cursor-pointer shadow-xs"
-              style={{ fontFamily: "'Tajawal', sans-serif" }}
-            >
-              <span>📲</span>
-              <span>تثبيت التطبيق (APK)</span>
-            </button>
           </div>
 
           {/* 3. WIDE CARD: تقدمك في القراءة (تأثير فلاشي جذاب مع الحفاظ التام على الخطوط والبيانات) */}
