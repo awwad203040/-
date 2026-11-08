@@ -182,57 +182,99 @@ export interface ReciterInfo {
 }
 
 export const POPULAR_RECITERS: ReciterInfo[] = [
+  { id: 100, name: 'محمد صديق المنشاوي (المصحف المعلم)', englishName: 'Mohamed Siddiq al-Minshawi (Teacher/Muallim)' },
+  { id: 9, name: 'محمد صديق المنشاوي (مرتل)', englishName: 'Mohamed Siddiq al-Minshawi (Murattal)' },
+  { id: 101, name: 'محمد صديق المنشاوي (مجود)', englishName: 'Mohamed Siddiq al-Minshawi (Mujawwad)' },
+  { id: 102, name: 'محمود خليل الحصري (المصحف المعلم)', englishName: 'Mahmoud Khalil Al-Husary (Teacher/Muallim)' },
+  { id: 6, name: 'محمود خليل الحصري (مرتل)', englishName: 'Mahmoud Khalil Al-Husary (Murattal)' },
+  { id: 103, name: 'محمود خليل الحصري (مجود)', englishName: 'Mahmoud Khalil Al-Husary (Mujawwad)' },
   { id: 7, name: 'مشاري راشد العفاسي', englishName: 'Mishari Rashid al-Afasy' },
   { id: 1, name: 'عبد الباسط عبد الصمد (مرتل)', englishName: 'AbdulBaset AbdulSamad (Murattal)' },
   { id: 2, name: 'عبد الباسط عبد الصمد (مجود)', englishName: 'AbdulBaset AbdulSamad (Mujawwad)' },
+  { id: 104, name: 'ياسر الدوسري', englishName: 'Yasser Al-Dosari' },
+  { id: 8, name: 'ماهر المعيقلي', englishName: 'Maher al-Muaiqly' },
   { id: 3, name: 'عبد الرحمن السديس', englishName: 'Abdur-Rahman as-Sudais' },
+  { id: 10, name: 'سعود الشريم', englishName: 'Saud ash-Shuraym' },
+  { id: 105, name: 'أحمد بن علي العجمي', englishName: 'Ahmad Al-Ajmi' },
+  { id: 12, name: 'سعد الغامدي', englishName: 'Saad Al-Ghamdi' },
+  { id: 106, name: 'فارس عباد', englishName: 'Fares Abbad' },
+  { id: 107, name: 'ناصر القطامي', englishName: 'Nasser Al-Qatami' },
+  { id: 108, name: 'علي عبد الرحمن الحذيفي', englishName: 'Ali Al-Huthaifi' },
+  { id: 109, name: 'علي عبد الله جابر (إمام الحرم المكي)', englishName: 'Ali Jaber' },
+  { id: 110, name: 'عبد الله بصفر', englishName: 'Abdullah Basfar' },
+  { id: 111, name: 'إدريس أبكر', englishName: 'Idrees Abkar' },
+  { id: 112, name: 'محمد أيوب (إمام المسجد النبوي)', englishName: 'Muhammad Ayyub' },
+  { id: 113, name: 'محمد جبريل', englishName: 'Muhammad Jibreel' },
   { id: 4, name: 'أبو بكر الشاطري', englishName: 'Abu Bakr al-Shatri' },
   { id: 5, name: 'هاني الرفاعي', englishName: 'Hani ar-Rifai' },
-  { id: 6, name: 'محمود خليل الحصري', englishName: 'Mahmoud Khalil Al-Husary' },
-  { id: 8, name: 'ماهر المعيقلي', englishName: 'Maher al-Muaiqly' },
-  { id: 9, name: 'محمد صديق المنشاوي (مرتل)', englishName: 'Mohamed Siddiq al-Minshawi' },
-  { id: 10, name: 'سعود الشريم', englishName: 'Saud ash-Shuraym' },
-  { id: 12, name: 'سعد الغامدي', englishName: 'Saad Al-Ghamdi' },
 ];
 
 export const RECITER_AUDIO_SERVERS: Record<number, string> = {
+  100: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r3', // Minshawi Teacher / Muallim
+  9: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1', // Mohamed Siddiq al-Minshawi Murattal
+  101: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r2', // Minshawi Mujawwad
+  102: 'https://server13.mp3quran.net/husr', // Husary Teacher / Muallim
+  6: 'https://cdn.mp3quran.net/audio/mahmoud-husary/r1', // Mahmoud Khalil Al-Husary Murattal
+  103: 'https://cdn.mp3quran.net/audio/mahmoud-husary/r2', // Husary Mujawwad
   7: 'https://cdn.mp3quran.net/audio/mishary-alafasy/r1', // Mishari Rashid Alafasy
   1: 'https://cdn.mp3quran.net/audio/abdulbasit-abdulsamad/r3', // AbdulBaset Murattal
   2: 'https://cdn.mp3quran.net/audio/abdulbasit-abdulsamad/r1', // AbdulBaset Mujawwad
+  104: 'https://cdn.mp3quran.net/audio/yasser-dosari/r1', // Yasser Al-Dosari
+  8: 'https://cdn.mp3quran.net/audio/maher-muaiqly/r1', // Maher al-Muaiqly
   3: 'https://cdn.mp3quran.net/audio/abdulrahman-sudais/r1', // Abdur-Rahman as-Sudais
+  10: 'https://cdn.mp3quran.net/audio/saud-shuraim/r1', // Saud ash-Shuraym
+  105: 'https://cdn.mp3quran.net/audio/ahmad-ajmi/r1', // Ahmad Al-Ajmi
+  12: 'https://cdn.mp3quran.net/audio/saad-ghamdi/r1', // Saad Al-Ghamdi
+  106: 'https://cdn.mp3quran.net/audio/fares-abbad/r1', // Fares Abbad
+  107: 'https://cdn.mp3quran.net/audio/nasser-qatami/r1', // Nasser Al-Qatami
+  108: 'https://server9.mp3quran.net/hthfi', // Ali Al-Huthaifi
+  109: 'https://cdn.mp3quran.net/audio/ali-jaber/r1', // Ali Jaber
+  110: 'https://cdn.mp3quran.net/audio/abdullah-basfar/r1', // Abdullah Basfar
+  111: 'https://cdn.mp3quran.net/audio/idrees-abkar/r1', // Idrees Abkar
+  112: 'https://cdn.mp3quran.net/audio/muhammad-ayyub/r1', // Muhammad Ayyub
+  113: 'https://cdn.mp3quran.net/audio/muhammad-jibreel/r1', // Muhammad Jibreel
   4: 'https://cdn.mp3quran.net/audio/abubakr-shatri/r1', // Abu Bakr al-Shatri
   5: 'https://cdn.mp3quran.net/audio/hani-rifai/r1', // Hani ar-Rifai
-  6: 'https://cdn.mp3quran.net/audio/mahmoud-husary/r1', // Mahmoud Khalil Al-Husary
-  8: 'https://cdn.mp3quran.net/audio/maher-muaiqly/r1', // Maher al-Muaiqly
-  9: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1', // Mohamed Siddiq al-Minshawi
-  10: 'https://cdn.mp3quran.net/audio/saud-shuraim/r1', // Saud ash-Shuraym
-  12: 'https://cdn.mp3quran.net/audio/saad-ghamdi/r1', // Saad Al-Ghamdi
 };
 
 export function getDirectReciterAudioUrl(reciterId: number, surahNumber: number): string {
   const pad3 = surahNumber.toString().padStart(3, '0');
-  const server = RECITER_AUDIO_SERVERS[reciterId] || RECITER_AUDIO_SERVERS[7];
+  const server = RECITER_AUDIO_SERVERS[reciterId] || RECITER_AUDIO_SERVERS[100] || RECITER_AUDIO_SERVERS[7];
   return `${server}/${pad3}.mp3`;
 }
 
 export const RECITER_AUDIO_FALLBACK_SERVERS: Record<number, string> = {
+  100: 'https://server10.mp3quran.net/minsh',
+  9: 'https://download.quranicaudio.com/qdc/siddiq_minshawi/murattal',
+  101: 'https://server10.mp3quran.net/minsh/Almusshaf-Al-Mojawwad',
+  102: 'https://download.quranicaudio.com/qdc/khalil_al_husary/muallim',
+  6: 'https://download.quranicaudio.com/qdc/khalil_al_husary/murattal',
+  103: 'https://server13.mp3quran.net/husr/Almusshaf-Al-Mojawwad',
   7: 'https://download.quranicaudio.com/qdc/mishari_al_afasy/murattal',
   1: 'https://download.quranicaudio.com/qdc/abdul_baset/mujawwad',
   2: 'https://download.quranicaudio.com/qdc/abdul_baset/murattal',
+  104: 'https://server11.mp3quran.net/yasser',
+  8: 'https://server12.mp3quran.net/maher',
   3: 'https://download.quranicaudio.com/qdc/abdurrahmaan_as_sudais/murattal',
+  10: 'https://download.quranicaudio.com/qdc/saud_ash-shuraym/murattal',
+  105: 'https://server10.mp3quran.net/ajm',
+  12: 'https://download.quranicaudio.com/qdc/khalil_al_husary/muallim',
+  106: 'https://server8.mp3quran.net/frs_a',
+  107: 'https://server6.mp3quran.net/qtm',
+  108: 'https://server9.mp3quran.net/hthfi',
+  109: 'https://server11.mp3quran.net/a_jbr',
+  110: 'https://server6.mp3quran.net/bsfr',
+  111: 'https://server6.mp3quran.net/abkr',
+  112: 'https://server8.mp3quran.net/ayyub',
+  113: 'https://server8.mp3quran.net/jbrl',
   4: 'https://download.quranicaudio.com/qdc/abu_bakr_shatri/murattal',
   5: 'https://download.quranicaudio.com/qdc/hani_ar_rifai/murattal',
-  6: 'https://download.quranicaudio.com/qdc/khalil_al_husary/murattal',
-  8: 'https://server12.mp3quran.net/maher',
-  9: 'https://download.quranicaudio.com/qdc/siddiq_minshawi/murattal',
-  10: 'https://download.quranicaudio.com/qdc/saud_ash-shuraym/murattal',
-  12: 'https://download.quranicaudio.com/qdc/khalil_al_husary/muallim',
 };
 
 export function getFallbackReciterAudioUrl(reciterId: number, surahNumber: number): string {
   const pad3 = surahNumber.toString().padStart(3, '0');
   const server = RECITER_AUDIO_FALLBACK_SERVERS[reciterId] || RECITER_AUDIO_FALLBACK_SERVERS[7];
-  if (reciterId === 8 || reciterId === 10) {
+  if (reciterId === 8 || reciterId === 10 || (reciterId >= 100 && reciterId !== 102)) {
     return `${server}/${pad3}.mp3`;
   }
   return `${server}/${surahNumber}.mp3`;
