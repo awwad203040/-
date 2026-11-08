@@ -307,7 +307,9 @@ function MushafReaderInner() {
     setIsPanning(false);
   }, [currentPage]);
 
-  // Touch handlers for manual pinch-to-zoom (التوسيع والتضييق) and 1-finger panning (التحريك يمين ويسار بعد التكبير)
+  const swipeTouchRef = useRef<{ startX: number; startY: number; time: number; endX: number; endY: number } | null>(null);
+
+  // Touch handlers for manual pinch-to-zoom (التوسيع والتضييق) and 1-finger panning / swipe page flipping
   const handlePageTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
       // 2 fingers = Pinch to zoom ONLY the Mushaf page (keep the interface fixed)
@@ -320,6 +322,7 @@ function MushafReaderInner() {
       pinchStartZoomRef.current = pageZoom;
       lastPinchTimeRef.current = Date.now();
       panStartRef.current = null;
+      swipeTouchRef.current = null;
       setIsPanning(false);
     } else if (e.touches.length === 1 && pageZoom > 100) {
       // 1 finger = Pan / Drag the zoomed page
@@ -330,7 +333,19 @@ function MushafReaderInner() {
         startY: panOffset.y,
       };
       hasMovedPanRef.current = false;
+      swipeTouchRef.current = null;
       setIsPanning(true);
+    } else if (e.touches.length === 1 && pageZoom <= 100) {
+      // 1 finger at normal zoom = Swipe page flipping (سحب لليمين أو اليسار للتنقل بين الصفحات)
+      swipeTouchRef.current = {
+        startX: e.touches[0].clientX,
+        startY: e.touches[0].clientY,
+        endX: e.touches[0].clientX,
+        endY: e.touches[0].clientY,
+        time: Date.now(),
+      };
+      panStartRef.current = null;
+      setIsPanning(false);
     }
   }, [pageZoom, panOffset]);
 
@@ -405,10 +420,31 @@ function MushafReaderInner() {
         x: Math.max(-maxPanX, Math.min(maxPanX, nextX)),
         y: Math.max(-maxPanY, Math.min(maxPanY, nextY)),
       });
+    } else if (e.touches.length === 1 && pageZoom <= 100 && swipeTouchRef.current) {
+      swipeTouchRef.current.endX = e.touches[0].clientX;
+      swipeTouchRef.current.endY = e.touches[0].clientY;
     }
   }, [pageZoom]);
 
   const handlePageTouchEnd = useCallback(() => {
+    // 1. Check if user performed a horizontal swipe to flip page
+    if (swipeTouchRef.current && pageZoom <= 100) {
+      const dx = swipeTouchRef.current.startX - swipeTouchRef.current.endX;
+      const dy = swipeTouchRef.current.startY - swipeTouchRef.current.endY;
+      const dt = Date.now() - swipeTouchRef.current.time;
+      // Horizontal swipe threshold: dx > 35px, horizontal dominance, within 800ms
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 35 && dt < 800) {
+        if (dx > 0) {
+          // Swipe Left in Arabic RTL -> Next Page
+          nextPage();
+        } else {
+          // Swipe Right in Arabic RTL -> Previous Page
+          previousPage();
+        }
+      }
+      swipeTouchRef.current = null;
+    }
+
     if (pinchStartDistRef.current !== null) {
       pinchStartDistRef.current = null;
       lastPinchTimeRef.current = Date.now();
@@ -427,7 +463,7 @@ function MushafReaderInner() {
         lastPinchTimeRef.current = Date.now();
       }
     }
-  }, []);
+  }, [pageZoom, nextPage, previousPage]);
 
   // Mouse pan handlers for desktop / mouse interactions
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -568,12 +604,12 @@ function MushafReaderInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nextPage, previousPage, audio]);
 
-  // Swipe navigation disabled to ensure page flipping only happens via explicit navigation buttons
+  // Swipe navigation enabled: swipe left for next page, swipe right for previous page
   const swipeRef = useSwipe({
     onSwipeLeft: nextPage,
     onSwipeRight: previousPage,
-    threshold: 50,
-    disabled: true,
+    threshold: 40,
+    disabled: false,
   });
 
   // Get unique chapter numbers on this page
@@ -1240,41 +1276,6 @@ function MushafReaderInner() {
         />
       )}
 
-
-      {/* Floating Side Navigation Buttons (أزرار جانبية شبه شفافة لتوضيح الحروف والآيات أسفل منها) */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          nextPage();
-        }}
-        disabled={currentPage >= 604}
-        aria-label="الانتقال للصفحة التالية"
-        title="الصفحة التالية (◀)"
-        style={{ touchAction: 'manipulation' }}
-        className="fixed left-1 sm:left-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-full bg-[#123B2A]/25 hover:bg-[#123B2A]/70 active:bg-[#123B2A]/85 active:scale-90 text-white/80 hover:text-white backdrop-blur-[2px] shadow-sm border border-[#C8A85B]/50 hover:border-[#C8A85B] flex items-center justify-center cursor-pointer disabled:opacity-10 disabled:cursor-not-allowed transition-all"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-      </button>
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          previousPage();
-        }}
-        disabled={currentPage <= 1}
-        aria-label="الانتقال للصفحة السابقة"
-        title="الصفحة السابقة (▶)"
-        style={{ touchAction: 'manipulation' }}
-        className="fixed right-1 sm:right-2 top-1/2 -translate-y-1/2 z-40 p-1.5 sm:p-2 rounded-full bg-[#123B2A]/25 hover:bg-[#123B2A]/70 active:bg-[#123B2A]/85 active:scale-90 text-white/80 hover:text-white backdrop-blur-[2px] shadow-sm border border-[#C8A85B]/50 hover:border-[#C8A85B] flex items-center justify-center cursor-pointer disabled:opacity-10 disabled:cursor-not-allowed transition-all"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </button>
 
       {/* Floating Toast Notification when Reading Stop Mark is saved */}
       {stopMarkToast && (

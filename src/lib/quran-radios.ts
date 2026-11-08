@@ -17,8 +17,8 @@ export const QURAN_RADIO_STATIONS: QuranRadioStation[] = [
     country: 'مصر',
     flag: '🇪🇬',
     category: 'country',
-    streamUrl: 'https://stream.radiojar.com/8s5u5tpdtwzuv',
-    backupUrl: 'https://n02.radiojar.com/8s5u5tpdtwzuv',
+    streamUrl: 'https://radio.xecod.com/station/quran-cairo',
+    backupUrl: 'https://service.webvideocore.net/CL1olYogIrDWvwqiIKK7eCxOS4PStqG9DuEjAr2ZjZQtvS3d4y9r0cvRhvS17SGN/a_7a4vuubc6mo8.m3u8',
     description: 'البث المباشر لإذاعة القرآن الكريم من القاهرة، تلاوات نادرة، قرآن الفجر والمغرب، وابتهالات كبار القراء.',
   },
   {

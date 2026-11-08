@@ -3,24 +3,24 @@
     android:id="@+id/salatuk_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="3dp"
+    android:paddingBottom="3dp"
     android:background="@android:color/transparent">
 
-    <!-- Mosque Icon on the End / Right side matching Salatuk screenshot -->
+    <!-- Mosque Icon matching user screenshot -->
     <ImageView
         android:id="@+id/salatuk_icon"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
         android:layout_alignParentEnd="true"
         android:layout_centerVertical="true"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="8dp"
         android:scaleType="fitCenter"
         android:contentDescription="Salatuk Mosque Icon" />
 
-    <!-- Text Information on the Start / Left (RTL Arabic) -->
+    <!-- Text Information on the Start (RTL Arabic: City/Date, Prayer/Timer, Next Prayer) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -29,55 +29,62 @@
         android:orientation="vertical"
         android:gravity="start|center_vertical">
 
-        <!-- Line 1: Title (e.g. الهفوف | 25 جمادى الأولى 1448) -->
+        <!-- Line 1: الهفوف وتاريخ اليوم بجانب بعضهم (Single line, strictly side-by-side) -->
         <TextView
             android:id="@+id/salatuk_title"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold"
             android:textColor="#1F2937"
-            android:maxLines="2"
+            android:singleLine="true"
+            android:maxLines="1"
             android:ellipsize="end"
-            android:text="الهفوف | 25 جمادى الأولى 1448" />
+            android:text="الهفوف | 28 جمادى الأولى 1448" />
 
-        <!-- Line 2: Content (Prayer . Time in dark + Timer in bold RED #E53935) -->
+        <!-- Line 2: اسم الصلاة الآن ووقتها وبجانبها الوقت المنقضي بالأحمر الفاقع -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="2dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="start|center_vertical">
 
             <TextView
                 android:id="@+id/salatuk_prayer_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textStyle="bold"
                 android:textColor="#1F2937"
+                android:singleLine="true"
+                android:maxLines="1"
                 android:text="الظهر . 11:27 " />
 
-            <!-- Guaranteed Vibrant Bold Red Color #E53935 -->
+            <!-- Guaranteed Vibrant Bold Red Color #E53935 on the same line -->
             <TextView
                 android:id="@+id/salatuk_timer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
+                android:layout_marginStart="4dp"
+                android:textSize="13sp"
                 android:textStyle="bold"
                 android:textColor="#E53935"
+                android:singleLine="true"
+                android:maxLines="1"
                 android:text="د + 01:00" />
 
         </LinearLayout>
 
-        <!-- Line 3: Next Prayer and Time (الصلاة القادمة ووقتها) -->
+        <!-- Line 3: أسفل منه اسم الصلاة القادمة ووقتها -->
         <TextView
             android:id="@+id/salatuk_next_prayer"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textSize="12sp"
+            android:layout_marginTop="1dp"
+            android:textSize="11.5sp"
             android:textColor="#4B5563"
+            android:singleLine="true"
             android:maxLines="1"
             android:ellipsize="end"
             android:text="الصلاة القادمة: العصر . 02:45" />
