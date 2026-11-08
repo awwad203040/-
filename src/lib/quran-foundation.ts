@@ -1,5 +1,6 @@
 import 'server-only';
-import { getDirectReciterAudioUrl } from './quran-meta';
+import { getDirectReciterAudioUrl, RECITER_AYAH_FOLDERS, getDirectAyahAudioUrl } from './quran-meta';
+export { RECITER_AYAH_FOLDERS, getDirectAyahAudioUrl };
 
 const QF_AUTH_URL = 'https://oauth2.quran.foundation';
 const QF_API_URL = 'https://apis.quran.foundation';
@@ -136,34 +137,6 @@ export async function getReciters() {
   return data.reciters || data.recitations || [];
 }
 
-export const RECITER_AYAH_FOLDERS: Record<number, string> = {
-  100: 'Minshawy_Teacher_128kbps',
-  9: 'Minshawy_Murattal_128kbps',
-  101: 'Minshawy_Mujawwad_192kbps',
-  102: 'Husary_Muallim_128kbps',
-  6: 'Husary_128kbps',
-  103: 'Husary_128kbps_Mujawwad',
-  7: 'Alafasy_128kbps',
-  1: 'Abdul_Basit_Murattal_192kbps',
-  2: 'Abdul_Basit_Mujawwad_128kbps',
-  104: 'Yasser_Ad-Dussary_128kbps',
-  8: 'MaherAlMuaiqly128kbps',
-  3: 'Abdurrahmaan_As-Sudais_192kbps',
-  10: 'Saood_ash-Shuraym_128kbps',
-  105: 'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net',
-  12: 'Ghamadi_40kbps',
-  106: 'Fares_Abbad_64kbps',
-  107: 'Nasser_Alqatami_128kbps',
-  108: 'Hudhaify_128kbps',
-  109: 'Ali_Jaber_64kbps',
-  110: 'Abdullah_Basfar_192kbps',
-  111: 'Alafasy_128kbps',
-  112: 'Muhammad_Ayyoub_128kbps',
-  113: 'Muhammad_Jibreel_128kbps',
-  4: 'Abu_Bakr_Ash-Shaatree_128kbps',
-  5: 'Hani_Rifai_192kbps',
-};
-
 export async function getChapterRecitation(reciterId: number, chapterNumber: number) {
   const audioUrl = getDirectReciterAudioUrl(reciterId, chapterNumber);
   return {
@@ -175,12 +148,7 @@ export async function getChapterRecitation(reciterId: number, chapterNumber: num
 }
 
 export async function getAyahRecitation(reciterId: number, verseKey: string) {
-  const parts = verseKey.split(':');
-  const surahPad = (parts[0] || '1').padStart(3, '0');
-  const ayahPad = (parts[1] || '1').padStart(3, '0');
-
-  const folder = RECITER_AYAH_FOLDERS[reciterId] || 'Alafasy_128kbps';
-  const audioUrl = `https://everyayah.com/data/${folder}/${surahPad}${ayahPad}.mp3`;
+  const audioUrl = getDirectAyahAudioUrl(reciterId, verseKey);
   return {
     verse_key: verseKey,
     audio_url: audioUrl,

@@ -247,7 +247,7 @@ export function getDirectReciterAudioUrl(reciterId: number, surahNumber: number)
 }
 
 export const RECITER_AUDIO_FALLBACK_SERVERS: Record<number, string> = {
-  100: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r3',
+  100: 'https://cdn.mp3quran.net/download/audio/muhammad-minshawi/r3',
   9: 'https://download.quranicaudio.com/qdc/siddiq_minshawi/murattal',
   101: 'https://server10.mp3quran.net/minsh/Almusshaf-Al-Mojawwad',
   102: 'https://download.quranicaudio.com/qdc/khalil_al_husary/muallim',
@@ -264,7 +264,7 @@ export const RECITER_AUDIO_FALLBACK_SERVERS: Record<number, string> = {
   12: 'https://server7.mp3quran.net/s_gmd',
   106: 'https://server8.mp3quran.net/frs_a',
   107: 'https://server6.mp3quran.net/qtm',
-  108: 'https://cdn.mp3quran.net/audio/ali-hudhaifi/r1',
+  108: 'https://server9.mp3quran.net/hthfi',
   109: 'https://server11.mp3quran.net/a_jbr',
   110: 'https://server6.mp3quran.net/bsfr',
   111: 'https://server6.mp3quran.net/abkr',
@@ -284,6 +284,50 @@ export function getFallbackReciterAudioUrl(reciterId: number, surahNumber: numbe
     return `${server}/${pad3}.mp3`;
   }
   return `${server}/${surahNumber}.mp3`;
+}
+
+export const RECITER_AYAH_FOLDERS: Record<number, string> = {
+  100: 'Minshawy_Teacher_128kbps',
+  9: 'Minshawy_Murattal_128kbps',
+  101: 'Minshawy_Mujawwad_192kbps',
+  102: 'Husary_Muallim_128kbps',
+  6: 'Husary_128kbps',
+  103: 'Husary_128kbps_Mujawwad',
+  7: 'Alafasy_128kbps',
+  1: 'Abdul_Basit_Murattal_192kbps',
+  2: 'Abdul_Basit_Mujawwad_128kbps',
+  104: 'Yasser_Ad-Dussary_128kbps',
+  8: 'MaherAlMuaiqly128kbps',
+  3: 'Abdurrahmaan_As-Sudais_192kbps',
+  10: 'Saood_ash-Shuraym_128kbps',
+  105: 'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net',
+  12: 'Ghamadi_40kbps',
+  106: 'Fares_Abbad_64kbps',
+  107: 'Nasser_Alqatami_128kbps',
+  108: 'Hudhaify_128kbps',
+  109: 'Ali_Jaber_64kbps',
+  110: 'Abdullah_Basfar_192kbps',
+  111: 'Alafasy_128kbps',
+  112: 'Muhammad_Ayyoub_128kbps',
+  113: 'Muhammad_Jibreel_128kbps',
+  4: 'Abu_Bakr_Ash-Shaatree_128kbps',
+  5: 'Hani_Rifai_192kbps',
+};
+
+export function getDirectAyahAudioUrl(reciterId: number, verseKey: string): string {
+  const parts = verseKey.split(':');
+  const surahPad = (parts[0] || '1').padStart(3, '0');
+  const ayahPad = (parts[1] || '1').padStart(3, '0');
+  const folder = RECITER_AYAH_FOLDERS[reciterId] || 'Minshawy_Teacher_128kbps';
+  return `https://everyayah.com/data/${folder}/${surahPad}${ayahPad}.mp3`;
+}
+
+export function getFallbackAyahAudioUrl(reciterId: number, verseKey: string): string {
+  const parts = verseKey.split(':');
+  const surahPad = (parts[0] || '1').padStart(3, '0');
+  const ayahPad = (parts[1] || '1').padStart(3, '0');
+  const folder = RECITER_AYAH_FOLDERS[reciterId] || 'Minshawy_Teacher_128kbps';
+  return `https://www.everyayah.com/data/${folder}/${surahPad}${ayahPad}.mp3`;
 }
 
 export function getSurahMeta(surahNumber: number): SurahMeta | undefined {

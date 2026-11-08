@@ -1,6 +1,6 @@
 'use client';
 
-import { getDirectReciterAudioUrl } from '@/lib/quran-meta';
+import { getDirectReciterAudioUrl, getFallbackReciterAudioUrl } from '@/lib/quran-meta';
 
 const DB_NAME = 'NoorReciterAudioDB';
 const DB_VERSION = 1;
@@ -240,8 +240,8 @@ export async function downloadSurahAudio(
     // 3. Fetch binary audio file
     const response = await fetch(targetUrl);
     if (!response.ok) {
-      // If primary failed, try direct CDN
-      const fallbackUrl = getDirectReciterAudioUrl(reciterId, surahNumber);
+      // If primary failed, try fallback CDN
+      const fallbackUrl = getFallbackReciterAudioUrl(reciterId, surahNumber);
       const fbRes = await fetch(fallbackUrl);
       if (!fbRes.ok) throw new Error('فشل تنزيل ملف التلاوة');
       const blob = await fbRes.blob();

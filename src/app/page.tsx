@@ -187,17 +187,15 @@ export default function HomePage() {
     const newReciter = POPULAR_RECITERS.find((r) => r.id === newId) || POPULAR_RECITERS[0];
     triggerHaptic('tap');
     announceToScreenReader(`تم اختيار القارئ الشيخ ${newReciter.name}`);
-    if (audio.isPlaying) {
-      const targetSurah = audio.currentSurah || selectedSurahForAudio;
-      audio.loadAndPlay(
-        targetSurah,
-        newId,
-        getSurahName(targetSurah),
-        newReciter.name
-      );
-    } else {
-      audio.stop();
-    }
+    const targetSurah = audio.currentSurah || selectedSurahForAudio;
+    const sName = getSurahName(targetSurah);
+    audio.setAutoPlayNext(true);
+    audio.loadAndPlay(
+      targetSurah,
+      newId,
+      sName,
+      newReciter.name
+    );
   }, [audio, selectedSurahForAudio]);
 
   // Play specific surah

@@ -562,13 +562,10 @@ function MushafReaderInner() {
   // Reciter selection handler
   const handleSelectReciter = useCallback((id: number, name: string) => {
     handleUpdateSettings({ selectedReciterId: id });
-    if (audio.currentSurah > 0) {
-      const surahName = SURAH_NAMES[audio.currentSurah] || `سورة ${audio.currentSurah}`;
-      audio.loadAndPlay(audio.currentSurah, id, surahName, name, audio.currentVerseKey || undefined);
-    } else {
-      audio.stop();
-    }
-  }, [audio, handleUpdateSettings]);
+    const targetSurah = audio.currentSurah > 0 ? audio.currentSurah : (getSurahForPage(currentPage)?.number || 1);
+    const surahName = SURAH_NAMES[targetSurah] || `سورة ${targetSurah}`;
+    audio.loadAndPlay(targetSurah, id, surahName, name, audio.currentVerseKey || undefined);
+  }, [audio, handleUpdateSettings, currentPage]);
 
   // Keyboard navigation (Accessibility: Section 32)
   useEffect(() => {

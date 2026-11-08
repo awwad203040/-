@@ -2,7 +2,13 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { getSurahName, getDirectReciterAudioUrl, getFallbackReciterAudioUrl } from '@/lib/quran-meta';
+import {
+  getSurahName,
+  getDirectReciterAudioUrl,
+  getFallbackReciterAudioUrl,
+  getDirectAyahAudioUrl,
+  getFallbackAyahAudioUrl,
+} from '@/lib/quran-meta';
 import { getOfflineAudioBlob, isAudioDownloaded } from '@/lib/offline-audio-manager';
 import { triggerHaptic, stopAccessibilitySpeech, announceToScreenReader, speakAccessibility, getAccessibilitySettings } from '@/lib/accessibility';
 
@@ -477,7 +483,9 @@ export function useAudioPlayer() {
         clearTimeout(loadTimeoutRef.current);
       }
       fallbackTriedRef.current = false;
-      fallbackUrlRef.current = !verseKey ? getFallbackReciterAudioUrl(reciterId, surahNumber) : null;
+      fallbackUrlRef.current = verseKey
+        ? getFallbackAyahAudioUrl(reciterId, verseKey)
+        : getFallbackReciterAudioUrl(reciterId, surahNumber);
 
       // Watchdog: Clear loading state if playback is delayed over 4.5 seconds
       loadTimeoutRef.current = setTimeout(() => {
@@ -510,19 +518,23 @@ export function useAudioPlayer() {
           if (!verseKey && reciterId && surahNumber) {
             playableAudioSrc = getDirectReciterAudioUrl(reciterId, surahNumber);
           } else if (verseKey) {
-            let url = `/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}&verse=${verseKey}`;
-            try {
-              const res = await fetch(url);
-              if (res.ok) {
-                const data = await res.json();
-                playableAudioSrc =
-                  data.audioUrl ||
-                  data.audio_file?.audio_url ||
-                  data.audio_file?.url ||
-                  (typeof data.audio_file === 'string' ? data.audio_file : null);
+            // Instant 0ms Ayah CDN resolution (works in Web and Android Capacitor APK)
+            playableAudioSrc = getDirectAyahAudioUrl(reciterId, verseKey);
+            if (!playableAudioSrc) {
+              const url = `/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}&verse=${verseKey}`;
+              try {
+                const res = await fetch(url);
+                if (res.ok) {
+                  const data = await res.json();
+                  playableAudioSrc =
+                    data.audioUrl ||
+                    data.audio_file?.audio_url ||
+                    data.audio_file?.url ||
+                    (typeof data.audio_file === 'string' ? data.audio_file : null);
+                }
+              } catch {
+                // Network fallback
               }
-            } catch {
-              // Network fallback
             }
           }
         }
@@ -543,10 +555,8 @@ export function useAudioPlayer() {
         const audio = audioRef.current;
         audio.preload = 'auto';
 
-        if (audio.src !== playableAudioSrc) {
-          audio.src = playableAudioSrc;
-          audio.currentTime = 0;
-        }
+        audio.src = playableAudioSrc;
+        audio.currentTime = 0;
         audio.playbackRate = state.playbackRate;
 
         const playPromise = audio.play();
@@ -571,7 +581,7 @@ export function useAudioPlayer() {
                 const fbUrl = fallbackUrlRef.current;
                 console.log('Attempting playback with backup CDN URL:', fbUrl);
                 audio.src = fbUrl;
-                audio.load();
+                audio.currentTime = 0;
                 audio.play().catch((fbErr) => {
                   if (requestId !== playRequestIdRef.current) return;
                   console.error('Fallback playback also rejected:', fbErr);
@@ -680,19 +690,21 @@ export function useAudioPlayer() {
     stopAccessibilitySpeech();
     if (!audioRef.current) return;
     const audio = audioRef.current;
-    if (!audio.src) {
+    if (!audio.src || audio.error) {
       const sNum = state.currentSurah || 1;
       const recId = state.currentReciter || 7;
-      loadAndPlay(sNum, recId, getSurahName(sNum), state.reciterName || 'مشاري العفاسي');
+      loadAndPlay(sNum, recId, getSurahName(sNum), state.reciterName || 'محمد صديق المنشاوي');
       return;
     }
     const p = audio.play();
     if (p !== undefined) {
       p.then(() => {
-        setState((prev) => ({ ...prev, isPlaying: true, isLoading: false }));
+        setState((prev) => ({ ...prev, isPlaying: true, isLoading: false, error: null }));
       }).catch((err) => {
-        console.error('Audio play error:', err);
-        setState((prev) => ({ ...prev, isPlaying: false, isLoading: false }));
+        console.warn('Audio play error, retrying via loadAndPlay:', err);
+        const sNum = state.currentSurah || 1;
+        const recId = state.currentReciter || 7;
+        loadAndPlay(sNum, recId, getSurahName(sNum), state.reciterName || 'محمد صديق المنشاوي');
       });
     }
   }, [state.currentSurah, state.currentReciter, state.reciterName, loadAndPlay]);
@@ -704,14 +716,12 @@ export function useAudioPlayer() {
   }, []);
 
   const togglePlayPause = useCallback(() => {
-    if (state.isLoading) {
-      pause();
-    } else if (state.isPlaying) {
+    if (state.isPlaying) {
       pause();
     } else {
       play();
     }
-  }, [state.isLoading, state.isPlaying, pause, play]);
+  }, [state.isPlaying, pause, play]);
 
   const seek = useCallback((time: number) => {
     if (audioRef.current) {
