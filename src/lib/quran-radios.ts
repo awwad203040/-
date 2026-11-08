@@ -55,17 +55,19 @@ export const QURAN_RADIO_STATIONS: QuranRadioStation[] = [
     country: 'فلسطين',
     flag: '🇵🇸',
     category: 'country',
-    streamUrl: 'http://www.quran-radio.org:8002/',
-    description: 'إذاعة القرآن الكريم الأولى في فلسطين من مدينة نابلس بالضفة الغربية.',
+    streamUrl: 'https://quran-radio.org:8080/;?type=http',
+    backupUrl: 'https://streaming.zaytonatube.com:8081/holyquran/holyquran/index.m3u8',
+    description: 'إذاعة القرآن الكريم الأولى في فلسطين من مدينة نابلس بالضفة الغربية وتبث للقدس وكافة الأرجاء.',
   },
   {
     id: 'jordan-quran',
-    name: 'إذاعة القرآن الكريم من الأردن',
+    name: 'إذاعة القرآن الكريم من الأردن 93.1 FM',
     country: 'الأردن',
     flag: '🇯🇴',
     category: 'country',
     streamUrl: 'https://jrtv-live.ercdn.net/jrradio/quranradio.m3u8',
-    description: 'إذاعة القرآن الكريم التابعة لمؤسسة الإذاعة والتلفزيون الأردنية من عمّان.',
+    backupUrl: 'https://jrtv-live.ercdn.net/jrradio/quranradio.m3u8',
+    description: 'إذاعة القرآن الكريم التابعة لمؤسسة الإذاعة والتلفزيون الأردنية من عمّان 93.1 FM.',
   },
   {
     id: 'bahrain-quran',
@@ -74,7 +76,8 @@ export const QURAN_RADIO_STATIONS: QuranRadioStation[] = [
     flag: '🇧🇭',
     category: 'country',
     streamUrl: 'https://5c7b683162943.streamlock.net/live/ngrp:radio-106-1_all/playlist.m3u8',
-    description: 'البث المباشر لإذاعة القرآن الكريم من مملكة البحرين 106.1 FM.',
+    backupUrl: 'https://5c7b683162943.streamlock.net/live/ngrp:radio-106-1_all/playlist.m3u8',
+    description: 'البث المباشر لإذاعة القرآن الكريم من وزارة شؤون الإعلام بمملكة البحرين 106.1 FM.',
   },
 
   // --- إذاعات كبار القراء المتواصلة (24 ساعة تلاوة) ---

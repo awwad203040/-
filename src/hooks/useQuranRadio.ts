@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { QURAN_RADIO_STATIONS, type QuranRadioStation } from '@/lib/quran-radios';
+import Hls from 'hls.js';
 
 interface UseQuranRadioState {
   currentStation: QuranRadioStation | null;
@@ -11,9 +12,112 @@ interface UseQuranRadioState {
   error: string | null;
 }
 
-// Global audio element so streaming can persist across modals and page navigation
+// Global audio element and HLS instance so streaming can persist across modals and page navigation
 let globalRadioAudio: HTMLAudioElement | null = null;
 let globalActiveStation: QuranRadioStation | null = null;
+let globalHlsInstance: Hls | null = null;
+
+function isHlsStream(url?: string): boolean {
+  if (!url) return false;
+  return url.toLowerCase().includes('.m3u8');
+}
+
+function destroyGlobalHls() {
+  if (globalHlsInstance) {
+    try {
+      globalHlsInstance.stopLoad();
+      globalHlsInstance.detachMedia();
+      globalHlsInstance.destroy();
+    } catch (e) {
+      console.warn('Error destroying HLS instance:', e);
+    }
+    globalHlsInstance = null;
+  }
+}
+
+function startPlayback(
+  url: string,
+  backupUrl: string | undefined,
+  audio: HTMLAudioElement,
+  onFail: () => void
+) {
+  destroyGlobalHls();
+
+  if (isHlsStream(url)) {
+    if (typeof window !== 'undefined' && Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 30,
+      });
+      globalHlsInstance = hls;
+
+      hls.loadSource(url);
+      hls.attachMedia(audio);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        audio.play().catch((err) => {
+          console.warn('HLS play rejected:', err);
+          if (backupUrl && backupUrl !== url) {
+            startPlayback(backupUrl, undefined, audio, onFail);
+          } else {
+            onFail();
+          }
+        });
+      });
+
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          console.warn('Fatal HLS error encountered:', data.type, data.details);
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.warn('Trying to recover HLS network error...');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.warn('Trying to recover HLS media error...');
+              hls.recoverMediaError();
+              break;
+            default:
+              destroyGlobalHls();
+              if (backupUrl && backupUrl !== url) {
+                console.warn('HLS failed unrecoverably, switching to backup stream...');
+                startPlayback(backupUrl, undefined, audio, onFail);
+              } else {
+                onFail();
+              }
+              break;
+          }
+        }
+      });
+      return;
+    } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native Apple HLS (Safari / iOS)
+      audio.src = url;
+      audio.play().catch((err) => {
+        console.warn('Native HLS play rejected:', err);
+        if (backupUrl && backupUrl !== url) {
+          startPlayback(backupUrl, undefined, audio, onFail);
+        } else {
+          onFail();
+        }
+      });
+      return;
+    }
+  }
+
+  // Standard MP3 / AAC stream (e.g. Palestine, Cairo, Saudi, Sharjah, Kuwait)
+  audio.src = url;
+  audio.play().catch((err) => {
+    console.warn('Standard stream play rejected:', err);
+    if (backupUrl && backupUrl !== url) {
+      console.warn('Primary stream failed, attempting backup URL...');
+      startPlayback(backupUrl, undefined, audio, onFail);
+    } else {
+      onFail();
+    }
+  });
+}
 
 export function useQuranRadio() {
   const [state, setState] = useState<UseQuranRadioState>({
@@ -58,11 +162,11 @@ export function useQuranRadio() {
     };
 
     const onError = () => {
+      if (globalHlsInstance) return; // Hls handles its own errors
       console.warn('Radio stream playback error, checking backup url...');
       const current = globalActiveStation;
       if (current && current.backupUrl && audio.src !== current.backupUrl) {
-        audio.src = current.backupUrl;
-        audio.play().catch(() => {
+        startPlayback(current.backupUrl, undefined, audio, () => {
           setState((prev) => ({
             ...prev,
             isPlaying: false,
@@ -97,6 +201,21 @@ export function useQuranRadio() {
     };
   }, []);
 
+  const togglePlayPause = useCallback(() => {
+    if (!globalRadioAudio || !globalActiveStation) return;
+    if (globalRadioAudio.paused) {
+      if (globalHlsInstance) {
+        globalHlsInstance.startLoad();
+      }
+      globalRadioAudio.play().catch(() => {});
+    } else {
+      globalRadioAudio.pause();
+      if (globalHlsInstance) {
+        globalHlsInstance.stopLoad();
+      }
+    }
+  }, []);
+
   const playStation = useCallback((station: QuranRadioStation) => {
     if (typeof window === 'undefined') return;
     if (!globalRadioAudio) {
@@ -107,7 +226,7 @@ export function useQuranRadio() {
 
     // If same station is already playing, toggle pause
     if (globalActiveStation?.id === station.id && !audio.paused) {
-      audio.pause();
+      togglePlayPause();
       return;
     }
 
@@ -119,67 +238,26 @@ export function useQuranRadio() {
       error: null,
     }));
 
-    try {
-      if (!audio.paused) {
-        audio.pause();
-      }
-      audio.src = station.streamUrl;
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setState((prev) => ({
-              ...prev,
-              isPlaying: true,
-              isLoading: false,
-              error: null,
-            }));
-          })
-          .catch((err) => {
-            console.warn('Primary stream play rejected, switching to backup:', err);
-            if (station.backupUrl && audio.src !== station.backupUrl) {
-              audio.src = station.backupUrl;
-              audio.play().catch((err2) => {
-                console.error('Backup stream also rejected:', err2);
-                setState((prev) => ({
-                  ...prev,
-                  isPlaying: false,
-                  isLoading: false,
-                  error: 'تعذر بدء البث المباشر لهذه الإذاعة. تأكد من اتصال الإنترنت.',
-                }));
-              });
-            } else {
-              setState((prev) => ({
-                ...prev,
-                isPlaying: false,
-                isLoading: false,
-                error: 'تعذر بدء البث المباشر لهذه الإذاعة.',
-              }));
-            }
-          });
-      }
-    } catch (err) {
-      console.warn('Primary stream failed synchronously:', err);
-      if (station.backupUrl) {
-        audio.src = station.backupUrl;
-        audio.play().catch(() => {});
-      }
+    if (!audio.paused) {
+      audio.pause();
     }
-  }, []);
 
-  const togglePlayPause = useCallback(() => {
-    if (!globalRadioAudio || !globalActiveStation) return;
-    if (globalRadioAudio.paused) {
-      globalRadioAudio.play().catch(() => {});
-    } else {
-      globalRadioAudio.pause();
-    }
-  }, []);
+    startPlayback(station.streamUrl, station.backupUrl, audio, () => {
+      setState((prev) => ({
+        ...prev,
+        isPlaying: false,
+        isLoading: false,
+        error: 'تعذر بدء البث المباشر لهذه الإذاعة. تأكد من اتصال الإنترنت.',
+      }));
+    });
+  }, [togglePlayPause]);
 
   const stopRadio = useCallback(() => {
+    destroyGlobalHls();
     if (globalRadioAudio) {
       globalRadioAudio.pause();
-      globalRadioAudio.src = '';
+      globalRadioAudio.removeAttribute('src');
+      globalRadioAudio.load();
     }
     globalActiveStation = null;
     setState((prev) => ({
