@@ -9,7 +9,7 @@ interface AyahActionsProps {
   onClose: () => void;
   onPlay: () => void;
   onPlayRepeat?: (count: number) => void;
-  onPlayRangeRepeat?: (startAyah: number, endAyah: number, repeats: number) => void;
+  onPlayRangeRepeat?: (startAyah: number, endAyah: number, repeats: number, mode?: 'each_verse' | 'whole_range') => void;
   onCorrection: () => void;
   onTafsir: () => void;
   onBookmark: () => void;
@@ -36,6 +36,7 @@ export default function AyahActions({
   const [rangeStart, setRangeStart] = useState<number>(verse.verseNumber);
   const [rangeEnd, setRangeEnd] = useState<number>(verse.verseNumber + 2);
   const [repeatsCount, setRepeatsCount] = useState<number>(3);
+  const [repeatMode, setRepeatMode] = useState<'each_verse' | 'whole_range'>('each_verse');
 
   const actions = [
     { label: 'تشغيل', icon: '▶', onClick: onPlay },
@@ -185,11 +186,40 @@ export default function AyahActions({
               </div>
             </div>
 
+            {/* Repetition Mode: Each verse vs whole range */}
+            <div className="mb-3">
+              <div className="text-[10px] text-white/80 mb-1">طريقة التكرار:</div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setRepeatMode('each_verse')}
+                  className={`text-[10px] py-1.5 px-2 rounded-lg font-bold border transition text-center cursor-pointer ${
+                    repeatMode === 'each_verse'
+                      ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B]'
+                      : 'bg-white/10 text-white border-white/20'
+                  }`}
+                >
+                  🔁 كل آية على حدة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRepeatMode('whole_range')}
+                  className={`text-[10px] py-1.5 px-2 rounded-lg font-bold border transition text-center cursor-pointer ${
+                    repeatMode === 'whole_range'
+                      ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B]'
+                      : 'bg-white/10 text-white border-white/20'
+                  }`}
+                >
+                  🔄 كامل المقطع معاً
+                </button>
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={() => {
                 if (onPlayRangeRepeat) {
-                  onPlayRangeRepeat(rangeStart, rangeEnd, repeatsCount);
+                  onPlayRangeRepeat(rangeStart, rangeEnd, repeatsCount, repeatMode);
                 } else if (onPlayRepeat) {
                   onPlayRepeat(repeatsCount);
                 }
@@ -197,7 +227,9 @@ export default function AyahActions({
               }}
               className="w-full py-2.5 rounded-xl font-bold text-xs bg-[#C8A85B] text-[#123B2A] hover:bg-[#d4b66d] transition shadow-sm cursor-pointer"
             >
-              بدء تكرار الآيات ({rangeStart} إلى {rangeEnd}) • {repeatsCount === 999 ? 'مستمر ∞' : `${repeatsCount} مرات`}
+              {repeatMode === 'each_verse'
+                ? `بدء التكرار: كل آية ${repeatsCount === 999 ? 'مستمر ∞' : `${repeatsCount} مرات`} [${rangeStart}-${rangeEnd}]`
+                : `بدء تكرار المقطع (${rangeStart} إلى ${rangeEnd}) • ${repeatsCount === 999 ? 'مستمر ∞' : `${repeatsCount} مرات`}`}
             </button>
           </div>
         )}

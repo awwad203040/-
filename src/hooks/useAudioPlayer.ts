@@ -36,6 +36,8 @@ export interface AudioPlayerState {
   ayahRangeStart: number | null;
   ayahRangeEnd: number | null;
   currentAyahNumber: number | null;
+  ayahRepeatMode: 'each_verse' | 'whole_range';
+  ayahRemainingRepeats: number;
   // Multi-Surah Group Loop (تكرار مجموعة سور محددة)
   isMultiSurahLoop: boolean;
   selectedSurahsToLoop: number[];
@@ -97,6 +99,8 @@ export function useAudioPlayer() {
       ayahRangeStart: null,
       ayahRangeEnd: null,
       currentAyahNumber: null,
+      ayahRepeatMode: 'each_verse',
+      ayahRemainingRepeats: 1,
       isMultiSurahLoop: initialMultiLoop,
       selectedSurahsToLoop: initialSurahs,
       isCurrentSurahOffline: false,
@@ -110,6 +114,8 @@ export function useAudioPlayer() {
     segmentB: null as number | null,
     repeatCount: 1,
     remainingRepeats: 1,
+    ayahRemainingRepeats: 1,
+    ayahRepeatMode: 'each_verse' as 'each_verse' | 'whole_range',
     isRepeat: false,
     autoPlayNext: true,
     currentSurah: 0,
@@ -131,6 +137,8 @@ export function useAudioPlayer() {
       segmentB: state.segmentB,
       repeatCount: state.repeatCount,
       remainingRepeats: state.remainingRepeats,
+      ayahRemainingRepeats: state.ayahRemainingRepeats,
+      ayahRepeatMode: state.ayahRepeatMode,
       isRepeat: state.isRepeat,
       autoPlayNext: state.autoPlayNext,
       currentSurah: state.currentSurah,
@@ -149,6 +157,8 @@ export function useAudioPlayer() {
     state.segmentB,
     state.repeatCount,
     state.remainingRepeats,
+    state.ayahRemainingRepeats,
+    state.ayahRepeatMode,
     state.isRepeat,
     state.autoPlayNext,
     state.currentSurah,
@@ -241,6 +251,84 @@ export function useAudioPlayer() {
         ayahRangeEnd !== null &&
         currentAyahNumber !== null
       ) {
+        const mode = loopRef.current.ayahRepeatMode || 'each_verse';
+
+        // -----------------------------------------------------------------------
+        // Mode A: تكرار كل آية على حدة بالعدد المحدد ثم الانتقال للآية التالية
+        // -----------------------------------------------------------------------
+        if (mode === 'each_verse') {
+          // إذا كان التكرار مستمر ∞ لنفس الآية
+          if (repeatCount === 999) {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+            triggerHaptic('repeat');
+            announceToScreenReader(`تكرار مستمر للآية ${currentAyahNumber}`);
+            return;
+          }
+
+          // فحص عدد المرات المتبقية لتكرار الآية الحالية
+          const currentAyahRemaining = loopRef.current.ayahRemainingRepeats;
+          if (currentAyahRemaining > 1) {
+            const nextRemaining = currentAyahRemaining - 1;
+            loopRef.current.ayahRemainingRepeats = nextRemaining;
+            setState((prev) => ({
+              ...prev,
+              ayahRemainingRepeats: nextRemaining,
+              currentTime: 0,
+            }));
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+            triggerHaptic('repeat');
+            const iter = repeatCount - nextRemaining + 1;
+            announceToScreenReader(`الآية ${currentAyahNumber} (تكرار ${iter} من ${repeatCount})`);
+            return;
+          }
+
+          // انتهت تكرارات الآية الحالية بنجاح: الانتقال للآية التالية إن وجدت
+          if (currentAyahNumber < ayahRangeEnd) {
+            const nextAyah = currentAyahNumber + 1;
+            loopRef.current.currentAyahNumber = nextAyah;
+            loopRef.current.ayahRemainingRepeats = repeatCount;
+            setState((prev) => ({
+              ...prev,
+              currentAyahNumber: nextAyah,
+              ayahRemainingRepeats: repeatCount,
+              currentTime: 0,
+            }));
+            triggerHaptic('next');
+            announceToScreenReader(`الانتقال للآية ${nextAyah} (تكرار 1 من ${repeatCount})`);
+            const verseKey = `${currentSurah}:${nextAyah}`;
+            const surahName = getSurahName(currentSurah);
+            loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
+            return;
+          }
+
+          // تم الوصول لنهاية المقطع واكتمال جميع تكرارات الآيات
+          loopRef.current.isAyahRangeLooping = false;
+          loopRef.current.repeatCount = 1;
+          loopRef.current.remainingRepeats = 1;
+          loopRef.current.ayahRemainingRepeats = 1;
+          loopRef.current.currentAyahNumber = null;
+          audio.pause();
+          audio.currentTime = 0;
+          triggerHaptic('success');
+          announceToScreenReader('اكتمل تكرار الآيات بنجاح');
+          setState((prev) => ({
+            ...prev,
+            isPlaying: false,
+            isAyahRangeLooping: false,
+            remainingRepeats: 1,
+            ayahRemainingRepeats: 1,
+            repeatCount: 1,
+            currentAyahNumber: null,
+            currentTime: 0,
+          }));
+          return;
+        }
+
+        // -----------------------------------------------------------------------
+        // Mode B: تكرار كامل المقطع معاً (سرد من الآية الأولى للأخيرة ثم الإعادة)
+        // -----------------------------------------------------------------------
         if (currentAyahNumber < ayahRangeEnd) {
           const nextAyah = currentAyahNumber + 1;
           loopRef.current.currentAyahNumber = nextAyah;
@@ -257,7 +345,7 @@ export function useAudioPlayer() {
           loopRef.current.currentAyahNumber = ayahRangeStart;
           setState((prev) => ({ ...prev, currentAyahNumber: ayahRangeStart }));
           triggerHaptic('repeat');
-          announceToScreenReader('إعادة تكرار المقطع');
+          announceToScreenReader('إعادة تكرار كامل المقطع');
           const verseKey = `${currentSurah}:${ayahRangeStart}`;
           const surahName = getSurahName(currentSurah);
           loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
@@ -274,7 +362,7 @@ export function useAudioPlayer() {
             currentAyahNumber: ayahRangeStart,
           }));
           triggerHaptic('repeat');
-          announceToScreenReader(`تكرار: متبقي ${nextRemaining} مرات`);
+          announceToScreenReader(`تكرار كامل المقطع: متبقي ${nextRemaining} مرات`);
           const verseKey = `${currentSurah}:${ayahRangeStart}`;
           const surahName = getSurahName(currentSurah);
           loadAndPlayRef.current?.(currentSurah, currentReciter, surahName, reciterName, verseKey, true);
@@ -284,6 +372,7 @@ export function useAudioPlayer() {
         loopRef.current.isAyahRangeLooping = false;
         loopRef.current.repeatCount = 1;
         loopRef.current.remainingRepeats = 1;
+        loopRef.current.ayahRemainingRepeats = 1;
         loopRef.current.currentAyahNumber = null;
         audio.pause();
         audio.currentTime = 0;
@@ -294,6 +383,7 @@ export function useAudioPlayer() {
           isPlaying: false,
           isAyahRangeLooping: false,
           remainingRepeats: 1,
+          ayahRemainingRepeats: 1,
           repeatCount: 1,
           currentAyahNumber: null,
           currentTime: 0,
@@ -808,7 +898,8 @@ export function useAudioPlayer() {
       endAyah: number,
       reciterId: number,
       reciterName: string,
-      repeats = 3
+      repeats = 3,
+      mode: 'each_verse' | 'whole_range' = 'each_verse'
     ) => {
       const validStart = Math.max(1, startAyah);
       const validEnd = Math.max(validStart, endAyah);
@@ -822,6 +913,8 @@ export function useAudioPlayer() {
       loopRef.current.reciterName = reciterName;
       loopRef.current.repeatCount = repeats;
       loopRef.current.remainingRepeats = repeats;
+      loopRef.current.ayahRepeatMode = mode;
+      loopRef.current.ayahRemainingRepeats = repeats;
 
       setState((prev) => ({
         ...prev,
@@ -831,6 +924,8 @@ export function useAudioPlayer() {
         currentAyahNumber: validStart,
         repeatCount: repeats,
         remainingRepeats: repeats,
+        ayahRepeatMode: mode,
+        ayahRemainingRepeats: repeats,
       }));
 
       const verseKey = `${surahNumber}:${validStart}`;
@@ -842,6 +937,11 @@ export function useAudioPlayer() {
     []
   );
 
+  const setAyahRepeatMode = useCallback((mode: 'each_verse' | 'whole_range') => {
+    loopRef.current.ayahRepeatMode = mode;
+    setState((prev) => ({ ...prev, ayahRepeatMode: mode }));
+  }, []);
+
   const stopAyahRangeLoop = useCallback(() => {
     loopRef.current.isAyahRangeLooping = false;
     loopRef.current.ayahRangeStart = null;
@@ -849,6 +949,7 @@ export function useAudioPlayer() {
     loopRef.current.currentAyahNumber = null;
     loopRef.current.repeatCount = 1;
     loopRef.current.remainingRepeats = 1;
+    loopRef.current.ayahRemainingRepeats = 1;
     if (audioRef.current) {
       audioRef.current.pause();
     }
@@ -861,6 +962,7 @@ export function useAudioPlayer() {
       currentAyahNumber: null,
       repeatCount: 1,
       remainingRepeats: 1,
+      ayahRemainingRepeats: 1,
     }));
   }, []);
 
@@ -875,6 +977,7 @@ export function useAudioPlayer() {
     loopRef.current.ayahRangeStart = null;
     loopRef.current.ayahRangeEnd = null;
     loopRef.current.currentAyahNumber = null;
+    loopRef.current.ayahRemainingRepeats = 1;
     setState((prev) => ({
       ...prev,
       isPlaying: false,
@@ -890,6 +993,7 @@ export function useAudioPlayer() {
       ayahRangeEnd: null,
       currentAyahNumber: null,
       remainingRepeats: 1,
+      ayahRemainingRepeats: 1,
     }));
   }, []);
 
@@ -912,6 +1016,7 @@ export function useAudioPlayer() {
     toggleSegmentLoop,
     quickLoopLast,
     startAyahRangeLoop,
+    setAyahRepeatMode,
     stopAyahRangeLoop,
     playNextSurah,
     playPreviousSurah,

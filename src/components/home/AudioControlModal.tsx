@@ -24,6 +24,8 @@ interface AudioControlModalProps {
   repeatTab: 'ayahs' | 'surah' | 'multi';
   isMultiSurahLoop: boolean;
   selectedSurahsToLoop: number[];
+  ayahRepeatMode?: 'each_verse' | 'whole_range';
+  setAyahRepeatMode?: (mode: 'each_verse' | 'whole_range') => void;
   onTogglePlay: () => void;
   onPlaySurah: (surahNumber: number) => void;
   onReciterChange: (newId: number) => void;
@@ -61,6 +63,8 @@ export default function AudioControlModal({
   repeatTab,
   isMultiSurahLoop,
   selectedSurahsToLoop,
+  ayahRepeatMode = 'each_verse',
+  setAyahRepeatMode,
   onTogglePlay,
   onPlaySurah,
   onReciterChange,
@@ -441,6 +445,45 @@ export default function AudioControlModal({
                   </button>
                 </div>
 
+                {/* Repetition Type: Each Verse vs Whole Range */}
+                <div className="space-y-1.5 p-2.5 rounded-xl bg-black/25 border border-white/10">
+                  <label className="text-[11px] text-[#C8A85B] font-bold flex items-center gap-1.5">
+                    <span>⚙️</span>
+                    <span>طريقة التكرار:</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setAyahRepeatMode?.('each_verse')}
+                      className={`py-2 px-2 rounded-lg font-bold text-xs transition flex flex-col items-center justify-center text-center cursor-pointer border ${
+                        ayahRepeatMode === 'each_verse'
+                          ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm'
+                          : 'bg-white/5 text-white/80 border-white/15 hover:bg-white/10'
+                      }`}
+                    >
+                      <span className="font-black text-xs">🔁 كل آية على حدة</span>
+                      <span className="text-[9px] opacity-80 mt-0.5">(تحفيظ وتثبيت)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAyahRepeatMode?.('whole_range')}
+                      className={`py-2 px-2 rounded-lg font-bold text-xs transition flex flex-col items-center justify-center text-center cursor-pointer border ${
+                        ayahRepeatMode === 'whole_range'
+                          ? 'bg-[#C8A85B] text-[#123B2A] border-[#C8A85B] shadow-sm'
+                          : 'bg-white/5 text-white/80 border-white/15 hover:bg-white/10'
+                      }`}
+                    >
+                      <span className="font-black text-xs">🔄 كامل المقطع معاً</span>
+                      <span className="text-[9px] opacity-80 mt-0.5">(سرد ومراجعة)</span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-white/70 leading-relaxed pt-1 border-t border-white/5">
+                    {ayahRepeatMode === 'each_verse'
+                      ? `💡 سيتم تكرار كل آية ${rangeRepeatCount === 999 ? 'بشكل مستمر ∞' : rangeRepeatCount + ' مرات'} على حدة، ثم الانتقال تلقائياً للآية التالية حتى الآية ${ayahRangeEnd}.`
+                      : `💡 سيتم سرد الآيات من ${ayahRangeStart} إلى ${ayahRangeEnd} معاً، ثم إعادة كامل المقطع ${rangeRepeatCount === 999 ? 'باستمرار ∞' : rangeRepeatCount + ' مرات'}.`}
+                  </p>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -450,9 +493,13 @@ export default function AudioControlModal({
                   className="w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>🔁</span>
-                  <span>تشغيل وتكرار من آية {ayahRangeStart} إلى {ayahRangeEnd}</span>
+                  <span>
+                    {ayahRepeatMode === 'each_verse'
+                      ? `بدء التكرار: كل آية ${rangeRepeatCount === 999 ? 'مستمر ∞' : `${rangeRepeatCount} مرات`}`
+                      : `بدء تكرار المقطع (${ayahRangeStart} إلى ${ayahRangeEnd})`}
+                  </span>
                   <span className="bg-[#123B2A]/15 px-2 py-0.5 rounded text-xs font-black">
-                    ({rangeRepeatCount === 999 ? 'مستمر ∞' : `${rangeRepeatCount} مرات`})
+                    [{ayahRangeStart}-{ayahRangeEnd}]
                   </span>
                 </button>
               </div>

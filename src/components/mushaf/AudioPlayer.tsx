@@ -21,6 +21,8 @@ interface AudioPlayerProps {
   ayahRangeStart?: number | null;
   ayahRangeEnd?: number | null;
   currentAyahNumber?: number | null;
+  ayahRepeatMode?: 'each_verse' | 'whole_range';
+  ayahRemainingRepeats?: number;
   autoPlayNext?: boolean;
   // Multi-Surah Group Repetition
   isMultiSurahLoop?: boolean;
@@ -70,6 +72,8 @@ export default function AudioPlayer({
   ayahRangeStart = null,
   ayahRangeEnd = null,
   currentAyahNumber = null,
+  ayahRepeatMode = 'each_verse',
+  ayahRemainingRepeats = 1,
   autoPlayNext = true,
   isMultiSurahLoop = false,
   selectedSurahsToLoop = [],
@@ -137,13 +141,27 @@ export default function AudioPlayer({
 
                 {/* Ayah Range Repetition Active Banner */}
                 {isAyahRangeLooping && ayahRangeStart && ayahRangeEnd && (
-                  <span className="text-[10px] bg-emerald-600/40 text-emerald-200 border border-emerald-400/50 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
-                    <span>🔁 الآيات {ayahRangeStart}-{ayahRangeEnd}</span>
-                    {repeatCount > 1 && (
+                  <span className="text-[10px] bg-emerald-600/40 text-emerald-200 border border-emerald-400/50 px-2 py-0.5 rounded font-bold flex items-center gap-1.5 flex-wrap">
+                    <span>
+                      {ayahRepeatMode === 'each_verse'
+                        ? `🔁 آية ${currentAyahNumber || ayahRangeStart}`
+                        : `🔁 الآيات ${ayahRangeStart}-${ayahRangeEnd}`}
+                    </span>
+                    {ayahRepeatMode === 'each_verse' && repeatCount > 1 && (
+                      <span className="bg-[#C8A85B] text-[#123B2A] text-[9px] px-1.5 py-0.2 rounded-full font-black">
+                        {repeatCount === 999
+                          ? 'تكرار مستمر ∞'
+                          : `تكرار ${Math.max(1, repeatCount - (ayahRemainingRepeats ?? repeatCount) + 1)} من ${repeatCount}`}
+                      </span>
+                    )}
+                    {ayahRepeatMode === 'whole_range' && repeatCount > 1 && (
                       <span className="text-[9px] opacity-80">
                         (متبقي {repeatCount === 999 ? '∞' : remainingRepeats})
                       </span>
                     )}
+                    <span className="text-[9px] text-emerald-300/80">
+                      [{ayahRangeStart}-{ayahRangeEnd}]
+                    </span>
                     {onStopAyahRangeLoop && (
                       <button
                         type="button"

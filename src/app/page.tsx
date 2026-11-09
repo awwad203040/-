@@ -50,6 +50,7 @@ export default function HomePage() {
   const [ayahRangeEnd, setAyahRangeEnd] = useState<number>(1);
   const [rangeRepeatCount, setRangeRepeatCount] = useState<number>(3);
   const [repeatTab, setRepeatTab] = useState<'ayahs' | 'surah' | 'multi'>('ayahs');
+  const [ayahRepeatMode, setAyahRepeatMode] = useState<'each_verse' | 'whole_range'>('each_verse');
   const [showMultiSurahModal, setShowMultiSurahModal] = useState(false);
   const [showEditProgressModal, setShowEditProgressModal] = useState(false);
   const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
@@ -132,14 +133,20 @@ export default function HomePage() {
     const end = Math.max(start, Math.min(total, ayahRangeEnd));
     triggerHaptic('repeat');
     stopAccessibilitySpeech();
-    announceToScreenReader(`بدء تكرار سورة ${meta?.name || ''} من آية ${start} إلى ${end}`);
+    const modeDesc = ayahRepeatMode === 'each_verse' ? 'تكرار كل آية على حدة' : 'تكرار كامل المقطع معاً';
+    announceToScreenReader(
+      `بدء ${modeDesc} من سورة ${meta?.name || ''} الآيات ${start} إلى ${end} بعدد ${
+        rangeRepeatCount === 999 ? 'مستمر' : rangeRepeatCount
+      } مرات`
+    );
     audio.startAyahRangeLoop(
       selectedSurahForAudio,
       start,
       end,
       selectedReciterId,
       currentReciter.name,
-      rangeRepeatCount
+      rangeRepeatCount,
+      ayahRepeatMode
     );
   }, [
     selectedSurahForAudio,
@@ -148,6 +155,7 @@ export default function HomePage() {
     selectedReciterId,
     currentReciter.name,
     rangeRepeatCount,
+    ayahRepeatMode,
     audio,
   ]);
 
@@ -926,6 +934,8 @@ export default function HomePage() {
         setRangeRepeatCount={setRangeRepeatCount}
         setRepeatTab={setRepeatTab}
         setRepeatCount={audio.setRepeatCount}
+        ayahRepeatMode={ayahRepeatMode}
+        setAyahRepeatMode={setAyahRepeatMode}
         onOpenMultiSurahModal={() => setShowMultiSurahModal(true)}
         onToggleMultiSurahLoop={(enable) => audio.toggleMultiSurahLoop(enable)}
       />
@@ -962,6 +972,8 @@ export default function HomePage() {
           ayahRangeStart={audio.ayahRangeStart}
           ayahRangeEnd={audio.ayahRangeEnd}
           currentAyahNumber={audio.currentAyahNumber}
+          ayahRepeatMode={audio.ayahRepeatMode}
+          ayahRemainingRepeats={audio.ayahRemainingRepeats}
           onStopAyahRangeLoop={audio.stopAyahRangeLoop}
           onTogglePlay={audio.togglePlayPause}
           onSeek={audio.seek}

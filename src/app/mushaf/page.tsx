@@ -725,11 +725,11 @@ function MushafReaderInner() {
     setSelectedVerse(null);
   }, [audio, settings.selectedReciterId]);
 
-  const handlePlayRangeRepeatVerse = useCallback((verse: Verse, startAyah: number, endAyah: number, count: number = 3) => {
+  const handlePlayRangeRepeatVerse = useCallback((verse: Verse, startAyah: number, endAyah: number, count: number = 3, mode: 'each_verse' | 'whole_range' = 'each_verse') => {
     const chNum = getChapterNumber(verse);
     const reciter = POPULAR_RECITERS.find((r) => r.id === (settings.selectedReciterId || 7));
     const reciterName = reciter?.name || 'مشاري راشد العفاسي';
-    audio.startAyahRangeLoop(chNum, startAyah, endAyah, settings.selectedReciterId || 7, reciterName, count);
+    audio.startAyahRangeLoop(chNum, startAyah, endAyah, settings.selectedReciterId || 7, reciterName, count, mode);
     setSelectedVerse(null);
   }, [audio, settings.selectedReciterId]);
 
@@ -1340,6 +1340,8 @@ function MushafReaderInner() {
           ayahRangeStart={audio.ayahRangeStart}
           ayahRangeEnd={audio.ayahRangeEnd}
           currentAyahNumber={audio.currentAyahNumber}
+          ayahRepeatMode={audio.ayahRepeatMode}
+          ayahRemainingRepeats={audio.ayahRemainingRepeats}
           onStopAyahRangeLoop={audio.stopAyahRangeLoop}
           onTogglePlay={audio.togglePlayPause}
           onSeek={audio.seek}
@@ -1376,7 +1378,7 @@ function MushafReaderInner() {
           onClose={() => setSelectedVerse(null)}
           onPlay={() => handlePlayVerse(selectedVerse)}
           onPlayRepeat={(count) => handlePlayRepeatVerse(selectedVerse, count)}
-          onPlayRangeRepeat={(start, end, count) => handlePlayRangeRepeatVerse(selectedVerse, start, end, count)}
+          onPlayRangeRepeat={(start, end, count, mode) => handlePlayRangeRepeatVerse(selectedVerse, start, end, count, mode)}
           onCorrection={() => handleOpenCorrection(selectedVerse)}
           onTafsir={() => handleOpenTafsir(selectedVerse)}
           onBookmark={() => handleVerseBookmark(selectedVerse)}
