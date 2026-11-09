@@ -16,11 +16,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.apk:!*.aab'
         }
     }
+    signingConfigs {
+        release {
+            storeFile file('noor-release-key.jks')
+            storePassword 'NoorAlQuran2026!'
+            keyAlias 'noor-key'
+            keyPassword 'NoorAlQuran2026!'
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {
