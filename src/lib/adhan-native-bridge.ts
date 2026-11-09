@@ -91,7 +91,7 @@ export async function cancelNativeAdhanAlarms() {
   }
 }
 
-export async function playTestAdhanSound() {
+export async function playTestAdhanSound(onEnded?: () => void) {
   try {
     return await AdhanNative.playTestAdhan();
   } catch {
@@ -104,12 +104,18 @@ export async function playTestAdhanSound() {
         }
         webAdhanAudio = new Audio('/audio/adhan.ogg?v=mohamed-jazi-v2');
         webAdhanAudio.volume = 1.0;
+        if (onEnded) {
+          webAdhanAudio.onended = onEnded;
+        }
         await webAdhanAudio.play();
       } catch (e) {
         console.warn('Web Adhan playback with version failed, attempting clean url:', e);
         try {
           webAdhanAudio = new Audio('/audio/adhan.ogg');
           webAdhanAudio.volume = 1.0;
+          if (onEnded) {
+            webAdhanAudio.onended = onEnded;
+          }
           await webAdhanAudio.play();
         } catch (err2) {
           console.error('All web adhan playback attempts failed:', err2);

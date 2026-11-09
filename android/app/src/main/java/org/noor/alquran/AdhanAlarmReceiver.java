@@ -142,7 +142,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             try {
                 if (activeCpuLock != null && activeCpuLock.isHeld()) activeCpuLock.release();
                 activeCpuLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NoorAlQuran:AdhanDirectFallbackCpuLock");
-                activeCpuLock.acquire(220000L); // 220s safety timeout
+                activeCpuLock.acquire(300000L); // 300s safety timeout (adhan is 246s)
             } catch (Exception ignored) {}
 
             try {
@@ -181,7 +181,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             }
         };
 
-        new Handler(Looper.getMainLooper()).postDelayed(cleanup, 220000L);
+        new Handler(Looper.getMainLooper()).postDelayed(cleanup, 270000L); // 270s watchdog timeout (adhan audio is 246s)
 
         try {
             PrayerFlashSilentHelper.flashCameraTorch(context, 10, 300);

@@ -114,8 +114,8 @@ public class NoorAudioService extends Service {
         currentAdhanTime12 = prayerTime12;
         currentAdhanHijri = hijriDate;
 
-        // Acquire WakeLock for up to 4 minutes (Azan length is ~3.5 min)
-        acquireWakeLock(240000L);
+        // Acquire WakeLock for up to 5 minutes (Azan length is ~4.1 min / 246s)
+        acquireWakeLock(300000L);
 
         // Flash camera LED strobe alert when Adhan starts
         PrayerFlashSilentHelper.flashCameraTorch(this, 10, 300);
@@ -138,9 +138,9 @@ public class NoorAudioService extends Service {
         // Cancel previous timeout
         cancelTimeout();
 
-        // Timeout watchdog (220 seconds) in case of unexpected lock
+        // Timeout watchdog (270 seconds) in case of unexpected lock (adhan audio is 246s)
         timeoutRunnable = this::stopPlaybackAndService;
-        handler.postDelayed(timeoutRunnable, 220000L);
+        handler.postDelayed(timeoutRunnable, 270000L);
 
         // Play Mohamed Jazi Azan audio
         int soundResId = getResources().getIdentifier("adhan", "raw", getPackageName());

@@ -434,7 +434,9 @@ export function usePrayerTimes() {
   const testAdhan = useCallback(async () => {
     setIsTestAdhanPlaying(true);
     triggerHaptic('tap');
-    await playTestAdhanSound();
+    await playTestAdhanSound(() => {
+      setIsTestAdhanPlaying(false);
+    });
   }, []);
 
   // Stop Adhan Sound
