@@ -597,7 +597,7 @@ export default function HomePage() {
           </div>
 
           {/* 4. THE 2-COLUMN GRID (8 SECTIONS EXACTLY AS IN THE DIAGRAM) */}
-          <div className="w-full grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="w-full grid grid-cols-2 gap-2.5 sm:gap-3">
             {/* ROW 1: RIGHT = اقرأ القرآن */}
             <button
               type="button"
@@ -605,7 +605,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowReadQuranModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-1"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-1"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -633,7 +633,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowAudioModal(true);
               }}
-              className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
+              className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden ${
                 audio.isPlaying
                   ? 'border-emerald-400 ring-2 ring-emerald-400/40 flash-window-emerald'
                   : 'border-[#C8A85B] hover:brightness-110 flash-window'
@@ -655,7 +655,7 @@ export default function HomePage() {
                     e.stopPropagation();
                     handleTogglePlay();
                   }}
-                  className="w-9 h-9 rounded-full bg-[#C8A85B] hover:bg-[#d4b66d] text-[#123B2A] flex items-center justify-center font-bold text-sm shadow-md transition active:scale-90 cursor-pointer"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#C8A85B] hover:bg-[#d4b66d] text-[#123B2A] flex items-center justify-center font-bold text-xs sm:text-sm shadow-md transition active:scale-90 cursor-pointer"
                   title={audio.isPlaying ? 'إيقاف مؤقت' : 'تشغيل الاستماع'}
                   aria-label={audio.isPlaying ? 'إيقاف مؤقت' : 'تشغيل الاستماع'}
                 >
@@ -686,7 +686,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowPrayerModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-3"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-3"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -715,7 +715,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowRadiosModal(true);
               }}
-              className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
+              className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden ${
                 quranRadio.isPlaying
                   ? 'border-emerald-400 ring-2 ring-emerald-400/40 flash-window-emerald'
                   : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
@@ -754,7 +754,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowOfflineModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-5"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-5"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -783,7 +783,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowAthkarModal(true);
               }}
-              className={`group relative flex flex-col justify-between p-4 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden ${
+              className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden ${
                 autoAthkar?.settings?.enabled
                   ? 'border-emerald-400 ring-2 ring-emerald-400/30 flash-window-emerald'
                   : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
@@ -822,7 +822,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowAccessibilityModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-7"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-7"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
@@ -851,7 +851,7 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowVoiceAssistantModal(true);
               }}
-              className="group relative flex flex-col justify-between p-4 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-32 sm:h-36 overflow-hidden flash-window flash-delay-8"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-8"
               style={{
                 background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
               }}
