@@ -237,11 +237,11 @@ export default function BlindVoiceAssistantModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="voice-assistant-title"
-      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in"
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-1 sm:p-2 md:p-4 overflow-y-auto animate-in fade-in"
       onClick={handleBackdropClick}
     >
       <div
-        className="relative w-full max-w-md my-auto max-h-[88vh] sm:max-h-[90vh] overflow-y-auto bg-gradient-to-b from-[#123B2A] to-[#0A2318] border-2 border-[#C8A85B] rounded-3xl p-6 text-white shadow-2xl flex flex-col items-center gap-5 flash-modal-window"
+        className="relative w-full max-w-2xl my-auto h-[95vh] sm:h-[94vh] max-h-[96vh] overflow-y-auto bg-gradient-to-b from-[#123B2A] to-[#0A2318] border-2 border-[#C8A85B] rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-white shadow-2xl flex flex-col items-center gap-5 flash-modal-window"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

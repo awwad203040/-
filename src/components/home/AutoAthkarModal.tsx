@@ -12,7 +12,11 @@ import {
   requestDirectBatteryExemption,
   openAutoStartSettings,
   requestNativePermissions,
+  isNativeUnlockSalawatEnabled,
+  setNativeUnlockSalawatEnabled,
+  testNativeUnlockSalawat,
 } from '@/lib/athkar-native-bridge';
+import { useEffect } from 'react';
 
 interface AutoAthkarModalProps {
   isOpen: boolean;
@@ -35,6 +39,14 @@ export default function AutoAthkarModal({
   const [testCountdown, setTestCountdown] = useState<number | null>(null);
   const [testActive, setTestActive] = useState<boolean>(false);
   const [btnFeedback, setBtnFeedback] = useState<string | null>(null);
+  const [isUnlockSalawat, setIsUnlockSalawat] = useState<boolean>(true);
+  const [isTestingUnlock, setIsTestingUnlock] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      isNativeUnlockSalawatEnabled().then((val) => setIsUnlockSalawat(val));
+    }
+  }, [isOpen]);
 
   const salawatThikr = VOICE_ATHKAR_LIST.find((t) => t.id === 'salawat-nabi') || VOICE_ATHKAR_LIST[3];
   const nonSalawatAthkar = VOICE_ATHKAR_LIST.filter((t) => t.id !== 'salawat-nabi');
@@ -123,7 +135,7 @@ export default function AutoAthkarModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-2 md:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -131,14 +143,14 @@ export default function AutoAthkarModal({
     >
       {/* Modal Dialog */}
       <div
-        className="relative w-full max-w-xl max-h-[88vh] sm:max-h-[90vh] my-auto rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/70 flash-modal-window"
+        className="relative w-full max-w-3xl h-[95vh] sm:h-[94vh] max-h-[96vh] my-auto rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/70 flash-modal-window"
         style={{ backgroundColor: '#FBF8EF', color: '#17231D' }}
         dir="rtl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <header
-          className="px-6 py-4 flex items-center justify-between shadow-xs shrink-0 flash-modal-header"
+          className="px-5 py-3.5 sm:px-6 sm:py-4 flex items-center justify-between shadow-xs shrink-0 flash-modal-header"
           style={{ backgroundColor: '#123B2A', color: 'white' }}
         >
           <div className="flex items-center gap-3">
@@ -194,7 +206,66 @@ export default function AutoAthkarModal({
         </div>
 
         {/* Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5">
+          {/* Al-Shafi' feature: الصلاة على النبي عند فتح الجوال */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50/80 rounded-2xl p-4 border-2 border-[#C8A85B] shadow-sm space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">📱</span>
+                <div>
+                  <h3 className="font-extrabold text-sm text-[#123B2A] flex items-center gap-1.5" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                    <span>الصلاة على النبي عند فتح الجوال</span>
+                    <span className="text-[10px] bg-[#C8A85B]/20 text-[#8C6E28] px-2 py-0.5 rounded-full font-bold">
+                      مثل تطبيق الشفيع
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-gray-700 mt-0.5">
+                    ينطق بصوت ندي «اللهم صل على سيدنا محمد» تلقائياً عند فتح شاشة الجوال
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const next = !isUnlockSalawat;
+                  setIsUnlockSalawat(next);
+                  await setNativeUnlockSalawatEnabled(next);
+                }}
+                className={`relative w-14 h-8 rounded-full transition-colors cursor-pointer shrink-0 ${
+                  isUnlockSalawat ? 'bg-[#0B5B43]' : 'bg-gray-300'
+                }`}
+                role="switch"
+                aria-checked={isUnlockSalawat}
+              >
+                <div
+                  className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-all ${
+                    isUnlockSalawat ? 'right-7' : 'right-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between pt-1 border-t border-amber-200/70">
+              <span className="text-[10px] text-gray-600">
+                تعمل حتى عندما يكون الجوال مغلقاً ويتم تشغيله
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsTestingUnlock(true);
+                  await testNativeUnlockSalawat();
+                  setTimeout(() => setIsTestingUnlock(false), 3000);
+                }}
+                disabled={isTestingUnlock}
+                className="px-3 py-1 rounded-lg text-xs font-bold bg-[#123B2A] hover:bg-[#0B5B43] text-white flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+              >
+                <span>🔊</span>
+                <span>{isTestingUnlock ? 'جاري النطق...' : 'تجربة الصوت'}</span>
+              </button>
+            </div>
+          </div>
+
           {/* Main Master Switch Card */}
           <div
             className={`p-4 rounded-2xl border transition-all ${

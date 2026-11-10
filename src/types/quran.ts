@@ -154,3 +154,10 @@ export type DailyWird = {
   pagesRead: number;
   targetPages: number;
 };
+
+declare global {
+  interface Window {
+    __handleHardwareBack?: () => boolean;
+  }
+}
+

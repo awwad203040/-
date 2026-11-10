@@ -20,9 +20,16 @@ export default function DownloadPage() {
       setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
+    // Hardware Back Button returns to Home page
+    window.__handleHardwareBack = () => {
+      window.location.href = '/';
+      return true;
+    };
+
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
+      window.__handleHardwareBack = undefined;
     };
   }, []);
 

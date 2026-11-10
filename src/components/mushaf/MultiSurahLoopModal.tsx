@@ -70,7 +70,7 @@ export default function MultiSurahLoopModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-2 md:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -78,7 +78,7 @@ export default function MultiSurahLoopModal({
     >
       {/* Modal Dialog */}
       <div
-        className="relative w-full max-w-xl max-h-[88vh] sm:max-h-[90vh] my-auto rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/70 flash-modal-window"
+        className="relative w-full max-w-2xl h-[95vh] sm:h-[94vh] max-h-[96vh] my-auto rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl border-2 border-[#C8A85B]/70 flash-modal-window"
         style={{ backgroundColor: '#FBF8EF', color: '#17231D' }}
         dir="rtl"
         onClick={(e) => e.stopPropagation()}

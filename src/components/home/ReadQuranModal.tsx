@@ -76,14 +76,14 @@ export default function ReadQuranModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-2 md:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
       onClick={onClose}
       dir="rtl"
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="relative w-full max-w-2xl max-h-[88vh] sm:max-h-[90vh] my-auto bg-[#FBF8EF] text-[#17231D] rounded-3xl shadow-2xl overflow-hidden flex flex-col border-2 border-[#C8A85B]/70 animate-in fade-in zoom-in-95 duration-200 flash-modal-window"
+        className="relative w-full max-w-4xl h-[96vh] sm:h-[95vh] max-h-[98vh] my-auto bg-[#FBF8EF] text-[#17231D] rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col border-2 border-[#C8A85B]/70 animate-in fade-in zoom-in-95 duration-200 flash-modal-window"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}

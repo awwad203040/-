@@ -224,6 +224,36 @@ function MushafReaderInner() {
     };
   }, [currentPage]);
 
+  // Hardware Back Button Handler for Mushaf Page (closes modal or returns to Home)
+  useEffect(() => {
+    window.__handleHardwareBack = () => {
+      if (showTafsir) { setShowTafsir(false); return true; }
+      if (showCorrection) { setShowCorrection(false); return true; }
+      if (showSettings) { setShowSettings(false); return true; }
+      if (showSearch) { setShowSearch(false); return true; }
+      if (showPageJumpModal) { setShowPageJumpModal(false); return true; }
+      if (showReciterSelect) { setShowReciterSelect(false); return true; }
+      if (showOfflineAudioModal) { setShowOfflineAudioModal(false); return true; }
+      if (showNoteModal) { setShowNoteModal(false); return true; }
+      if (showPageVersesDrawer) { setShowPageVersesDrawer(false); return true; }
+      if (showOfflineModal) { setShowOfflineModal(false); return true; }
+      if (showCopyModal) { setShowCopyModal(false); return true; }
+      if (selectedVerse) { setSelectedVerse(null); return true; }
+
+      // No modal is open -> return to Home Screen!
+      router.push('/');
+      return true;
+    };
+
+    return () => {
+      window.__handleHardwareBack = undefined;
+    };
+  }, [
+    showTafsir, showCorrection, showSettings, showSearch, showPageJumpModal,
+    showReciterSelect, showOfflineAudioModal, showNoteModal, showPageVersesDrawer,
+    showOfflineModal, showCopyModal, selectedVerse, router
+  ]);
+
   // Reset page image error when changing pages
   useEffect(() => {
     setPageImageError(false);

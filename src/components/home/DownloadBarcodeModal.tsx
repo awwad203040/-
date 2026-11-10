@@ -12,7 +12,7 @@ export default function DownloadBarcodeModal({ isOpen, onClose }: DownloadBarcod
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-2 md:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -20,7 +20,7 @@ export default function DownloadBarcodeModal({ isOpen, onClose }: DownloadBarcod
       dir="rtl"
     >
       <div
-        className="relative w-full max-w-md my-auto rounded-3xl p-5 sm:p-7 shadow-2xl border-2 border-[#C8A85B] flex flex-col items-center text-center overflow-hidden flash-modal-window"
+        className="relative w-full max-w-xl my-auto rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl border-2 border-[#C8A85B] flex flex-col items-center text-center overflow-hidden flash-modal-window"
         style={{
           background: 'linear-gradient(135deg, #184E38 0%, #123B2A 60%, #0A271B 100%)',
           color: '#FBF8EF',

@@ -73,11 +73,11 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
       role="dialog"
       aria-modal="true"
       aria-labelledby="accessibility-title"
-      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in"
+      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-1 sm:p-2 md:p-4 overflow-y-auto animate-in fade-in"
       onClick={onClose}
     >
       <div
-        className="relative bg-[#123B2A] border-2 border-[#C8A85B] rounded-3xl w-full max-w-md my-auto p-5 text-white shadow-2xl flex flex-col gap-4 max-h-[88vh] sm:max-h-[90vh] overflow-y-auto flash-modal-window"
+        className="relative bg-[#123B2A] border-2 border-[#C8A85B] rounded-2xl sm:rounded-3xl w-full max-w-2xl h-[95vh] sm:h-[94vh] max-h-[96vh] my-auto p-4 sm:p-5 text-white shadow-2xl flex flex-col gap-4 overflow-y-auto flash-modal-window"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

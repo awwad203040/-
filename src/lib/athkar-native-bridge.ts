@@ -57,6 +57,10 @@ interface AthkarNativePlugin {
     exactAlarms: boolean;
     batteryIgnored: boolean;
   }>;
+
+  isUnlockSalawatEnabled(): Promise<{ enabled: boolean }>;
+  setUnlockSalawatEnabled(options: { enabled: boolean }): Promise<{ success: boolean; enabled: boolean }>;
+  testUnlockSalawat(): Promise<{ success: boolean }>;
 }
 
 const AthkarNative = registerPlugin<AthkarNativePlugin>('AthkarNative');
@@ -384,3 +388,73 @@ export async function getNativePermissionStatus(): Promise<{
     return null;
   }
 }
+
+/**
+ * Check if Unlock Salawat (الصلاة على النبي عند فتح الجوال) is enabled
+ */
+export async function isNativeUnlockSalawatEnabled(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) {
+    try {
+      const stored = localStorage.getItem('noor_unlock_salawat_enabled');
+      return stored !== null ? stored === 'true' : true;
+    } catch {
+      return true;
+    }
+  }
+  try {
+    const res = await AthkarNative.isUnlockSalawatEnabled();
+    return res?.enabled ?? true;
+  } catch (err) {
+    console.warn('Failed to get unlock salawat status:', err);
+    return true;
+  }
+}
+
+/**
+ * Set Unlock Salawat (الصلاة على النبي عند فتح الجوال) enabled/disabled
+ */
+export async function setNativeUnlockSalawatEnabled(enabled: boolean): Promise<boolean> {
+  try {
+    localStorage.setItem('noor_unlock_salawat_enabled', String(enabled));
+  } catch {}
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await AthkarNative.setUnlockSalawatEnabled({ enabled });
+      return res?.success ?? true;
+    } catch (err) {
+      console.warn('Failed to set unlock salawat enabled:', err);
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Test Unlock Salawat sound ("اللهم صل على سيدنا محمد")
+ */
+export async function testNativeUnlockSalawat(): Promise<boolean> {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await AthkarNative.testUnlockSalawat();
+      return res?.success ?? true;
+    } catch (err) {
+      console.warn('Native testUnlockSalawat failed, falling back to web audio:', err);
+    }
+  }
+
+  // Web fallback
+  if (typeof window !== 'undefined') {
+    try {
+      const audio = new Audio('/audio/athkar/salawat-nabi.mp3');
+      audio.volume = 1.0;
+      await audio.play();
+      return true;
+    } catch (e) {
+      console.error('Web salawat audio play failed:', e);
+      return false;
+    }
+  }
+  return false;
+}
+

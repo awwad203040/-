@@ -109,6 +109,18 @@
             </intent-filter>
         </receiver>
 
+        <!-- ScreenUnlockReceiver (الصلاة على النبي عند فتح شاشة الجوال مثل تطبيق الشفيع) -->
+        <receiver
+            android:name=".ScreenUnlockReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="org.noor.alquran.ACTION_TRIGGER_UNLOCK_SALAWAT" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

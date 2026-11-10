@@ -1004,6 +1004,32 @@ public class AthkarNativePlugin extends Plugin {
         }
     }
 
+    @PluginMethod
+    public void isUnlockSalawatEnabled(PluginCall call) {
+        boolean enabled = ScreenUnlockReceiver.isEnabled(getContext());
+        JSObject ret = new JSObject();
+        ret.put("enabled", enabled);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void setUnlockSalawatEnabled(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", true);
+        ScreenUnlockReceiver.setEnabled(getContext(), enabled);
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        ret.put("enabled", enabled);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void testUnlockSalawat(PluginCall call) {
+        ScreenUnlockReceiver.playSalawatDirect(getContext());
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        call.resolve(ret);
+    }
+
     @Override
     protected void handleOnDestroy() {
         if (speechWatchdogHandler != null && speechWatchdogRunnable != null) {

@@ -71,6 +71,7 @@ public class MainActivity extends BridgeActivity {
         AthkarAlarmReceiver.ensureScheduledOnStartup(this);
         AdhanAlarmReceiver.rescheduleFromPrefs(this);
         PrayerNotificationReceiver.startPerpetualPrayerNotification(this);
+        registerDynamicUnlockReceiver();
 
         // Automatically initiate permissions onboarding flow (Notifications + GPS Location + Audio)
         requestAllNecessaryPermissions();
@@ -367,5 +368,65 @@ public class MainActivity extends BridgeActivity {
                 } catch (Exception ignored) {}
             }
         });
+    }
+
+    private ScreenUnlockReceiver dynamicUnlockReceiver;
+    private long lastBackPressedTime = 0L;
+
+    private void registerDynamicUnlockReceiver() {
+        try {
+            if (dynamicUnlockReceiver == null) {
+                dynamicUnlockReceiver = new ScreenUnlockReceiver();
+                android.content.IntentFilter filter = new android.content.IntentFilter();
+                filter.addAction(Intent.ACTION_USER_PRESENT);
+                filter.addAction(Intent.ACTION_SCREEN_ON);
+                registerReceiver(dynamicUnlockReceiver, filter);
+                Log.i(TAG, "Registered dynamic ScreenUnlockReceiver");
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Could not register dynamic ScreenUnlockReceiver: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            // First allow the web application to handle closing open modal dialogs or sub-pages
+            getBridge().getWebView().evaluateJavascript(
+                "(function() { if (typeof window.__handleHardwareBack === 'function') { return window.__handleHardwareBack(); } return false; })()",
+                result -> {
+                    boolean handledByWeb = "true".equalsIgnoreCase(result);
+                    if (!handledByWeb) {
+                        runOnUiThread(() -> {
+                            if (getBridge().getWebView().canGoBack()) {
+                                getBridge().getWebView().goBack();
+                            } else {
+                                // On home page with no modal open: double-press to exit gracefully
+                                long now = System.currentTimeMillis();
+                                if (now - lastBackPressedTime < 2000L) {
+                                    finish();
+                                } else {
+                                    lastBackPressedTime = now;
+                                    Toast.makeText(MainActivity.this, "اضغط مرة أخرى للخروج من التطبيق", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+                    }
+                }
+            );
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        if (dynamicUnlockReceiver != null) {
+            try {
+                unregisterReceiver(dynamicUnlockReceiver);
+            } catch (Exception ignored) {}
+            dynamicUnlockReceiver = null;
+        }
+        super.onDestroy();
     }
 }

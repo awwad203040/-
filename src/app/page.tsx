@@ -345,6 +345,37 @@ export default function HomePage() {
     };
   }, []);
 
+  // Hardware Back Button Handler for Home Page (closes any open modal, returns false if none open)
+  useEffect(() => {
+    window.__handleHardwareBack = () => {
+      if (showReadQuranModal) { setShowReadQuranModal(false); return true; }
+      if (showAudioModal) { setShowAudioModal(false); return true; }
+      if (showPrayerModal) { setShowPrayerModal(false); return true; }
+      if (showRadiosModal) { setShowRadiosModal(false); return true; }
+      if (showOfflineModal) { setShowOfflineModal(false); return true; }
+      if (showAthkarModal) { setShowAthkarModal(false); return true; }
+      if (showAccessibilityModal) { setShowAccessibilityModal(false); return true; }
+      if (showVoiceAssistantModal) { setShowVoiceAssistantModal(false); return true; }
+      if (showReciterModal) { setShowReciterModal(false); return true; }
+      if (showOfflineAudioModal) { setShowOfflineAudioModal(false); return true; }
+      if (showMultiSurahModal) { setShowMultiSurahModal(false); return true; }
+      if (showEditProgressModal) { setShowEditProgressModal(false); return true; }
+      if (showBarcodeModal) { setShowBarcodeModal(false); return true; }
+      if (showInstallModal) { setShowInstallModal(false); return true; }
+
+      return false;
+    };
+
+    return () => {
+      window.__handleHardwareBack = undefined;
+    };
+  }, [
+    showReadQuranModal, showAudioModal, showPrayerModal, showRadiosModal,
+    showOfflineModal, showAthkarModal, showAccessibilityModal, showVoiceAssistantModal,
+    showReciterModal, showOfflineAudioModal, showMultiSurahModal, showEditProgressModal,
+    showBarcodeModal, showInstallModal
+  ]);
+
   // Select reciter from modal
   const handleSelectReciterFromModal = useCallback((id: number, name: string) => {
     setSelectedReciterId(id);
@@ -613,23 +644,23 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowReadQuranModal(true);
               }}
-              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-1"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:scale-[1.02] active:scale-95 transition-all shadow-lg hover:shadow-2xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-1"
               style={{
-                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+                background: 'linear-gradient(135deg, #FFFDF8 0%, #F8F2E2 50%, #EFE4C8 100%)',
               }}
               aria-label="اقرأ القرآن - الفهرس الشامل للسور والأجزاء والختمة"
             >
               <div className="flex items-center justify-between w-full">
                 <span className="text-3xl filter drop-shadow">📖</span>
-                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                <span className="text-[10px] font-bold text-[#FFD700] bg-[#123B2A] px-2 py-0.5 rounded-full border border-[#C8A85B]/60 shadow-xs">
                   فهرس
                 </span>
               </div>
               <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                <h3 className="text-base sm:text-lg font-black text-[#123B2A]" style={{ fontFamily: "'Amiri', serif" }}>
                   اقرأ القرآن
                 </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                <p className="text-[11px] text-[#7A5C1E] font-bold mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   السور • الأجزاء • الختمة
                 </p>
               </div>
@@ -641,15 +672,15 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowAudioModal(true);
               }}
-              className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden ${
+              className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all shadow-lg hover:shadow-2xl hover:scale-[1.02] text-right cursor-pointer h-28 sm:h-32 overflow-hidden ${
                 audio.isPlaying
-                  ? 'border-emerald-400 ring-2 ring-emerald-400/40 flash-window-emerald'
-                  : 'border-[#C8A85B] hover:brightness-110 flash-window'
+                  ? 'border-emerald-500 ring-2 ring-emerald-400/50 flash-window-emerald'
+                  : 'border-[#C8A85B] flash-window'
               } flash-delay-2`}
               style={{
                 background: audio.isPlaying
-                  ? 'linear-gradient(135deg, #0B5B43 0%, #123B2A 50%, #082A1C 100%)'
-                  : 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+                  ? 'linear-gradient(135deg, #E8F5E9 0%, #D2EBD4 50%, #BFE4C3 100%)'
+                  : 'linear-gradient(135deg, #FFFDF8 0%, #F8F2E2 50%, #EFE4C8 100%)',
               }}
               role="button"
               tabIndex={0}
@@ -663,7 +694,11 @@ export default function HomePage() {
                     e.stopPropagation();
                     handleTogglePlay();
                   }}
-                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#C8A85B] hover:bg-[#d4b66d] text-[#123B2A] flex items-center justify-center font-bold text-xs sm:text-sm shadow-md transition active:scale-90 cursor-pointer"
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shadow-md transition active:scale-90 cursor-pointer ${
+                    audio.isPlaying
+                      ? 'bg-emerald-700 text-white hover:bg-emerald-800'
+                      : 'bg-[#123B2A] hover:bg-[#0B5B43] text-[#FFD700] border border-[#C8A85B]'
+                  }`}
                   title={audio.isPlaying ? 'إيقاف مؤقت' : 'تشغيل الاستماع'}
                   aria-label={audio.isPlaying ? 'إيقاف مؤقت' : 'تشغيل الاستماع'}
                 >
@@ -672,16 +707,22 @@ export default function HomePage() {
               </div>
               <div className="mt-auto">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                  <h3
+                    className={`text-base sm:text-lg font-black ${audio.isPlaying ? 'text-[#0B5B43]' : 'text-[#123B2A]'}`}
+                    style={{ fontFamily: "'Amiri', serif" }}
+                  >
                     استمع للقرآن
                   </h3>
                   {audio.isPlaying && (
-                    <span className="text-[9px] bg-emerald-500/30 text-emerald-300 px-1.5 py-0.5 rounded-full font-bold">
+                    <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.5 rounded-full font-bold shadow-xs">
                       نشط
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                <p
+                  className={`text-[11px] font-bold mt-0.5 truncate ${audio.isPlaying ? 'text-[#083526]' : 'text-[#7A5C1E]'}`}
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
                   الشيخ: {currentReciter.name}
                 </p>
               </div>
@@ -694,23 +735,23 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowPrayerModal(true);
               }}
-              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-3"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:scale-[1.02] active:scale-95 transition-all shadow-lg hover:shadow-2xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-3"
               style={{
-                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+                background: 'linear-gradient(135deg, #FFFDF8 0%, #F8F2E2 50%, #EFE4C8 100%)',
               }}
               aria-label="أوقات الصلوات - مواقيت الصلاة والآذان"
             >
               <div className="flex items-center justify-between w-full">
                 <span className="text-3xl filter drop-shadow">🕌</span>
-                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40 truncate max-w-[95px]">
+                <span className="text-[10px] font-bold text-[#FFD700] bg-[#123B2A] px-2 py-0.5 rounded-full border border-[#C8A85B]/60 truncate max-w-[95px] shadow-xs">
                   {prayerTimes.prayerData.nextPrayer.name}: {prayerTimes.prayerData.nextPrayer.time12}
                 </span>
               </div>
               <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                <h3 className="text-base sm:text-lg font-black text-[#123B2A]" style={{ fontFamily: "'Amiri', serif" }}>
                   أوقات الصلوات
                 </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                <p className="text-[11px] text-[#7A5C1E] font-bold mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   متبقي: {prayerTimes.prayerData.nextPrayer.remainingFormatted}
                 </p>
               </div>
@@ -723,33 +764,39 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowRadiosModal(true);
               }}
-              className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden ${
+              className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all shadow-lg hover:shadow-2xl hover:scale-[1.02] text-right cursor-pointer h-28 sm:h-32 overflow-hidden ${
                 quranRadio.isPlaying
-                  ? 'border-emerald-400 ring-2 ring-emerald-400/40 flash-window-emerald'
-                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
+                  ? 'border-amber-600 ring-2 ring-amber-400/50 flash-window-emerald'
+                  : 'border-[#C8A85B] active:scale-95 flash-window'
               } flash-delay-4`}
               style={{
                 background: quranRadio.isPlaying
-                  ? 'linear-gradient(135deg, #0B5B43 0%, #123B2A 50%, #082A1C 100%)'
-                  : 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+                  ? 'linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 50%, #FFCC80 100%)'
+                  : 'linear-gradient(135deg, #FFFDF8 0%, #F8F2E2 50%, #EFE4C8 100%)',
               }}
               aria-label="إذاعات القرآن الكريم - بث مباشر متواصل"
             >
               <div className="flex items-center justify-between w-full">
                 <span className="text-3xl filter drop-shadow">📻</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-xs ${
                   quranRadio.isPlaying
-                    ? 'bg-red-500 text-white border-red-400 animate-pulse'
-                    : 'bg-black/40 text-[#FFD700] border-[#C8A85B]/40'
+                    ? 'bg-red-600 text-white border-red-500 animate-pulse'
+                    : 'bg-[#123B2A] text-[#FFD700] border-[#C8A85B]/60'
                 }`}>
                   {quranRadio.isPlaying ? 'بث حي LIVE' : 'بث مباشر'}
                 </span>
               </div>
               <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                <h3
+                  className={`text-base sm:text-lg font-black ${quranRadio.isPlaying ? 'text-[#7A3E00]' : 'text-[#123B2A]'}`}
+                  style={{ fontFamily: "'Amiri', serif" }}
+                >
                   إذاعات القرآن الكريم
                 </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                <p
+                  className={`text-[11px] font-bold mt-0.5 truncate ${quranRadio.isPlaying ? 'text-[#934800]' : 'text-[#7A5C1E]'}`}
+                  style={{ fontFamily: "'Tajawal', sans-serif" }}
+                >
                   {quranRadio.isPlaying ? quranRadio.currentStation?.name : 'مصر • السعودية • كبار القراء'}
                 </p>
               </div>
@@ -762,23 +809,23 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowOfflineModal(true);
               }}
-              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-5"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:scale-[1.02] active:scale-95 transition-all shadow-lg hover:shadow-2xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-5"
               style={{
-                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+                background: 'linear-gradient(135deg, #FFFDF8 0%, #F8F2E2 50%, #EFE4C8 100%)',
               }}
               aria-label="تحميل المصحف للقراءة بدون إنترنت"
             >
               <div className="flex items-center justify-between w-full">
                 <span className="text-3xl filter drop-shadow">📥</span>
-                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                <span className="text-[10px] font-bold text-[#FFD700] bg-[#123B2A] px-2 py-0.5 rounded-full border border-[#C8A85B]/60 shadow-xs">
                   بدون نت
                 </span>
               </div>
               <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                <h3 className="text-base sm:text-lg font-black text-[#123B2A]" style={{ fontFamily: "'Amiri', serif" }}>
                   تحميل المصحف
                 </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                <p className="text-[11px] text-[#7A5C1E] font-bold mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   القراءة بدون اتصال
                 </p>
               </div>
@@ -791,33 +838,31 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowAthkarModal(true);
               }}
-              className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden ${
+              className={`group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 transition-all shadow-lg hover:shadow-2xl hover:scale-[1.02] text-right cursor-pointer h-28 sm:h-32 overflow-hidden ${
                 autoAthkar?.settings?.enabled
-                  ? 'border-emerald-400 ring-2 ring-emerald-400/30 flash-window-emerald'
-                  : 'border-[#C8A85B] hover:brightness-110 active:scale-95 flash-window'
+                  ? 'border-emerald-500 ring-2 ring-emerald-400/40 flash-window-emerald'
+                  : 'border-[#C8A85B] active:scale-95 flash-window'
               } flash-delay-6`}
               style={{
-                background: autoAthkar?.settings?.enabled
-                  ? 'linear-gradient(135deg, #0E3E2B 0%, #123B2A 50%, #0A271B 100%)'
-                  : 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+                background: 'linear-gradient(135deg, #FFFDF8 0%, #F8F2E2 50%, #EFE4C8 100%)',
               }}
               aria-label="الأذكار والتسابيح الصوتية التلقائية والصلاة على النبي"
             >
               <div className="flex items-center justify-between w-full">
                 <span className={`text-3xl filter drop-shadow ${autoAthkar?.settings?.enabled ? 'animate-bounce' : ''}`}>🔔</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-xs ${
                   autoAthkar?.settings?.enabled
-                    ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50'
-                    : 'bg-black/40 text-[#FFD700] border-[#C8A85B]/40'
+                    ? 'bg-emerald-800 text-white border-emerald-600'
+                    : 'bg-[#123B2A] text-[#FFD700] border-[#C8A85B]/60'
                 }`}>
                   {autoAthkar?.settings?.enabled ? `كل ${autoAthkar?.settings?.intervalMinutes ?? 10} د` : 'متوقفة'}
                 </span>
               </div>
               <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                <h3 className="text-base sm:text-lg font-black text-[#123B2A]" style={{ fontFamily: "'Amiri', serif" }}>
                   الأذكار
                 </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                <p className="text-[11px] text-[#7A5C1E] font-bold mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   أذكار تلقائية وصلاة على النبي
                 </p>
               </div>
@@ -830,23 +875,23 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowAccessibilityModal(true);
               }}
-              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-7"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:scale-[1.02] active:scale-95 transition-all shadow-lg hover:shadow-2xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-7"
               style={{
-                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+                background: 'linear-gradient(135deg, #FFFDF8 0%, #F8F2E2 50%, #EFE4C8 100%)',
               }}
               aria-label="المكفوفين - تسهيل الوصول والتوجيه الصوتي"
             >
               <div className="flex items-center justify-between w-full">
                 <span className="text-3xl filter drop-shadow">🦯</span>
-                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                <span className="text-[10px] font-bold text-[#FFD700] bg-[#123B2A] px-2 py-0.5 rounded-full border border-[#C8A85B]/60 shadow-xs">
                   سهولة وصول
                 </span>
               </div>
               <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                <h3 className="text-base sm:text-lg font-black text-[#123B2A]" style={{ fontFamily: "'Amiri', serif" }}>
                   المكفوفين
                 </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                <p className="text-[11px] text-[#7A5C1E] font-bold mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   تسهيل الوصول وقارئ الشاشة
                 </p>
               </div>
@@ -859,23 +904,23 @@ export default function HomePage() {
                 triggerHaptic('tap');
                 setShowVoiceAssistantModal(true);
               }}
-              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:brightness-110 active:scale-95 transition-all shadow-xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-8"
+              className="group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-2xl border-2 border-[#C8A85B] hover:scale-[1.02] active:scale-95 transition-all shadow-lg hover:shadow-2xl text-right cursor-pointer h-28 sm:h-32 overflow-hidden flash-window flash-delay-8"
               style={{
-                background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+                background: 'linear-gradient(135deg, #FFFDF8 0%, #F8F2E2 50%, #EFE4C8 100%)',
               }}
               aria-label="نطق السورة - المساعد الصوتي الذكي"
             >
               <div className="flex items-center justify-between w-full">
                 <span className="text-3xl filter drop-shadow animate-bounce">🎙️</span>
-                <span className="text-[10px] font-bold text-[#FFD700] bg-black/40 px-2 py-0.5 rounded-full border border-[#C8A85B]/40">
+                <span className="text-[10px] font-bold text-[#FFD700] bg-[#123B2A] px-2 py-0.5 rounded-full border border-[#C8A85B]/60 shadow-xs">
                   تحكم صوتي
                 </span>
               </div>
               <div className="mt-auto">
-                <h3 className="text-base sm:text-lg font-black text-[#F7EED8]" style={{ fontFamily: "'Amiri', serif" }}>
+                <h3 className="text-base sm:text-lg font-black text-[#123B2A]" style={{ fontFamily: "'Amiri', serif" }}>
                   نطق السورة
                 </h3>
-                <p className="text-[11px] text-[#C8A85B] mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                <p className="text-[11px] text-[#7A5C1E] font-bold mt-0.5 truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   انطق اسم السورة لتشغيلها
                 </p>
               </div>
