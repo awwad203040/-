@@ -51,6 +51,7 @@ public class PrayerNotificationReceiver extends BroadcastReceiver {
 
     public static void startPerpetualPrayerNotification(Context context) {
         try {
+            ScreenUnlockReceiver.ensureRegistered(context);
             PrayerNotificationHelper.updateAndShowSalatukNotification(context);
             scheduleNextMinuteUpdate(context);
         } catch (Exception e) {

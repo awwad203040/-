@@ -378,18 +378,7 @@ public class MainActivity extends BridgeActivity {
     private long lastBackPressedTime = 0L;
 
     private void registerDynamicUnlockReceiver() {
-        try {
-            if (dynamicUnlockReceiver == null) {
-                dynamicUnlockReceiver = new ScreenUnlockReceiver();
-                android.content.IntentFilter filter = new android.content.IntentFilter();
-                filter.addAction(Intent.ACTION_USER_PRESENT);
-                filter.addAction(Intent.ACTION_SCREEN_ON);
-                registerReceiver(dynamicUnlockReceiver, filter);
-                Log.i(TAG, "Registered dynamic ScreenUnlockReceiver");
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Could not register dynamic ScreenUnlockReceiver: " + e.getMessage());
-        }
+        ScreenUnlockReceiver.ensureRegistered(this);
     }
 
     private void setupOnBackPressedHandler() {
