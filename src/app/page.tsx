@@ -345,23 +345,61 @@ export default function HomePage() {
     };
   }, []);
 
-  // Hardware Back Button Handler for Home Page (closes any open modal, returns false if none open)
+  // Modals state ref to guarantee instant, reliable back navigation without stale closures
+  const homeModalsRef = useRef({
+    showReadQuranModal,
+    showAudioModal,
+    showPrayerModal,
+    showRadiosModal,
+    showOfflineModal,
+    showAthkarModal,
+    showAccessibilityModal,
+    showVoiceAssistantModal,
+    showReciterModal,
+    showOfflineAudioModal,
+    showMultiSurahModal,
+    showEditProgressModal,
+    showBarcodeModal,
+    showInstallModal,
+  });
+
+  useEffect(() => {
+    homeModalsRef.current = {
+      showReadQuranModal,
+      showAudioModal,
+      showPrayerModal,
+      showRadiosModal,
+      showOfflineModal,
+      showAthkarModal,
+      showAccessibilityModal,
+      showVoiceAssistantModal,
+      showReciterModal,
+      showOfflineAudioModal,
+      showMultiSurahModal,
+      showEditProgressModal,
+      showBarcodeModal,
+      showInstallModal,
+    };
+  });
+
+  // Hardware Back Button Handler for Home Page (closes any open modal, returns false if on home page with no modal open)
   useEffect(() => {
     window.__handleHardwareBack = () => {
-      if (showReadQuranModal) { setShowReadQuranModal(false); return true; }
-      if (showAudioModal) { setShowAudioModal(false); return true; }
-      if (showPrayerModal) { setShowPrayerModal(false); return true; }
-      if (showRadiosModal) { setShowRadiosModal(false); return true; }
-      if (showOfflineModal) { setShowOfflineModal(false); return true; }
-      if (showAthkarModal) { setShowAthkarModal(false); return true; }
-      if (showAccessibilityModal) { setShowAccessibilityModal(false); return true; }
-      if (showVoiceAssistantModal) { setShowVoiceAssistantModal(false); return true; }
-      if (showReciterModal) { setShowReciterModal(false); return true; }
-      if (showOfflineAudioModal) { setShowOfflineAudioModal(false); return true; }
-      if (showMultiSurahModal) { setShowMultiSurahModal(false); return true; }
-      if (showEditProgressModal) { setShowEditProgressModal(false); return true; }
-      if (showBarcodeModal) { setShowBarcodeModal(false); return true; }
-      if (showInstallModal) { setShowInstallModal(false); return true; }
+      const s = homeModalsRef.current;
+      if (s.showReadQuranModal) { setShowReadQuranModal(false); return true; }
+      if (s.showAudioModal) { setShowAudioModal(false); return true; }
+      if (s.showPrayerModal) { setShowPrayerModal(false); return true; }
+      if (s.showRadiosModal) { setShowRadiosModal(false); return true; }
+      if (s.showOfflineModal) { setShowOfflineModal(false); return true; }
+      if (s.showAthkarModal) { setShowAthkarModal(false); return true; }
+      if (s.showAccessibilityModal) { setShowAccessibilityModal(false); return true; }
+      if (s.showVoiceAssistantModal) { setShowVoiceAssistantModal(false); return true; }
+      if (s.showReciterModal) { setShowReciterModal(false); return true; }
+      if (s.showOfflineAudioModal) { setShowOfflineAudioModal(false); return true; }
+      if (s.showMultiSurahModal) { setShowMultiSurahModal(false); return true; }
+      if (s.showEditProgressModal) { setShowEditProgressModal(false); return true; }
+      if (s.showBarcodeModal) { setShowBarcodeModal(false); return true; }
+      if (s.showInstallModal) { setShowInstallModal(false); return true; }
 
       return false;
     };
@@ -369,12 +407,7 @@ export default function HomePage() {
     return () => {
       window.__handleHardwareBack = undefined;
     };
-  }, [
-    showReadQuranModal, showAudioModal, showPrayerModal, showRadiosModal,
-    showOfflineModal, showAthkarModal, showAccessibilityModal, showVoiceAssistantModal,
-    showReciterModal, showOfflineAudioModal, showMultiSurahModal, showEditProgressModal,
-    showBarcodeModal, showInstallModal
-  ]);
+  }, []);
 
   // Select reciter from modal
   const handleSelectReciterFromModal = useCallback((id: number, name: string) => {

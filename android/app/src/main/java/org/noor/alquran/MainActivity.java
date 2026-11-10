@@ -76,6 +76,9 @@ public class MainActivity extends BridgeActivity {
         // Automatically initiate permissions onboarding flow (Notifications + GPS Location + Audio)
         requestAllNecessaryPermissions();
 
+        // Setup robust Back button handler (OnBackPressedDispatcher for Android 10-15+)
+        setupOnBackPressedHandler();
+
         // Check if app was opened via Voice Command intent or Google Assistant
         if (getIntent() != null) {
             handleVoiceIntent(getIntent());
@@ -388,35 +391,72 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    private void setupOnBackPressedHandler() {
+        try {
+            getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+                @Override
+                public void handleOnBackPressed() {
+                    executeBackNavigation();
+                }
+            });
+            Log.i(TAG, "Registered OnBackPressedDispatcher callback successfully");
+        } catch (Exception e) {
+            Log.w(TAG, "Could not register OnBackPressedDispatcher callback: " + e.getMessage());
+        }
+    }
+
+    private void executeBackNavigation() {
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            final android.webkit.WebView wv = getBridge().getWebView();
+            wv.post(() -> {
+                String js = "(function() {"
+                    + "  try {"
+                    + "    if (typeof window.__handleHardwareBack === 'function') {"
+                    + "      var res = window.__handleHardwareBack();"
+                    + "      if (res === true) return 'handled';"
+                    + "    }"
+                    + "    var path = window.location.pathname;"
+                    + "    if (path && path !== '/' && path !== '') {"
+                    + "      window.location.href = '/';"
+                    + "      return 'navigated_to_home';"
+                    + "    }"
+                    + "  } catch (e) {}"
+                    + "  return 'on_home_page';"
+                    + "})()";
+
+                wv.evaluateJavascript(js, result -> {
+                    String cleanRes = result != null ? result.replace("\"", "").trim() : "";
+                    Log.i(TAG, "Hardware back navigation result: " + cleanRes);
+
+                    if ("handled".equalsIgnoreCase(cleanRes) || "navigated_to_home".equalsIgnoreCase(cleanRes)) {
+                        lastBackPressedTime = 0L;
+                        return;
+                    }
+
+                    // Otherwise, user is on the main root page (/) with all 8 windows visible and no modal open
+                    long now = System.currentTimeMillis();
+                    if (now - lastBackPressedTime < 2000L) {
+                        finish();
+                    } else {
+                        lastBackPressedTime = now;
+                        Toast.makeText(MainActivity.this, "اضغط مرة أخرى للخروج من التطبيق", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
+        } else {
+            long now = System.currentTimeMillis();
+            if (now - lastBackPressedTime < 2000L) {
+                finish();
+            } else {
+                lastBackPressedTime = now;
+                Toast.makeText(MainActivity.this, "اضغط مرة أخرى للخروج من التطبيق", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     @Override
     public void onBackPressed() {
-        if (getBridge() != null && getBridge().getWebView() != null) {
-            // First allow the web application to handle closing open modal dialogs or sub-pages
-            getBridge().getWebView().evaluateJavascript(
-                "(function() { if (typeof window.__handleHardwareBack === 'function') { return window.__handleHardwareBack(); } return false; })()",
-                result -> {
-                    boolean handledByWeb = "true".equalsIgnoreCase(result);
-                    if (!handledByWeb) {
-                        runOnUiThread(() -> {
-                            if (getBridge().getWebView().canGoBack()) {
-                                getBridge().getWebView().goBack();
-                            } else {
-                                // On home page with no modal open: double-press to exit gracefully
-                                long now = System.currentTimeMillis();
-                                if (now - lastBackPressedTime < 2000L) {
-                                    finish();
-                                } else {
-                                    lastBackPressedTime = now;
-                                    Toast.makeText(MainActivity.this, "اضغط مرة أخرى للخروج من التطبيق", Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        });
-                    }
-                }
-            );
-        } else {
-            super.onBackPressed();
-        }
+        executeBackNavigation();
     }
 
     @Override

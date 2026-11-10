@@ -17,6 +17,7 @@ interface PageNavigatorProps {
   isBookmarked: boolean;
   onSetStopMark?: () => void;
   isOpenModal?: boolean;
+  onOpenModal?: () => void;
   onCloseModal?: () => void;
 }
 
@@ -45,14 +46,19 @@ export default function PageNavigator({
   isBookmarked,
   onSetStopMark,
   isOpenModal,
+  onOpenModal,
   onCloseModal,
 }: PageNavigatorProps) {
   const [internalShowGoTo, setInternalShowGoTo] = useState(false);
   const showGoTo = isOpenModal !== undefined ? isOpenModal : internalShowGoTo;
 
   const setShowGoTo = (open: boolean) => {
-    if (isOpenModal !== undefined && onCloseModal && !open) {
-      onCloseModal();
+    if (isOpenModal !== undefined) {
+      if (open && onOpenModal) {
+        onOpenModal();
+      } else if (!open && onCloseModal) {
+        onCloseModal();
+      }
     }
     setInternalShowGoTo(open);
   };

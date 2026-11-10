@@ -224,35 +224,67 @@ function MushafReaderInner() {
     };
   }, [currentPage]);
 
-  // Hardware Back Button Handler for Mushaf Page (closes modal or returns to Home)
+  // Modals state ref to guarantee instant, flicker-free back navigation without stale closures
+  const mushafModalsRef = useRef({
+    showTafsir,
+    showCorrection,
+    showSettings,
+    showSearch,
+    showPageJumpModal,
+    showReciterSelect,
+    showOfflineAudioModal,
+    showNoteModal,
+    showPageVersesDrawer,
+    showOfflineModal,
+    showCopyModal,
+    selectedVerse,
+  });
+
+  useEffect(() => {
+    mushafModalsRef.current = {
+      showTafsir,
+      showCorrection,
+      showSettings,
+      showSearch,
+      showPageJumpModal,
+      showReciterSelect,
+      showOfflineAudioModal,
+      showNoteModal,
+      showPageVersesDrawer,
+      showOfflineModal,
+      showCopyModal,
+      selectedVerse,
+    };
+  });
+
+  // Hardware Back Button Handler for Mushaf Page (closes modal or returns immediately to Home with all windows)
   useEffect(() => {
     window.__handleHardwareBack = () => {
-      if (showTafsir) { setShowTafsir(false); return true; }
-      if (showCorrection) { setShowCorrection(false); return true; }
-      if (showSettings) { setShowSettings(false); return true; }
-      if (showSearch) { setShowSearch(false); return true; }
-      if (showPageJumpModal) { setShowPageJumpModal(false); return true; }
-      if (showReciterSelect) { setShowReciterSelect(false); return true; }
-      if (showOfflineAudioModal) { setShowOfflineAudioModal(false); return true; }
-      if (showNoteModal) { setShowNoteModal(false); return true; }
-      if (showPageVersesDrawer) { setShowPageVersesDrawer(false); return true; }
-      if (showOfflineModal) { setShowOfflineModal(false); return true; }
-      if (showCopyModal) { setShowCopyModal(false); return true; }
-      if (selectedVerse) { setSelectedVerse(null); return true; }
+      const s = mushafModalsRef.current;
+      if (s.showTafsir) { setShowTafsir(false); return true; }
+      if (s.showCorrection) { setShowCorrection(false); return true; }
+      if (s.showSettings) { setShowSettings(false); return true; }
+      if (s.showSearch) { setShowSearch(false); return true; }
+      if (s.showPageJumpModal) { setShowPageJumpModal(false); return true; }
+      if (s.showReciterSelect) { setShowReciterSelect(false); return true; }
+      if (s.showOfflineAudioModal) { setShowOfflineAudioModal(false); return true; }
+      if (s.showNoteModal) { setShowNoteModal(false); return true; }
+      if (s.showPageVersesDrawer) { setShowPageVersesDrawer(false); return true; }
+      if (s.showOfflineModal) { setShowOfflineModal(false); return true; }
+      if (s.showCopyModal) { setShowCopyModal(false); return true; }
+      if (s.selectedVerse) { setSelectedVerse(null); return true; }
 
-      // No modal is open -> return to Home Screen!
-      router.push('/');
+      // No modal is open in Mushaf -> navigate immediately to the Home Screen where all windows are!
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
       return true;
     };
 
     return () => {
       window.__handleHardwareBack = undefined;
     };
-  }, [
-    showTafsir, showCorrection, showSettings, showSearch, showPageJumpModal,
-    showReciterSelect, showOfflineAudioModal, showNoteModal, showPageVersesDrawer,
-    showOfflineModal, showCopyModal, selectedVerse, router
-  ]);
+  }, []);
 
   // Reset page image error when changing pages
   useEffect(() => {
@@ -1338,6 +1370,7 @@ function MushafReaderInner() {
           onSetStopMark={handleSetStopMark}
           isBookmarked={isPageBookmarked}
           isOpenModal={showPageJumpModal}
+          onOpenModal={() => setShowPageJumpModal(true)}
           onCloseModal={() => setShowPageJumpModal(false)}
         />
       )}
