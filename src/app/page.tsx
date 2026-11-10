@@ -382,24 +382,128 @@ export default function HomePage() {
     };
   });
 
+  // Close all open modals helper
+  const closeAllHomeModals = useCallback(() => {
+    setShowReadQuranModal(false);
+    setShowAudioModal(false);
+    setShowPrayerModal(false);
+    setShowRadiosModal(false);
+    setShowOfflineModal(false);
+    setShowAthkarModal(false);
+    setShowAccessibilityModal(false);
+    setShowVoiceAssistantModal(false);
+    setShowReciterModal(false);
+    setShowOfflineAudioModal(false);
+    setShowMultiSurahModal(false);
+    setShowEditProgressModal(false);
+    setShowBarcodeModal(false);
+    setShowInstallModal(false);
+  }, []);
+
+  const isAnyHomeModalOpen = Boolean(
+    showReadQuranModal ||
+    showAudioModal ||
+    showPrayerModal ||
+    showRadiosModal ||
+    showOfflineModal ||
+    showAthkarModal ||
+    showAccessibilityModal ||
+    showVoiceAssistantModal ||
+    showReciterModal ||
+    showOfflineAudioModal ||
+    showMultiSurahModal ||
+    showEditProgressModal ||
+    showBarcodeModal ||
+    showInstallModal
+  );
+
+  const modalHistoryPushedRef = useRef(false);
+
+  // Push state to browser history whenever any window/modal opens so the phone's back button closes the window instead of exiting to phone home screen
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (isAnyHomeModalOpen) {
+      if (!modalHistoryPushedRef.current) {
+        modalHistoryPushedRef.current = true;
+        window.history.pushState({ noorModalOpen: true }, '');
+      }
+    } else {
+      if (modalHistoryPushedRef.current) {
+        modalHistoryPushedRef.current = false;
+        if (window.history.state && window.history.state.noorModalOpen) {
+          window.history.back();
+        }
+      }
+    }
+  }, [isAnyHomeModalOpen]);
+
+  // Universal Popstate listener: catches phone hardware back button on Chrome, mobile browsers, PWA, and WebView
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = () => {
+      const s = homeModalsRef.current;
+      const anyOpen = Boolean(
+        s.showReadQuranModal ||
+        s.showAudioModal ||
+        s.showPrayerModal ||
+        s.showRadiosModal ||
+        s.showOfflineModal ||
+        s.showAthkarModal ||
+        s.showAccessibilityModal ||
+        s.showVoiceAssistantModal ||
+        s.showReciterModal ||
+        s.showOfflineAudioModal ||
+        s.showMultiSurahModal ||
+        s.showEditProgressModal ||
+        s.showBarcodeModal ||
+        s.showInstallModal
+      );
+
+      if (anyOpen) {
+        modalHistoryPushedRef.current = false;
+        closeAllHomeModals();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [closeAllHomeModals]);
+
   // Hardware Back Button Handler for Home Page (closes any open modal, returns false if on home page with no modal open)
   useEffect(() => {
     window.__handleHardwareBack = () => {
       const s = homeModalsRef.current;
-      if (s.showReadQuranModal) { setShowReadQuranModal(false); return true; }
-      if (s.showAudioModal) { setShowAudioModal(false); return true; }
-      if (s.showPrayerModal) { setShowPrayerModal(false); return true; }
-      if (s.showRadiosModal) { setShowRadiosModal(false); return true; }
-      if (s.showOfflineModal) { setShowOfflineModal(false); return true; }
-      if (s.showAthkarModal) { setShowAthkarModal(false); return true; }
-      if (s.showAccessibilityModal) { setShowAccessibilityModal(false); return true; }
-      if (s.showVoiceAssistantModal) { setShowVoiceAssistantModal(false); return true; }
-      if (s.showReciterModal) { setShowReciterModal(false); return true; }
-      if (s.showOfflineAudioModal) { setShowOfflineAudioModal(false); return true; }
-      if (s.showMultiSurahModal) { setShowMultiSurahModal(false); return true; }
-      if (s.showEditProgressModal) { setShowEditProgressModal(false); return true; }
-      if (s.showBarcodeModal) { setShowBarcodeModal(false); return true; }
-      if (s.showInstallModal) { setShowInstallModal(false); return true; }
+      const anyOpen = Boolean(
+        s.showReadQuranModal ||
+        s.showAudioModal ||
+        s.showPrayerModal ||
+        s.showRadiosModal ||
+        s.showOfflineModal ||
+        s.showAthkarModal ||
+        s.showAccessibilityModal ||
+        s.showVoiceAssistantModal ||
+        s.showReciterModal ||
+        s.showOfflineAudioModal ||
+        s.showMultiSurahModal ||
+        s.showEditProgressModal ||
+        s.showBarcodeModal ||
+        s.showInstallModal
+      );
+
+      if (anyOpen) {
+        closeAllHomeModals();
+        if (modalHistoryPushedRef.current) {
+          modalHistoryPushedRef.current = false;
+          if (typeof window !== 'undefined' && window.history.state?.noorModalOpen) {
+            window.history.back();
+          }
+        }
+        return true;
+      }
 
       return false;
     };
@@ -407,7 +511,7 @@ export default function HomePage() {
     return () => {
       window.__handleHardwareBack = undefined;
     };
-  }, []);
+  }, [closeAllHomeModals]);
 
   // Select reciter from modal
   const handleSelectReciterFromModal = useCallback((id: number, name: string) => {

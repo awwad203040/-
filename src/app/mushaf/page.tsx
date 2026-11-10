@@ -257,22 +257,122 @@ function MushafReaderInner() {
     };
   });
 
+  const isAnyMushafModalOpen = Boolean(
+    showTafsir ||
+    showCorrection ||
+    showSettings ||
+    showSearch ||
+    showPageJumpModal ||
+    showReciterSelect ||
+    showOfflineAudioModal ||
+    showNoteModal ||
+    showPageVersesDrawer ||
+    showOfflineModal ||
+    showCopyModal ||
+    selectedVerse
+  );
+
+  const closeAllMushafModals = useCallback(() => {
+    setShowTafsir(false);
+    setShowCorrection(false);
+    setShowSettings(false);
+    setShowSearch(false);
+    setShowPageJumpModal(false);
+    setShowReciterSelect(false);
+    setShowOfflineAudioModal(false);
+    setShowNoteModal(false);
+    setShowPageVersesDrawer(false);
+    setShowOfflineModal(false);
+    setShowCopyModal(false);
+    setSelectedVerse(null);
+  }, []);
+
+  const mushafHistoryPushedRef = useRef(false);
+
+  // Push state to browser history whenever any sub-modal opens so phone back button pops it cleanly
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (isAnyMushafModalOpen) {
+      if (!mushafHistoryPushedRef.current) {
+        mushafHistoryPushedRef.current = true;
+        window.history.pushState({ noorMushafModal: true }, '');
+      }
+    } else {
+      if (mushafHistoryPushedRef.current) {
+        mushafHistoryPushedRef.current = false;
+        if (window.history.state && window.history.state.noorMushafModal) {
+          window.history.back();
+        }
+      }
+    }
+  }, [isAnyMushafModalOpen]);
+
+  // Universal Popstate listener for mobile browser, Chrome, PWA, and WebView
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = () => {
+      const s = mushafModalsRef.current;
+      const anyOpen = Boolean(
+        s.showTafsir ||
+        s.showCorrection ||
+        s.showSettings ||
+        s.showSearch ||
+        s.showPageJumpModal ||
+        s.showReciterSelect ||
+        s.showOfflineAudioModal ||
+        s.showNoteModal ||
+        s.showPageVersesDrawer ||
+        s.showOfflineModal ||
+        s.showCopyModal ||
+        s.selectedVerse
+      );
+
+      if (anyOpen) {
+        mushafHistoryPushedRef.current = false;
+        closeAllMushafModals();
+      } else {
+        // Return directly to the main home page with all windows
+        window.location.href = '/';
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [closeAllMushafModals]);
+
   // Hardware Back Button Handler for Mushaf Page (closes modal or returns immediately to Home with all windows)
   useEffect(() => {
     window.__handleHardwareBack = () => {
       const s = mushafModalsRef.current;
-      if (s.showTafsir) { setShowTafsir(false); return true; }
-      if (s.showCorrection) { setShowCorrection(false); return true; }
-      if (s.showSettings) { setShowSettings(false); return true; }
-      if (s.showSearch) { setShowSearch(false); return true; }
-      if (s.showPageJumpModal) { setShowPageJumpModal(false); return true; }
-      if (s.showReciterSelect) { setShowReciterSelect(false); return true; }
-      if (s.showOfflineAudioModal) { setShowOfflineAudioModal(false); return true; }
-      if (s.showNoteModal) { setShowNoteModal(false); return true; }
-      if (s.showPageVersesDrawer) { setShowPageVersesDrawer(false); return true; }
-      if (s.showOfflineModal) { setShowOfflineModal(false); return true; }
-      if (s.showCopyModal) { setShowCopyModal(false); return true; }
-      if (s.selectedVerse) { setSelectedVerse(null); return true; }
+      const anyOpen = Boolean(
+        s.showTafsir ||
+        s.showCorrection ||
+        s.showSettings ||
+        s.showSearch ||
+        s.showPageJumpModal ||
+        s.showReciterSelect ||
+        s.showOfflineAudioModal ||
+        s.showNoteModal ||
+        s.showPageVersesDrawer ||
+        s.showOfflineModal ||
+        s.showCopyModal ||
+        s.selectedVerse
+      );
+
+      if (anyOpen) {
+        closeAllMushafModals();
+        if (mushafHistoryPushedRef.current) {
+          mushafHistoryPushedRef.current = false;
+          if (typeof window !== 'undefined' && window.history.state?.noorMushafModal) {
+            window.history.back();
+          }
+        }
+        return true;
+      }
 
       // No modal is open in Mushaf -> navigate immediately to the Home Screen where all windows are!
       if (typeof window !== 'undefined') {
@@ -284,7 +384,7 @@ function MushafReaderInner() {
     return () => {
       window.__handleHardwareBack = undefined;
     };
-  }, []);
+  }, [closeAllMushafModals]);
 
   // Reset page image error when changing pages
   useEffect(() => {

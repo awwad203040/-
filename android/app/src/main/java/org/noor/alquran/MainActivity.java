@@ -433,13 +433,31 @@ public class MainActivity extends BridgeActivity {
                         return;
                     }
 
-                    // Otherwise, user is on the main root page (/) with all 8 windows visible and no modal open
-                    long now = System.currentTimeMillis();
-                    if (now - lastBackPressedTime < 2000L) {
-                        finish();
+                    if ("on_home_page".equalsIgnoreCase(cleanRes)) {
+                        // User is on the root main screen (/) with all 8 windows visible and no modal open
+                        long now = System.currentTimeMillis();
+                        if (now - lastBackPressedTime < 2000L) {
+                            finish();
+                        } else {
+                            lastBackPressedTime = now;
+                            Toast.makeText(MainActivity.this, "اضغط مرة أخرى للخروج من التطبيق", Toast.LENGTH_SHORT).show();
+                        }
+                        return;
+                    }
+
+                    // Safe fallback: If result was null/undefined or failed to evaluate, navigate to root rather than exiting
+                    String url = wv.getUrl();
+                    if (url != null && !url.endsWith(".app/") && !url.endsWith(".app") && !url.endsWith(":3000/") && !url.endsWith(":3000")) {
+                        wv.loadUrl("https://awwad2030.vercel.app/");
+                        lastBackPressedTime = 0L;
                     } else {
-                        lastBackPressedTime = now;
-                        Toast.makeText(MainActivity.this, "اضغط مرة أخرى للخروج من التطبيق", Toast.LENGTH_SHORT).show();
+                        long now = System.currentTimeMillis();
+                        if (now - lastBackPressedTime < 2000L) {
+                            finish();
+                        } else {
+                            lastBackPressedTime = now;
+                            Toast.makeText(MainActivity.this, "اضغط مرة أخرى للخروج من التطبيق", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
             });
