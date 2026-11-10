@@ -104,6 +104,7 @@ public class MainActivity extends BridgeActivity {
                 ws.setDomStorageEnabled(true);
                 ws.setDatabaseEnabled(true);
                 ws.setAllowFileAccess(true);
+                ws.setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
                 Log.i(TAG, "Configured WebView: setMediaPlaybackRequiresUserGesture(false)");
             }
         } catch (Exception e) {

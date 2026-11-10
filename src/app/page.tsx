@@ -29,12 +29,15 @@ import BlindVoiceAssistantModal from '@/components/common/BlindVoiceAssistantMod
 import type { VoiceCommandResult } from '@/lib/voice-command-engine';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { triggerHaptic, speakAccessibility, stopAccessibilitySpeech, announceToScreenReader, getAccessibilitySettings } from '@/lib/accessibility';
+import { forcePwaUpdate } from '@/components/PwaRegister';
+import { downloadAndInstallNativeUpdate } from '@/lib/adhan-native-bridge';
 
 export default function HomePage() {
   const router = useRouter();
   const audio = useAudioPlayer();
   const autoAthkar = useAutoAthkar();
   const prayerTimes = usePrayerTimes();
+  const [updateToast, setUpdateToast] = useState<string | null>(null);
   const [progress, setProgress] = useState<ReadingProgress | null>(null);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [pagesRead, setPagesRead] = useState(0);
@@ -97,6 +100,40 @@ export default function HomePage() {
       window.removeEventListener('noor-pages-visited-updated', refreshProgress);
     };
   }, [refreshProgress]);
+
+  // Auto update on launch: checks and updates app automatically
+  useEffect(() => {
+    // 1. Silent PWA service worker update
+    forcePwaUpdate().catch(() => {});
+
+    const handlePwaUpdated = () => {
+      setUpdateToast('تم تحديث التطبيق تلقائياً لأحدث إصدار ✨');
+      setTimeout(() => setUpdateToast(null), 4000);
+    };
+    window.addEventListener('noor-pwa-updated', handlePwaUpdated);
+
+    // 2. Fetch server version to trigger native/PWA update check
+    const CURRENT_NATIVE_VERSION = 6;
+    fetch(`/api/app-version?t=${Date.now()}`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        if (data.versionCode && data.versionCode > CURRENT_NATIVE_VERSION) {
+          const isNative = typeof window !== 'undefined' && Boolean((window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
+          if (isNative) {
+            setUpdateToast('✨ جاري تنزيل التحديث التلقائي لأحدث إصدار...');
+            setTimeout(() => {
+              downloadAndInstallNativeUpdate(data.apkUrl);
+            }, 1500);
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener('noor-pwa-updated', handlePwaUpdated);
+    };
+  }, []);
 
   // Navigate directly to the last saved read page
   const handleContinueReading = useCallback(() => {
@@ -690,36 +727,36 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* 3. WIDE CARD: تقدمك في القراءة (تأثير فلاشي جذاب مع الحفاظ التام على الخطوط والبيانات) */}
+          {/* 3. WIDE CARD: تقدمك في القراءة (بنفس نمط باقي النوافذ: العاج والذهب الملكي) */}
           <div
             className="w-full rounded-2xl py-2.5 px-3.5 sm:py-3 sm:px-4 border-2 border-[#C8A85B] shadow-lg text-right transition-all flash-window flash-delay-3"
             style={{
-              background: 'linear-gradient(135deg, #184E38 0%, #123B2A 50%, #0A271B 100%)',
+              background: 'linear-gradient(135deg, #FFFDF8 0%, #F8F2E2 50%, #EFE4C8 100%)',
             }}
           >
             {/* Header: Title, Owner Badge, Percentage & Edit */}
             <div className="flex justify-between items-center mb-1.5">
               <div className="flex items-center gap-1.5">
-                <span className="text-lg shrink-0">📖</span>
+                <span className="text-xl shrink-0 filter drop-shadow">📖</span>
                 <span
-                  className="text-sm sm:text-base font-extrabold text-[#F7EED8] flex items-center gap-2"
+                  className="text-sm sm:text-base font-extrabold text-[#123B2A] flex items-center gap-2"
                   style={{ fontFamily: "'Amiri', serif" }}
                 >
                   <span>تقدمك في القراءة</span>
-                  <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#123B2A] text-[#FFD700] border border-[#C8A85B]/60 shadow-2xs">
                     صاحب الجوال
                   </span>
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm font-mono font-black text-[#FFD700]" dir="ltr">
+                <span className="text-sm font-mono font-black text-[#7A5C1E]" dir="ltr">
                   {percentage}%
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowEditProgressModal(true)}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#C8A85B]/25 hover:bg-[#C8A85B]/35 text-[#FFD700] border border-[#C8A85B]/40 active:scale-95 transition cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#123B2A]/10 hover:bg-[#123B2A]/15 text-[#123B2A] border border-[#C8A85B]/60 active:scale-95 transition cursor-pointer"
                   title="تعديل صفحة التوقف وعدد الصفحات المقروءة"
                 >
                   <span>✏️</span>
@@ -729,26 +766,26 @@ export default function HomePage() {
             </div>
 
             {/* Quick Stats Line */}
-            <div className="flex items-center justify-between text-xs mb-1.5 bg-black/35 rounded-xl px-2.5 py-1.5 border border-white/10">
+            <div className="flex items-center justify-between text-xs mb-1.5 bg-white/85 rounded-xl px-2.5 py-1.5 border border-[#C8A85B]/40 shadow-2xs">
               <div className="flex items-center gap-2 min-w-0 truncate">
-                <span className="text-[#FFD700] font-black text-sm sm:text-base shrink-0" style={{ fontFamily: "'Amiri', serif" }}>
+                <span className="text-[#123B2A] font-black text-sm sm:text-base shrink-0" style={{ fontFamily: "'Amiri', serif" }}>
                   صفحة {currentStoppedPage}
                 </span>
                 {stoppedSurahMeta && (
-                  <span className="text-xs text-white/90 truncate">
+                  <span className="text-xs text-[#7A5C1E] font-bold truncate">
                     ({stoppedSurahMeta.name} • جزء {stoppedSurahMeta.startPage})
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-white/70 flex items-center gap-2 shrink-0">
+              <div className="text-[11px] text-[#7A5C1E] flex items-center gap-2 shrink-0 font-bold">
                 <span>{actualPagesRead} من 604 ص</span>
-                <span className="text-white/40">•</span>
-                <span className="text-[10px] text-white/60">{formatLastReadTime(progress?.updatedAt)}</span>
+                <span className="text-[#C8A85B]">•</span>
+                <span className="text-[10px] text-[#7A5C1E]/80">{formatLastReadTime(progress?.updatedAt)}</span>
               </div>
             </div>
 
             {/* Slim Progress Bar */}
-            <div className="h-1.5 rounded-full overflow-hidden bg-white/15 mb-2 relative">
+            <div className="h-1.5 rounded-full overflow-hidden bg-[#123B2A]/15 mb-2 relative">
               <div
                 className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#C8A85B] via-[#eed596] to-[#C8A85B]"
                 style={{ width: `${Math.max(2, percentage)}%` }}
@@ -759,16 +796,16 @@ export default function HomePage() {
             <button
               type="button"
               onClick={handleContinueReading}
-              className="w-full py-2 px-3.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#C8A85B] via-[#dfc278] to-[#C8A85B] text-[#123B2A] hover:brightness-105 active:scale-[0.99] transition shadow-md cursor-pointer flex items-center justify-between border border-[#C8A85B]"
+              className="w-full py-2 px-3.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#123B2A] via-[#1a4e39] to-[#123B2A] text-[#F7EED8] hover:brightness-110 active:scale-[0.99] transition shadow-md cursor-pointer flex items-center justify-between border border-[#C8A85B]"
               style={{ fontFamily: "'Tajawal', sans-serif" }}
             >
               <div className="flex items-center gap-2 truncate min-w-0">
-                <span className="text-sm">▶</span>
+                <span className="text-sm text-[#FFD700]">▶</span>
                 <span className="truncate">
                   متابعة القراءة من صفحة {currentStoppedPage} {stoppedSurahMeta ? `(سورة ${stoppedSurahMeta.name})` : ''}
                 </span>
               </div>
-              <span className="text-xs font-black shrink-0 mr-2">فتح المصحف ←</span>
+              <span className="text-xs font-black text-[#FFD700] shrink-0 mr-2">فتح المصحف ←</span>
             </button>
           </div>
 
@@ -1210,6 +1247,19 @@ export default function HomePage() {
           onReplay={(t) => autoAthkar.triggerThikr(t)}
           isSpeaking={autoAthkar.isSpeaking}
         />
+      )}
+
+      {/* Automatic Update Toast Notification */}
+      {updateToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#123B2A] text-[#F7EED8] border-2 border-[#C8A85B] px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-black animate-fade-in"
+          style={{ fontFamily: "'Tajawal', sans-serif" }}
+        >
+          <span className="text-lg text-[#FFD700]">✨</span>
+          <span>{updateToast}</span>
+        </div>
       )}
 
       {/* Automatic Athkar Settings Modal */}
