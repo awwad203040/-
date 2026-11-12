@@ -43,5 +43,7 @@ next-env.d.ts
 # apk and archives
 *.apk
 !public/Noor-AlQuran.apk
+*.aab
 *.zip
 apk-dist/
+scratch/

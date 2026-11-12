@@ -24,8 +24,15 @@ public class MainActivity extends BridgeActivity {
     private static final String PREFS_PERMS = "noor_permissions_prefs";
     public static final int REQUEST_CODE_SPEECH = 9999;
 
+    private static MainActivity instance = null;
     private boolean requestedExactAlarmThisSession = false;
     private boolean requestedBatteryExemptionThisSession = false;
+
+    public static void dispatchMediaAction(String action) {
+        if (instance != null) {
+            instance.dispatchJSEvent("noor-media-action", "{ action: '" + action + "' }");
+        }
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -42,6 +49,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        instance = this;
         registerPlugin(AthkarNativePlugin.class);
         registerPlugin(AdhanNativePlugin.class);
         super.onCreate(savedInstanceState);

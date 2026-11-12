@@ -34,7 +34,7 @@ import java.util.Locale;
  * Icon:  Rounded cyan square with turquoise mosque dome, gold base and crescent.
  */
 public class PrayerNotificationHelper {
-    public static final String CHANNEL_ADHAN_ID = "noor_adhan_fg_channel_v2";
+    public static final String CHANNEL_ADHAN_ID = "noor_adhan_live_silent_v5";
     public static final String CHANNEL_PRAYER_BAR_ID = "noor_prayer_bar_channel_v1";
     public static final int NOTIFICATION_ID_PRAYER = 8881;
 
@@ -188,20 +188,21 @@ public class PrayerNotificationHelper {
         NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
 
-        // 1. High-importance Adhan channel (NO system ding/chime, flash lights enabled)
+        // 1. High-importance Adhan channel (NO system ding/chime, flash lights enabled, ZERO vibration)
         NotificationChannel adhanChannel = nm.getNotificationChannel(CHANNEL_ADHAN_ID);
         if (adhanChannel == null) {
             adhanChannel = new NotificationChannel(
                     CHANNEL_ADHAN_ID,
-                    "أذان الصلوات (صوتي مباشر)",
+                    "أذان الصلوات (صوتي مباشر وبدون اهتزاز)",
                     NotificationManager.IMPORTANCE_HIGH
             );
-            adhanChannel.setDescription("تنبيه أذان الصلوات المباشر بصوت الشيخ محمد جازي مع فلاش وبدون صوت تنبيه النظام المزعج");
+            adhanChannel.setDescription("تنبيه أذان الصلوات المباشر بصوت الشيخ محمد جازي مع فلاش وبدون اهتزاز");
             // Delete system chime ding completely so only the Adhan audio plays!
             adhanChannel.setSound(null, null);
             adhanChannel.enableLights(true);
             adhanChannel.setLightColor(Color.WHITE);
-            adhanChannel.enableVibration(true);
+            adhanChannel.enableVibration(false);
+            adhanChannel.setVibrationPattern(new long[]{0});
             adhanChannel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
             nm.createNotificationChannel(adhanChannel);
         }
@@ -298,6 +299,8 @@ public class PrayerNotificationHelper {
                 .setColor(Color.parseColor("#123B2A"))
                 .setContentIntent(openPi)
                 .setDeleteIntent(deletePi)
+                .setVibrate(new long[]{0})
+                .setDefaults(0)
                 .setOngoing(true);
 
         if (mosqueIcon != null) {

@@ -161,6 +161,9 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         Runnable cleanup = () -> {
             if (finished.compareAndSet(false, true)) {
                 try {
+                    PrayerFlashSilentHelper.stopCameraTorch(context);
+                } catch (Exception ignored) {}
+                try {
                     stopActivePlayer();
                 } catch (Exception ignored) {}
                 try {
@@ -184,7 +187,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         new Handler(Looper.getMainLooper()).postDelayed(cleanup, 270000L); // 270s watchdog timeout (adhan audio is 246s)
 
         try {
-            PrayerFlashSilentHelper.flashCameraTorch(context, 10, 300);
+            PrayerFlashSilentHelper.startAdhanFlashlight(context);
             PrayerFlashSilentHelper.setSilentModeForPrayer(context, 20);
             showAdhanHeadsUpNotification(context, prayerName, cityName, prayerTime12, hijriDate);
 

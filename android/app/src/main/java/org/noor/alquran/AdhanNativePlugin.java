@@ -340,4 +340,37 @@ public class AdhanNativePlugin extends Plugin {
             call.resolve(ret);
         }
     }
+
+    @PluginMethod
+    public void updateMediaNotification(PluginCall call) {
+        try {
+            Context context = getContext();
+            String title = call.getString("title", "القرآن الكريم");
+            String artist = call.getString("artist", "نور القرآن");
+            boolean isPlaying = Boolean.TRUE.equals(call.getBoolean("isPlaying", false));
+
+            MediaNotificationHelper.showOrUpdate(context, title, artist, isPlaying);
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to update media notification: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void dismissMediaNotification(PluginCall call) {
+        try {
+            Context context = getContext();
+            MediaNotificationHelper.dismiss(context);
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to dismiss media notification: " + e.getMessage());
+        }
+    }
 }
+

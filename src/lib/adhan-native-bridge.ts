@@ -46,6 +46,12 @@ export interface AdhanNativePluginInterface {
     cityName?: string;
     error?: string;
   }>;
+  updateMediaNotification(options: {
+    title: string;
+    artist: string;
+    isPlaying: boolean;
+  }): Promise<{ success: boolean }>;
+  dismissMediaNotification(): Promise<{ success: boolean }>;
 }
 
 const AdhanNative = registerPlugin<AdhanNativePluginInterface>('AdhanNative');
@@ -201,3 +207,34 @@ export async function downloadAndInstallNativeUpdate(apkUrl?: string) {
     return { success: false };
   }
 }
+
+/**
+ * Updates the native Android persistent media playback notification (MediaSession / MediaStyle)
+ */
+export async function updateNativeMediaNotification(options: {
+  title: string;
+  artist?: string;
+  isPlaying: boolean;
+}) {
+  try {
+    return await AdhanNative.updateMediaNotification({
+      title: options.title,
+      artist: options.artist || 'نور القرآن',
+      isPlaying: options.isPlaying,
+    });
+  } catch {
+    return { success: false };
+  }
+}
+
+/**
+ * Dismisses the native media notification
+ */
+export async function dismissNativeMediaNotification() {
+  try {
+    return await AdhanNative.dismissMediaNotification();
+  } catch {
+    return { success: false };
+  }
+}
+

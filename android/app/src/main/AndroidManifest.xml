@@ -122,6 +122,19 @@
             </intent-filter>
         </receiver>
 
+        <!-- Media Notification Action Receiver (Play/Pause, Stop from system notification) -->
+        <receiver
+            android:name=".MediaNotificationHelper$MediaActionReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.noor.alquran.ACTION_MEDIA_PLAY" />
+                <action android:name="org.noor.alquran.ACTION_MEDIA_PAUSE" />
+                <action android:name="org.noor.alquran.ACTION_MEDIA_TOGGLE" />
+                <action android:name="org.noor.alquran.ACTION_MEDIA_STOP" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

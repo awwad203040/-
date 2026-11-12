@@ -117,8 +117,8 @@ public class NoorAudioService extends Service {
         // Acquire WakeLock for up to 5 minutes (Azan length is ~4.1 min / 246s)
         acquireWakeLock(300000L);
 
-        // Flash camera LED strobe alert when Adhan starts
-        PrayerFlashSilentHelper.flashCameraTorch(this, 10, 300);
+        // Flash camera LED strobe alert when Adhan starts (flashlight only, no vibration)
+        PrayerFlashSilentHelper.startAdhanFlashlight(this);
 
         // Put phone on silent mode for 20 minutes of Salah with auto-restore
         PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
@@ -475,6 +475,7 @@ public class NoorAudioService extends Service {
     private void finishAdhan() {
         stopAdhanTicker();
         cancelTimeout();
+        PrayerFlashSilentHelper.stopCameraTorch(this);
         stopActivePlayerOnly();
         abandonAudioFocus();
         releaseWakeLock();
@@ -527,6 +528,7 @@ public class NoorAudioService extends Service {
     private void stopPlaybackAndService() {
         stopAdhanTicker();
         cancelTimeout();
+        PrayerFlashSilentHelper.stopCameraTorch(this);
         stopActivePlayerOnly();
         abandonAudioFocus();
         releaseWakeLock();

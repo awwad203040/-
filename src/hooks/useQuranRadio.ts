@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { QURAN_RADIO_STATIONS, type QuranRadioStation } from '@/lib/quran-radios';
 import Hls from 'hls.js';
+import { updateNativeMediaNotification, dismissNativeMediaNotification } from '@/lib/adhan-native-bridge';
 
 interface UseQuranRadioState {
   currentStation: QuranRadioStation | null;
@@ -259,6 +260,7 @@ export function useQuranRadio() {
       globalRadioAudio.removeAttribute('src');
       globalRadioAudio.load();
     }
+    dismissNativeMediaNotification();
     globalActiveStation = null;
     setState((prev) => ({
       ...prev,
@@ -276,6 +278,79 @@ export function useQuranRadio() {
     }
     setState((prev) => ({ ...prev, volume: clamped }));
   }, []);
+
+  // Synchronize with Web Standard MediaSession & Android Native Media Controls
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (state.currentStation) {
+      const title = state.currentStation.name;
+      const artist = state.currentStation.description || 'بث مباشر • نور القرآن';
+
+      if ('mediaSession' in navigator) {
+        try {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title,
+            artist,
+            album: 'إذاعة القرآن الكريم',
+            artwork: [
+              { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+              { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+            ],
+          });
+          navigator.mediaSession.playbackState = state.isPlaying ? 'playing' : 'paused';
+          navigator.mediaSession.setActionHandler('play', () => {
+            togglePlayPause();
+          });
+          navigator.mediaSession.setActionHandler('pause', () => {
+            togglePlayPause();
+          });
+          navigator.mediaSession.setActionHandler('stop', () => {
+            stopRadio();
+          });
+        } catch {}
+      }
+
+      updateNativeMediaNotification({
+        title,
+        artist,
+        isPlaying: state.isPlaying,
+      });
+    } else if (!state.isPlaying && !state.currentStation) {
+      if ('mediaSession' in navigator) {
+        try {
+          navigator.mediaSession.playbackState = 'none';
+        } catch {}
+      }
+      dismissNativeMediaNotification();
+    }
+  }, [state.currentStation, state.isPlaying, togglePlayPause, stopRadio]);
+
+  // Handle native notification actions (Play/Pause, Stop)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleMediaAction = (event: Event) => {
+      if (!globalActiveStation) return;
+      const customEvent = event as CustomEvent<{ action?: string }>;
+      const action = customEvent.detail?.action;
+      if (!action) return;
+
+      if (action === 'play') {
+        if (globalRadioAudio?.paused) togglePlayPause();
+      } else if (action === 'pause') {
+        if (!globalRadioAudio?.paused) togglePlayPause();
+      } else if (action === 'toggle') {
+        togglePlayPause();
+      } else if (action === 'stop') {
+        stopRadio();
+      }
+    };
+
+    window.addEventListener('noor-media-action', handleMediaAction);
+    return () => {
+      window.removeEventListener('noor-media-action', handleMediaAction);
+    };
+  }, [togglePlayPause, stopRadio]);
 
   return {
     ...state,

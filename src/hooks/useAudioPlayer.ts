@@ -11,6 +11,7 @@ import {
 } from '@/lib/quran-meta';
 import { getOfflineAudioBlob, isAudioDownloaded } from '@/lib/offline-audio-manager';
 import { triggerHaptic, stopAccessibilitySpeech, announceToScreenReader, speakAccessibility, getAccessibilitySettings } from '@/lib/accessibility';
+import { updateNativeMediaNotification, dismissNativeMediaNotification } from '@/lib/adhan-native-bridge';
 
 export interface AudioPlayerState {
   isPlaying: boolean;
@@ -973,6 +974,7 @@ export function useAudioPlayer() {
       audioRef.current.currentTime = 0;
       audioRef.current.removeAttribute('src');
     }
+    dismissNativeMediaNotification();
     loopRef.current.isAyahRangeLooping = false;
     loopRef.current.ayahRangeStart = null;
     loopRef.current.ayahRangeEnd = null;
@@ -996,6 +998,88 @@ export function useAudioPlayer() {
       ayahRemainingRepeats: 1,
     }));
   }, []);
+
+  // Synchronize with Web Standard MediaSession & Android Native Media Notification (MediaStyle)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (state.currentSurah > 0 && state.surahName) {
+      const title = `سورة ${state.surahName}`;
+      const artist = state.reciterName || 'نور القرآن';
+
+      // 1. Web Standard MediaSession API
+      if ('mediaSession' in navigator) {
+        try {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title,
+            artist,
+            album: 'نور القرآن الكريم',
+            artwork: [
+              { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+              { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+            ],
+          });
+
+          navigator.mediaSession.playbackState = state.isPlaying ? 'playing' : 'paused';
+
+          navigator.mediaSession.setActionHandler('play', () => {
+            play();
+          });
+          navigator.mediaSession.setActionHandler('pause', () => {
+            pause();
+          });
+          navigator.mediaSession.setActionHandler('stop', () => {
+            stop();
+          });
+          navigator.mediaSession.setActionHandler('previoustrack', () => {
+            playPreviousSurah();
+          });
+          navigator.mediaSession.setActionHandler('nexttrack', () => {
+            playNextSurah();
+          });
+        } catch {}
+      }
+
+      // 2. Native Android Media Notification with MediaSessionCompat and Dedicated Stop
+      updateNativeMediaNotification({
+        title,
+        artist,
+        isPlaying: state.isPlaying,
+      });
+    } else if (!state.isPlaying && state.currentSurah === 0) {
+      if ('mediaSession' in navigator) {
+        try {
+          navigator.mediaSession.playbackState = 'none';
+        } catch {}
+      }
+      dismissNativeMediaNotification();
+    }
+  }, [state.isPlaying, state.currentSurah, state.surahName, state.reciterName, play, pause, stop, playNextSurah, playPreviousSurah]);
+
+  // Listen to native media notification actions (Play/Pause, Stop)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleMediaAction = (event: Event) => {
+      const customEvent = event as CustomEvent<{ action?: string }>;
+      const action = customEvent.detail?.action;
+      if (!action) return;
+
+      if (action === 'play') {
+        play();
+      } else if (action === 'pause') {
+        pause();
+      } else if (action === 'toggle') {
+        togglePlayPause();
+      } else if (action === 'stop') {
+        stop();
+      }
+    };
+
+    window.addEventListener('noor-media-action', handleMediaAction);
+    return () => {
+      window.removeEventListener('noor-media-action', handleMediaAction);
+    };
+  }, [play, pause, togglePlayPause, stop]);
 
   return {
     ...state,

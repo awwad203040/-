@@ -13,31 +13,39 @@ import android.util.Log;
 
 /**
  * Helper to handle:
- * 1. Camera Flashlight Strobe Alert on Adhan
+ * 1. Camera Flashlight Strobe Alert on Adhan (Zero vibration, stops immediately on Adhan completion/cancellation)
  * 2. Automatic Phone Silent Mode for 20 minutes after Adhan, with auto-restore
  */
 public class PrayerFlashSilentHelper {
     private static final String TAG = "PrayerFlashSilentHelper";
     public static final String ACTION_RESTORE_RINGER = "org.noor.alquran.ACTION_RESTORE_RINGER";
     public static final int REQ_CODE_RESTORE_RINGER = 9920;
+
     private static volatile boolean isFlashing = false;
+    private static Thread flashThread = null;
 
     /**
-     * Strobe flashes the camera LED torch when Adhan starts
+     * Continuous camera flashlight strobe for the full duration of Adhan.
+     * Flashlight only - ZERO vibration.
+     * Stops automatically when Adhan finishes or when stopCameraTorch is called.
      */
-    public static void flashCameraTorch(Context context, int pulseCount, long pulseDurationMs) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
-        if (context == null || isFlashing) return;
+    public static synchronized void startAdhanFlashlight(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || context == null) return;
+        if (isFlashing) return;
 
-        new Thread(() -> {
-            isFlashing = true;
+        isFlashing = true;
+        final Context appContext = context.getApplicationContext();
+
+        flashThread = new Thread(() -> {
+            CameraManager cameraManager = null;
+            String cameraId = null;
             try {
-                CameraManager cameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+                cameraManager = (CameraManager) appContext.getSystemService(Context.CAMERA_SERVICE);
                 if (cameraManager == null) {
                     isFlashing = false;
                     return;
                 }
-                String cameraId = null;
+
                 for (String id : cameraManager.getCameraIdList()) {
                     CameraCharacteristics c = cameraManager.getCameraCharacteristics(id);
                     Boolean flashAvailable = c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
@@ -47,35 +55,94 @@ public class PrayerFlashSilentHelper {
                         break;
                     }
                 }
+
+                if (cameraId == null) {
+                    // Try any camera with flash if back-facing was not found
+                    for (String id : cameraManager.getCameraIdList()) {
+                        CameraCharacteristics c = cameraManager.getCameraCharacteristics(id);
+                        Boolean flashAvailable = c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+                        if (Boolean.TRUE.equals(flashAvailable)) {
+                            cameraId = id;
+                            break;
+                        }
+                    }
+                }
+
                 if (cameraId == null) {
                     isFlashing = false;
                     return;
                 }
 
-                for (int i = 0; i < pulseCount; i++) {
+                Log.i(TAG, "Adhan camera flashlight strobe started on camera " + cameraId);
+                long startTime = System.currentTimeMillis();
+
+                // Loop while isFlashing is true (safety timeout 255s matching Adhan duration ~245s)
+                while (isFlashing && (System.currentTimeMillis() - startTime < 255000L)) {
                     try {
                         cameraManager.setTorchMode(cameraId, true);
-                        Thread.sleep(pulseDurationMs);
+                        Thread.sleep(450L);
                         cameraManager.setTorchMode(cameraId, false);
-                        Thread.sleep(pulseDurationMs);
-                    } catch (Exception ignored) {
+                        Thread.sleep(550L);
+                    } catch (InterruptedException ie) {
+                        break;
+                    } catch (Exception e) {
+                        Log.w(TAG, "Error toggling torch: " + e.getMessage());
                         break;
                     }
                 }
-                try {
-                    cameraManager.setTorchMode(cameraId, false);
-                } catch (Exception ignored) {}
             } catch (Exception e) {
-                Log.w(TAG, "Camera flash strobe failed: " + e.getMessage());
+                Log.w(TAG, "Adhan flashlight execution failed: " + e.getMessage());
             } finally {
                 isFlashing = false;
+                if (cameraManager != null && cameraId != null) {
+                    try {
+                        cameraManager.setTorchMode(cameraId, false);
+                    } catch (Exception ignored) {}
+                }
+                Log.i(TAG, "Adhan camera flashlight strobe ended.");
             }
-        }).start();
+        });
+        flashThread.setName("NoorAdhanFlashThread");
+        flashThread.start();
     }
 
     /**
-     * Puts phone into silent / vibrate mode for 20 minutes during Salah,
-     * and automatically restores original ringer mode after 20 minutes.
+     * Immediately stops camera torch strobe and turns off flashlight.
+     */
+    public static synchronized void stopCameraTorch(Context context) {
+        isFlashing = false;
+        if (flashThread != null) {
+            try {
+                flashThread.interrupt();
+            } catch (Exception ignored) {}
+            flashThread = null;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null) {
+            try {
+                CameraManager cameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+                if (cameraManager != null) {
+                    for (String id : cameraManager.getCameraIdList()) {
+                        try {
+                            cameraManager.setTorchMode(id, false);
+                        } catch (Exception ignored) {}
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+
+    /**
+     * Legacy compat strobe for short alerts
+     */
+    public static void flashCameraTorch(Context context, int pulseCount, long pulseDurationMs) {
+        startAdhanFlashlight(context);
+    }
+
+    /**
+     * Puts phone into silent mode for 20 minutes during Salah,
+     * Strictly SILENT - NEVER VIBRATE.
+     * Automatically restores original ringer mode after 20 minutes.
      */
     public static void setSilentModeForPrayer(Context context, int durationMinutes) {
         if (context == null) return;
@@ -96,17 +163,15 @@ public class PrayerFlashSilentHelper {
                     NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
                     if (nm != null && nm.isNotificationPolicyAccessGranted()) {
                         am.setRingerMode(AudioManager.RINGER_MODE_SILENT);
-                    } else {
-                        am.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
+                        Log.i(TAG, "Phone put on silent (no vibration) for prayer.");
                     }
                 } else {
                     am.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+                    Log.i(TAG, "Phone put on silent (no vibration) for prayer.");
                 }
-                Log.i(TAG, "Phone put on silent/vibrate for 20 minutes of prayer.");
             } catch (SecurityException se) {
-                try {
-                    am.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
-                } catch (Exception ignored) {}
+                // Policy not granted, do not alter to vibrate
+                Log.w(TAG, "Notification policy access not granted, skipping ringer mode change.");
             }
 
             // Schedule restore in 20 minutes
