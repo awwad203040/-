@@ -115,7 +115,7 @@ export default function HomePage() {
     window.addEventListener('noor-pwa-updated', handlePwaUpdated);
 
     // 2. Fetch server version to trigger native/PWA update check
-    const CURRENT_NATIVE_VERSION = 10;
+    const CURRENT_NATIVE_VERSION = 11;
     fetch(`/api/app-version?t=${Date.now()}`, { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
