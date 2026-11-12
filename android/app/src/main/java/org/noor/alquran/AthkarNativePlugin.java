@@ -1015,7 +1015,13 @@ public class AthkarNativePlugin extends Plugin {
     @PluginMethod
     public void setUnlockSalawatEnabled(PluginCall call) {
         boolean enabled = call.getBoolean("enabled", true);
-        ScreenUnlockReceiver.setEnabled(getContext(), enabled);
+        Context ctx = getContext();
+        ScreenUnlockReceiver.setEnabled(ctx, enabled);
+        if (enabled) {
+            ScreenUnlockService.startService(ctx);
+        } else {
+            ScreenUnlockService.stopService(ctx);
+        }
         JSObject ret = new JSObject();
         ret.put("success", true);
         ret.put("enabled", enabled);

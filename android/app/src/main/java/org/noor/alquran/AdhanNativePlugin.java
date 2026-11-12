@@ -12,9 +12,11 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -370,6 +372,67 @@ public class AdhanNativePlugin extends Plugin {
             call.resolve(ret);
         } catch (Exception e) {
             call.reject("Failed to dismiss media notification: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openBatterySettings(PluginCall call) {
+        try {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).requestBatteryExemptionDirectly();
+            } else {
+                Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+            }
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open battery settings: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openAutoStartSettings(PluginCall call) {
+        try {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).openAutoStartDirectly();
+            } else {
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+            }
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open auto-start settings: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void playTestUnlockSalawat(PluginCall call) {
+        try {
+            ScreenUnlockReceiver.playSalawatDirect(getContext());
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to test Salawat audio: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void startUnlockService(PluginCall call) {
+        try {
+            ScreenUnlockService.startService(getContext());
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to start unlock service: " + e.getMessage());
         }
     }
 }

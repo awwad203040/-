@@ -80,6 +80,7 @@ public class MainActivity extends BridgeActivity {
         AdhanAlarmReceiver.rescheduleFromPrefs(this);
         PrayerNotificationReceiver.startPerpetualPrayerNotification(this);
         registerDynamicUnlockReceiver();
+        ScreenUnlockService.startService(this);
 
         // Automatically initiate permissions onboarding flow (Notifications + GPS Location + Audio)
         requestAllNecessaryPermissions();

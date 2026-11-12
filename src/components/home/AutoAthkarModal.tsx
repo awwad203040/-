@@ -220,7 +220,7 @@ export default function AutoAthkarModal({
                     </span>
                   </h3>
                   <p className="text-[11px] text-gray-700 mt-0.5">
-                    ينطق بصوت ندي «اللهم صل على سيدنا محمد» تلقائياً عند فتح شاشة الجوال
+                    ينطق بصوت ندي «صلي على النبي محمد» تلقائياً عند قفل وفتح شاشة الجوال
                   </p>
                 </div>
               </div>
@@ -248,7 +248,7 @@ export default function AutoAthkarModal({
 
             <div className="flex items-center justify-between pt-1 border-t border-amber-200/70">
               <span className="text-[10px] text-gray-600">
-                تعمل حتى عندما يكون الجوال مغلقاً ويتم تشغيله
+                تعمل في الخلفية حتى عندما يكون الجوال مغلقاً والتطبيق مقفلاً
               </span>
               <button
                 type="button"

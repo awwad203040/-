@@ -38,12 +38,14 @@ public class PrayerNotificationReceiver extends BroadcastReceiver {
 
         if (ACTION_RECREATE_PRAYER_NOTIFICATION.equals(action)) {
             // Re-post immediately if user swiped notification
+            ScreenUnlockService.startService(context);
             PrayerNotificationHelper.updateAndShowSalatukNotification(context);
             scheduleNextMinuteUpdate(context);
             return;
         }
 
         if (ACTION_MINUTE_UPDATE_PRAYER_NOTIFICATION.equals(action)) {
+            ScreenUnlockService.startService(context);
             PrayerNotificationHelper.updateAndShowSalatukNotification(context);
             scheduleNextMinuteUpdate(context);
         }
@@ -51,6 +53,7 @@ public class PrayerNotificationReceiver extends BroadcastReceiver {
 
     public static void startPerpetualPrayerNotification(Context context) {
         try {
+            ScreenUnlockService.startService(context);
             ScreenUnlockReceiver.ensureRegistered(context);
             PrayerNotificationHelper.updateAndShowSalatukNotification(context);
             scheduleNextMinuteUpdate(context);

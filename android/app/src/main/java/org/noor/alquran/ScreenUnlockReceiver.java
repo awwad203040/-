@@ -43,6 +43,7 @@ public class ScreenUnlockReceiver extends BroadcastReceiver {
 
         // If phone just booted or app updated, re-arm registration and screen-off state
         if (Intent.ACTION_BOOT_COMPLETED.equals(action) || "android.intent.action.MY_PACKAGE_REPLACED".equals(action)) {
+            ScreenUnlockService.startService(context);
             ensureRegistered(context);
             wasScreenOff = true;
             return;

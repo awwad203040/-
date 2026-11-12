@@ -52,6 +52,10 @@ export interface AdhanNativePluginInterface {
     isPlaying: boolean;
   }): Promise<{ success: boolean }>;
   dismissMediaNotification(): Promise<{ success: boolean }>;
+  openBatterySettings(): Promise<{ success: boolean }>;
+  openAutoStartSettings(): Promise<{ success: boolean }>;
+  playTestUnlockSalawat(): Promise<{ success: boolean }>;
+  startUnlockService(): Promise<{ success: boolean }>;
 }
 
 const AdhanNative = registerPlugin<AdhanNativePluginInterface>('AdhanNative');
@@ -237,4 +241,58 @@ export async function dismissNativeMediaNotification() {
     return { success: false };
   }
 }
+
+/**
+ * Open Android system battery optimization exemption settings ("غير مقيد / No restrictions")
+ */
+export async function openNativeBatterySettings() {
+  try {
+    return await AdhanNative.openBatterySettings();
+  } catch {
+    return { success: false };
+  }
+}
+
+/**
+ * Open phone OEM auto-start manager (Xiaomi, Huawei, Samsung, Oppo, Vivo, etc.)
+ */
+export async function openNativeAutoStartSettings() {
+  try {
+    return await AdhanNative.openAutoStartSettings();
+  } catch {
+    return { success: false };
+  }
+}
+
+/**
+ * Play the "صلي على النبي محمد" voice directly for testing
+ */
+export async function playTestNativeUnlockSalawat() {
+  try {
+    return await AdhanNative.playTestUnlockSalawat();
+  } catch {
+    // web fallback
+    if (typeof window !== 'undefined') {
+      try {
+        const audio = new Audio('/audio/salawat_nabi.mp3');
+        await audio.play();
+      } catch (e) {
+        console.warn('Web salawat audio fallback error:', e);
+      }
+    }
+    return { success: false };
+  }
+}
+
+/**
+ * Ensures the permanent background unlock service is running
+ */
+export async function startNativeUnlockService() {
+  try {
+    return await AdhanNative.startUnlockService();
+  } catch {
+    return { success: false };
+  }
+}
+
 

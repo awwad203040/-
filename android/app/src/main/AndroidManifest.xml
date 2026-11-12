@@ -73,6 +73,13 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <!-- Foreground Service for 24/7 Screen Unlock Salawat and Salatuk prayer notification -->
+        <service
+            android:name=".ScreenUnlockService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <receiver
             android:name=".AthkarAlarmReceiver"
             android:enabled="true"
