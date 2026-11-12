@@ -30,8 +30,99 @@ public class MainActivity extends BridgeActivity {
 
     public static void dispatchMediaAction(String action) {
         if (instance != null) {
-            instance.dispatchJSEvent("noor-media-action", "{ action: '" + action + "' }");
+            instance.handleMediaActionInternal(action);
         }
+    }
+
+    public void handleMediaActionInternal(final String action) {
+        runOnUiThread(() -> {
+            try {
+                Log.i(TAG, "handleMediaActionInternal: " + action);
+                boolean isRadio = MediaNotificationHelper.isLiveRadioStream();
+
+                if ("stop".equalsIgnoreCase(action) || ("pause".equalsIgnoreCase(action) && isRadio)) {
+                    // Instantly dismiss native notification so the top bar is immediately cleared!
+                    MediaNotificationHelper.dismiss(this);
+
+                    // Stop all audio tags, radio streams and media session in WebView
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        String js = "(function() {"
+                                + "  try {"
+                                + "    if (typeof window.__stopRadio === 'function') {"
+                                + "      window.__stopRadio();"
+                                + "    }"
+                                + "    if (typeof window.__stopAllAudio === 'function') {"
+                                + "      window.__stopAllAudio();"
+                                + "    }"
+                                + "    document.querySelectorAll('audio, video').forEach(function(el) {"
+                                + "      try {"
+                                + "        el.pause();"
+                                + "        el.currentTime = 0;"
+                                + "        el.removeAttribute('src');"
+                                + "        el.load();"
+                                + "      } catch(e) {}"
+                                + "    });"
+                                + "    if ('mediaSession' in navigator) {"
+                                + "      navigator.mediaSession.playbackState = 'none';"
+                                + "    }"
+                                + "  } catch(e) {}"
+                                + "  try {"
+                                + "    window.dispatchEvent(new CustomEvent('noor-media-action', { detail: { action: 'stop' } }));"
+                                + "  } catch(e) {}"
+                                + "})()";
+                        getBridge().getWebView().evaluateJavascript(js, null);
+                    }
+                    return;
+                }
+
+                if ("pause".equalsIgnoreCase(action)) {
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        String js = "(function() {"
+                                + "  try {"
+                                + "    if (typeof window.__pauseAllAudio === 'function') {"
+                                + "      window.__pauseAllAudio();"
+                                + "    }"
+                                + "    document.querySelectorAll('audio, video').forEach(function(el) {"
+                                + "      try { el.pause(); } catch(e) {}"
+                                + "    });"
+                                + "    if ('mediaSession' in navigator) {"
+                                + "      navigator.mediaSession.playbackState = 'paused';"
+                                + "    }"
+                                + "  } catch(e) {}"
+                                + "  try {"
+                                + "    window.dispatchEvent(new CustomEvent('noor-media-action', { detail: { action: 'pause' } }));"
+                                + "  } catch(e) {}"
+                                + "})()";
+                        getBridge().getWebView().evaluateJavascript(js, null);
+                    }
+                    return;
+                }
+
+                if ("play".equalsIgnoreCase(action) || "toggle".equalsIgnoreCase(action)) {
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        String js = "(function() {"
+                                + "  try {"
+                                + "    if (typeof window.__toggleRadio === 'function') {"
+                                + "      window.__toggleRadio();"
+                                + "    } else if (typeof window.__toggleAudio === 'function') {"
+                                + "      window.__toggleAudio();"
+                                + "    }"
+                                + "  } catch(e) {}"
+                                + "  try {"
+                                + "    window.dispatchEvent(new CustomEvent('noor-media-action', { detail: { action: '" + action + "' } }));"
+                                + "  } catch(e) {}"
+                                + "})()";
+                        getBridge().getWebView().evaluateJavascript(js, null);
+                    }
+                    return;
+                }
+
+                // Default event dispatch
+                dispatchJSEvent("noor-media-action", "{ action: '" + action + "' }");
+            } catch (Exception e) {
+                Log.e(TAG, "Error handling media action: " + e.getMessage());
+            }
+        });
     }
 
     @Override

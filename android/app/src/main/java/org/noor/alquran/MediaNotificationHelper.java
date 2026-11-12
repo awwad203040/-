@@ -34,11 +34,17 @@ public class MediaNotificationHelper {
     public static final String ACTION_MEDIA_PAUSE = "org.noor.alquran.ACTION_MEDIA_PAUSE";
     public static final String ACTION_MEDIA_TOGGLE = "org.noor.alquran.ACTION_MEDIA_TOGGLE";
     public static final String ACTION_MEDIA_STOP = "org.noor.alquran.ACTION_MEDIA_STOP";
+    public static final String ACTION_MEDIA_CLOSE = "org.noor.alquran.ACTION_MEDIA_CLOSE";
 
     private static MediaSessionCompat mediaSession = null;
     private static String lastTitle = "";
     private static String lastArtist = "";
     private static boolean lastPlayingState = false;
+
+    public static boolean isLiveRadioStream() {
+        return (lastTitle != null && lastTitle.contains("إذاعة"))
+                || (lastArtist != null && (lastArtist.contains("إذاعة") || lastArtist.contains("بث مباشر")));
+    }
 
     private static synchronized void ensureMediaSession(Context context) {
         if (mediaSession != null) return;
@@ -48,20 +54,49 @@ public class MediaNotificationHelper {
             mediaSession.setCallback(new MediaSessionCompat.Callback() {
                 @Override
                 public void onPlay() {
+                    Log.i(TAG, "MediaSession onPlay triggered");
                     MainActivity.dispatchMediaAction("play");
                     showOrUpdate(context, lastTitle, lastArtist, true);
                 }
 
                 @Override
                 public void onPause() {
+                    Log.i(TAG, "MediaSession onPause triggered");
                     MainActivity.dispatchMediaAction("pause");
-                    showOrUpdate(context, lastTitle, lastArtist, false);
+                    if (isLiveRadioStream()) {
+                        // For live radio stations, user tapping pause wants to stop & dismiss!
+                        MainActivity.dispatchMediaAction("stop");
+                        dismiss(context);
+                    } else {
+                        showOrUpdate(context, lastTitle, lastArtist, false);
+                    }
                 }
 
                 @Override
                 public void onStop() {
+                    Log.i(TAG, "MediaSession onStop triggered");
                     MainActivity.dispatchMediaAction("stop");
                     dismiss(context);
+                }
+
+                @Override
+                public void onCustomAction(String action, android.os.Bundle extras) {
+                    Log.i(TAG, "MediaSession onCustomAction: " + action);
+                    if (ACTION_MEDIA_STOP.equals(action) || ACTION_MEDIA_CLOSE.equals(action) || "stop".equalsIgnoreCase(action)) {
+                        onStop();
+                    }
+                }
+
+                @Override
+                public void onSkipToPrevious() {
+                    Log.i(TAG, "MediaSession onSkipToPrevious triggered");
+                    MainActivity.dispatchMediaAction("previous");
+                }
+
+                @Override
+                public void onSkipToNext() {
+                    Log.i(TAG, "MediaSession onSkipToNext triggered");
+                    MainActivity.dispatchMediaAction("next");
                 }
             });
             mediaSession.setActive(true);
@@ -104,18 +139,28 @@ public class MediaNotificationHelper {
             lastArtist = artist;
             lastPlayingState = isPlaying;
 
-            // Update MediaSession state
+            // Update MediaSession state with explicit CustomAction for STOP so Android 11+ Quick Settings Media displays a STOP button
             if (mediaSession != null) {
                 int state = isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
                 long actions = PlaybackStateCompat.ACTION_PLAY
                         | PlaybackStateCompat.ACTION_PAUSE
                         | PlaybackStateCompat.ACTION_PLAY_PAUSE
-                        | PlaybackStateCompat.ACTION_STOP;
+                        | PlaybackStateCompat.ACTION_STOP
+                        | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                        | PlaybackStateCompat.ACTION_SKIP_TO_NEXT;
 
-                mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
+                PlaybackStateCompat.CustomAction stopCustomAction = new PlaybackStateCompat.CustomAction.Builder(
+                        ACTION_MEDIA_STOP,
+                        "إيقاف تام",
+                        android.R.drawable.ic_menu_close_clear_cancel
+                ).build();
+
+                PlaybackStateCompat.Builder stateBuilder = new PlaybackStateCompat.Builder()
                         .setActions(actions)
-                        .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1.0f)
-                        .build());
+                        .addCustomAction(stopCustomAction)
+                        .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1.0f);
+
+                mediaSession.setPlaybackState(stateBuilder.build());
 
                 mediaSession.setMetadata(new MediaMetadataCompat.Builder()
                         .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
@@ -160,6 +205,8 @@ public class MediaNotificationHelper {
                 mediaStyle.setMediaSession(mediaSession.getSessionToken());
             }
             mediaStyle.setShowActionsInCompactView(0, 1); // 0: Play/Pause, 1: Stop
+            mediaStyle.setShowCancelButton(true);
+            mediaStyle.setCancelButtonIntent(stopPi);
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_MEDIA_ID)
                     .setSmallIcon(R.mipmap.ic_launcher)
@@ -174,7 +221,7 @@ public class MediaNotificationHelper {
                     .setColor(Color.parseColor("#123B2A"))
                     .setShowWhen(false)
                     .setOngoing(isPlaying)
-                    .setAutoCancel(false);
+                    .setAutoCancel(!isPlaying);
 
             Bitmap largeIcon = PrayerNotificationHelper.getSalatukMosqueIcon(context);
             if (largeIcon != null) {
@@ -189,7 +236,7 @@ public class MediaNotificationHelper {
             }
 
             // Action 1: Dedicated Stop button
-            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "إيقاف", stopPi);
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "إيقاف تام", stopPi);
 
             NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm != null) {
@@ -208,9 +255,15 @@ public class MediaNotificationHelper {
                 nm.cancel(NOTIFICATION_ID_MEDIA);
             }
             if (mediaSession != null) {
+                // Must set STATE_NONE with actions=0 so Android 11+ System UI media carousel completely clears the card!
+                mediaSession.setPlaybackState(new PlaybackStateCompat.Builder()
+                        .setState(PlaybackStateCompat.STATE_NONE, 0, 0f)
+                        .setActions(0)
+                        .build());
                 mediaSession.setActive(false);
             }
             lastPlayingState = false;
+            Log.i(TAG, "Media notification dismissed and MediaSession set to STATE_NONE.");
         } catch (Exception e) {
             Log.w(TAG, "Error dismissing media notification: " + e.getMessage());
         }
@@ -226,7 +279,7 @@ public class MediaNotificationHelper {
             String action = intent.getAction();
             Log.i(TAG, "MediaActionReceiver received action: " + action);
 
-            if (ACTION_MEDIA_STOP.equals(action)) {
+            if (ACTION_MEDIA_STOP.equals(action) || ACTION_MEDIA_CLOSE.equals(action)) {
                 MainActivity.dispatchMediaAction("stop");
                 dismiss(context);
                 return;
@@ -240,7 +293,13 @@ public class MediaNotificationHelper {
 
             if (ACTION_MEDIA_PAUSE.equals(action)) {
                 MainActivity.dispatchMediaAction("pause");
-                showOrUpdate(context, lastTitle, lastArtist, false);
+                if (isLiveRadioStream()) {
+                    // For live radio streams, pause means stop & dismiss!
+                    MainActivity.dispatchMediaAction("stop");
+                    dismiss(context);
+                } else {
+                    showOrUpdate(context, lastTitle, lastArtist, false);
+                }
                 return;
             }
 

@@ -1059,6 +1059,7 @@ export function useAudioPlayer() {
   // Listen to native media notification actions (Play/Pause, Stop)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    (window as any).__stopQuran = stop;
     const handleMediaAction = (event: Event) => {
       const customEvent = event as CustomEvent<{ action?: string }>;
       const action = customEvent.detail?.action;

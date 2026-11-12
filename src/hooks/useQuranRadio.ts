@@ -303,7 +303,8 @@ export function useQuranRadio() {
             togglePlayPause();
           });
           navigator.mediaSession.setActionHandler('pause', () => {
-            togglePlayPause();
+            // For live radio broadcasts, pause terminates playback and clears the notification
+            stopRadio();
           });
           navigator.mediaSession.setActionHandler('stop', () => {
             stopRadio();
@@ -329,20 +330,22 @@ export function useQuranRadio() {
   // Handle native notification actions (Play/Pause, Stop)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    (window as any).__stopRadio = stopRadio;
+    (window as any).__toggleRadio = togglePlayPause;
+
     const handleMediaAction = (event: Event) => {
-      if (!globalActiveStation) return;
       const customEvent = event as CustomEvent<{ action?: string }>;
       const action = customEvent.detail?.action;
       if (!action) return;
 
       if (action === 'play') {
         if (globalRadioAudio?.paused) togglePlayPause();
-      } else if (action === 'pause') {
-        if (!globalRadioAudio?.paused) togglePlayPause();
+      } else if (action === 'pause' || action === 'stop') {
+        // For live radio streams, pause and stop both immediately terminate playback & dismiss
+        stopRadio();
       } else if (action === 'toggle') {
         togglePlayPause();
-      } else if (action === 'stop') {
-        stopRadio();
       }
     };
 
