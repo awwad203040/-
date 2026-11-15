@@ -3,6 +3,7 @@ import "./globals.css";
 import PwaRegister from "@/components/PwaRegister";
 import AutoUpdateChecker from "@/components/common/AutoUpdateChecker";
 import GlobalMediaController from "@/components/common/GlobalMediaController";
+import AutoOfflineSync from "@/components/common/AutoOfflineSync";
 
 export const metadata: Metadata = {
   title: "نور القرآن — رفيقك مع القرآن",
@@ -48,6 +49,7 @@ export default function RootLayout({
         <PwaRegister />
         <AutoUpdateChecker />
         <GlobalMediaController />
+        <AutoOfflineSync />
         {children}
       </body>
     </html>

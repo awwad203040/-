@@ -435,5 +435,23 @@ public class AdhanNativePlugin extends Plugin {
             call.reject("Failed to start unlock service: " + e.getMessage());
         }
     }
+
+    @PluginMethod
+    public void getAppVersion(PluginCall call) {
+        try {
+            android.content.pm.PackageInfo pInfo = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
+            long versionCode = androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(pInfo);
+            String versionName = pInfo.versionName;
+            JSObject ret = new JSObject();
+            ret.put("versionCode", (int) versionCode);
+            ret.put("versionName", versionName);
+            call.resolve(ret);
+        } catch (Exception e) {
+            JSObject ret = new JSObject();
+            ret.put("versionCode", 12);
+            ret.put("versionName", "3.0.0");
+            call.resolve(ret);
+        }
+    }
 }
 

@@ -46,6 +46,26 @@ export interface AudioPlayerState {
   isCurrentSurahOffline: boolean;
 }
 
+function getOrCreateQuranAudio(): HTMLAudioElement | null {
+  if (typeof window === 'undefined') return null;
+  let audio = (window as any).__noorQuranAudio as HTMLAudioElement | undefined;
+  if (!audio) {
+    const existing = document.getElementById('noor-quran-audio-element') as HTMLAudioElement | null;
+    if (existing) {
+      audio = existing;
+    } else {
+      audio = document.createElement('audio');
+      audio.id = 'noor-quran-audio-element';
+      audio.style.display = 'none';
+      if (document.body) {
+        document.body.appendChild(audio);
+      }
+    }
+    (window as any).__noorQuranAudio = audio;
+  }
+  return audio;
+}
+
 export function useAudioPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const loadAndPlayRef = useRef<
@@ -175,7 +195,7 @@ export function useAudioPlayer() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !audioRef.current) {
-      audioRef.current = new Audio();
+      audioRef.current = getOrCreateQuranAudio();
     }
 
     const audio = audioRef.current;
@@ -641,7 +661,7 @@ export function useAudioPlayer() {
         }
 
         if (!audioRef.current) {
-          audioRef.current = new Audio();
+          audioRef.current = getOrCreateQuranAudio() || new Audio();
         }
         const audio = audioRef.current;
         audio.preload = 'auto';
@@ -1056,10 +1076,25 @@ export function useAudioPlayer() {
     }
   }, [state.isPlaying, state.currentSurah, state.surahName, state.reciterName, play, pause, stop, playNextSurah, playPreviousSurah]);
 
-  // Listen to native media notification actions (Play/Pause, Stop)
+  // Listen to native media notification actions (Play/Pause, Stop, Next, Previous)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Register explicit global direct handles on window for native Android code and global shortcuts
     (window as any).__stopQuran = stop;
+    (window as any).__pauseQuran = pause;
+    (window as any).__playQuran = play;
+    (window as any).__toggleQuran = togglePlayPause;
+    (window as any).__nextQuran = playNextSurah;
+    (window as any).__prevQuran = playPreviousSurah;
+
+    (window as any).__stopAudio = stop;
+    (window as any).__pauseAudio = pause;
+    (window as any).__playAudio = play;
+    (window as any).__toggleAudio = togglePlayPause;
+    (window as any).__nextAudio = playNextSurah;
+    (window as any).__prevAudio = playPreviousSurah;
+
     const handleMediaAction = (event: Event) => {
       const customEvent = event as CustomEvent<{ action?: string }>;
       const action = customEvent.detail?.action;
@@ -1071,8 +1106,12 @@ export function useAudioPlayer() {
         pause();
       } else if (action === 'toggle') {
         togglePlayPause();
-      } else if (action === 'stop') {
+      } else if (action === 'stop' || action === 'close') {
         stop();
+      } else if (action === 'next' || action === 'skip_to_next') {
+        playNextSurah();
+      } else if (action === 'previous' || action === 'prev' || action === 'skip_to_previous') {
+        playPreviousSurah();
       }
     };
 
@@ -1080,7 +1119,7 @@ export function useAudioPlayer() {
     return () => {
       window.removeEventListener('noor-media-action', handleMediaAction);
     };
-  }, [play, pause, togglePlayPause, stop]);
+  }, [play, pause, togglePlayPause, stop, playNextSurah, playPreviousSurah]);
 
   return {
     ...state,

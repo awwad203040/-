@@ -105,7 +105,7 @@ export default function HomePage() {
 
   // Auto update on launch: checks and updates app automatically
   useEffect(() => {
-    // 1. Silent PWA service worker update
+    // Silent PWA service worker update
     forcePwaUpdate().catch(() => {});
 
     const handlePwaUpdated = () => {
@@ -113,24 +113,6 @@ export default function HomePage() {
       setTimeout(() => setUpdateToast(null), 4000);
     };
     window.addEventListener('noor-pwa-updated', handlePwaUpdated);
-
-    // 2. Fetch server version to trigger native/PWA update check
-    const CURRENT_NATIVE_VERSION = 11;
-    fetch(`/api/app-version?t=${Date.now()}`, { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!data) return;
-        if (data.versionCode && data.versionCode > CURRENT_NATIVE_VERSION) {
-          const isNative = typeof window !== 'undefined' && Boolean((window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
-          if (isNative) {
-            setUpdateToast('✨ جاري تنزيل التحديث التلقائي لأحدث إصدار...');
-            setTimeout(() => {
-              downloadAndInstallNativeUpdate(data.apkUrl);
-            }, 1500);
-          }
-        }
-      })
-      .catch(() => {});
 
     return () => {
       window.removeEventListener('noor-pwa-updated', handlePwaUpdated);

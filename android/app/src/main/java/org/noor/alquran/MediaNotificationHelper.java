@@ -35,11 +35,17 @@ public class MediaNotificationHelper {
     public static final String ACTION_MEDIA_TOGGLE = "org.noor.alquran.ACTION_MEDIA_TOGGLE";
     public static final String ACTION_MEDIA_STOP = "org.noor.alquran.ACTION_MEDIA_STOP";
     public static final String ACTION_MEDIA_CLOSE = "org.noor.alquran.ACTION_MEDIA_CLOSE";
+    public static final String ACTION_MEDIA_PREVIOUS = "org.noor.alquran.ACTION_MEDIA_PREVIOUS";
+    public static final String ACTION_MEDIA_NEXT = "org.noor.alquran.ACTION_MEDIA_NEXT";
 
     private static MediaSessionCompat mediaSession = null;
     private static String lastTitle = "";
     private static String lastArtist = "";
     private static boolean lastPlayingState = false;
+
+    public static String getLastTitle() { return lastTitle != null ? lastTitle : "القرآن الكريم"; }
+    public static String getLastArtist() { return lastArtist != null ? lastArtist : "نور القرآن"; }
+    public static boolean getLastPlayingState() { return lastPlayingState; }
 
     public static boolean isLiveRadioStream() {
         return (lastTitle != null && lastTitle.contains("إذاعة"))
@@ -200,11 +206,37 @@ public class MediaNotificationHelper {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
+            // Skip to Previous intent
+            Intent prevIntent = new Intent(context, MediaActionReceiver.class);
+            prevIntent.setAction(ACTION_MEDIA_PREVIOUS);
+            PendingIntent prevPi = PendingIntent.getBroadcast(
+                    context,
+                    933,
+                    prevIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            // Skip to Next intent
+            Intent nextIntent = new Intent(context, MediaActionReceiver.class);
+            nextIntent.setAction(ACTION_MEDIA_NEXT);
+            PendingIntent nextPi = PendingIntent.getBroadcast(
+                    context,
+                    934,
+                    nextIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            boolean isRadio = isLiveRadioStream();
+
             androidx.media.app.NotificationCompat.MediaStyle mediaStyle = new androidx.media.app.NotificationCompat.MediaStyle();
             if (mediaSession != null) {
                 mediaStyle.setMediaSession(mediaSession.getSessionToken());
             }
-            mediaStyle.setShowActionsInCompactView(0, 1); // 0: Play/Pause, 1: Stop
+            if (isRadio) {
+                mediaStyle.setShowActionsInCompactView(0, 1); // Play/Pause, Stop
+            } else {
+                mediaStyle.setShowActionsInCompactView(0, 1, 2); // Previous, Play/Pause, Next
+            }
             mediaStyle.setShowCancelButton(true);
             mediaStyle.setCancelButtonIntent(stopPi);
 
@@ -228,15 +260,25 @@ public class MediaNotificationHelper {
                 builder.setLargeIcon(largeIcon);
             }
 
-            // Action 0: Play/Pause button
-            if (isPlaying) {
-                builder.addAction(android.R.drawable.ic_media_pause, "إيقاف مؤقت", togglePi);
+            if (isRadio) {
+                // Radio Mode: Play/Pause, Stop
+                if (isPlaying) {
+                    builder.addAction(android.R.drawable.ic_media_pause, "إيقاف مؤقت", togglePi);
+                } else {
+                    builder.addAction(android.R.drawable.ic_media_play, "تشغيل", togglePi);
+                }
+                builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "إيقاف تام", stopPi);
             } else {
-                builder.addAction(android.R.drawable.ic_media_play, "تشغيل", togglePi);
+                // Recitation Mode: Previous, Play/Pause, Next, Stop
+                builder.addAction(android.R.drawable.ic_media_previous, "السابق", prevPi);
+                if (isPlaying) {
+                    builder.addAction(android.R.drawable.ic_media_pause, "إيقاف مؤقت", togglePi);
+                } else {
+                    builder.addAction(android.R.drawable.ic_media_play, "تشغيل", togglePi);
+                }
+                builder.addAction(android.R.drawable.ic_media_next, "التالي", nextPi);
+                builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "إيقاف تام", stopPi);
             }
-
-            // Action 1: Dedicated Stop button
-            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "إيقاف تام", stopPi);
 
             NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm != null) {
@@ -270,7 +312,7 @@ public class MediaNotificationHelper {
     }
 
     /**
-     * BroadcastReceiver to handle notification buttons (Play/Pause, Stop) directly.
+     * BroadcastReceiver to handle notification buttons (Play/Pause, Stop, Next, Previous) directly.
      */
     public static class MediaActionReceiver extends BroadcastReceiver {
         @Override
@@ -306,6 +348,17 @@ public class MediaNotificationHelper {
             if (ACTION_MEDIA_TOGGLE.equals(action)) {
                 MainActivity.dispatchMediaAction("toggle");
                 showOrUpdate(context, lastTitle, lastArtist, !lastPlayingState);
+                return;
+            }
+
+            if (ACTION_MEDIA_PREVIOUS.equals(action)) {
+                MainActivity.dispatchMediaAction("previous");
+                return;
+            }
+
+            if (ACTION_MEDIA_NEXT.equals(action)) {
+                MainActivity.dispatchMediaAction("next");
+                return;
             }
         }
     }

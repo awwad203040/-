@@ -2,11 +2,11 @@
 
 import { useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { downloadAndInstallNativeUpdate } from '@/lib/adhan-native-bridge';
+import { downloadAndInstallNativeUpdate, getNativeAppVersion } from '@/lib/adhan-native-bridge';
 import { forcePwaUpdate } from '@/components/PwaRegister';
 
-export const CURRENT_APP_VERSION_CODE = 8;
-export const CURRENT_APP_VERSION_NAME = '2.6.0';
+export const CURRENT_APP_VERSION_CODE = 12;
+export const CURRENT_APP_VERSION_NAME = '3.0.0';
 
 interface RemoteVersionInfo {
   versionCode: number;
@@ -59,11 +59,20 @@ export default function AutoUpdateChecker() {
 
         if (isCancelled || !data || !data.versionCode) return;
 
+        // Query real native app version if available
+        let realNativeCode = CURRENT_APP_VERSION_CODE;
+        if (Capacitor.isNativePlatform()) {
+          const nativeVer = await getNativeAppVersion();
+          if (nativeVer && nativeVer.versionCode) {
+            realNativeCode = Math.max(realNativeCode, nativeVer.versionCode);
+          }
+        }
+
         const storedInstalledCode = typeof window !== 'undefined'
           ? parseInt(localStorage.getItem('noor_installed_version_code') || '0', 10)
           : 0;
 
-        const effectiveCurrentCode = Math.max(CURRENT_APP_VERSION_CODE, storedInstalledCode);
+        const effectiveCurrentCode = Math.max(CURRENT_APP_VERSION_CODE, realNativeCode, storedInstalledCode);
 
         if (data.versionCode > effectiveCurrentCode) {
           // If update was not triggered in the last 20 minutes, perform automatic silent download
@@ -81,7 +90,7 @@ export default function AutoUpdateChecker() {
         } else {
           // Synchronize local installed version code
           if (typeof window !== 'undefined') {
-            localStorage.setItem('noor_installed_version_code', String(CURRENT_APP_VERSION_CODE));
+            localStorage.setItem('noor_installed_version_code', String(effectiveCurrentCode));
           }
         }
       } catch {
@@ -89,9 +98,10 @@ export default function AutoUpdateChecker() {
       }
     };
 
+    // 10-second delay so app startup is 100% instant and unblocked
     const timer = setTimeout(() => {
       checkUpdate();
-    }, 2000);
+    }, 10000);
 
     return () => {
       isCancelled = true;

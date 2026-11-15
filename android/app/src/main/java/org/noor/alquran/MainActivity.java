@@ -40,19 +40,23 @@ public class MainActivity extends BridgeActivity {
                 Log.i(TAG, "handleMediaActionInternal: " + action);
                 boolean isRadio = MediaNotificationHelper.isLiveRadioStream();
 
-                if ("stop".equalsIgnoreCase(action) || ("pause".equalsIgnoreCase(action) && isRadio)) {
+                if ("stop".equalsIgnoreCase(action) || "close".equalsIgnoreCase(action) || ("pause".equalsIgnoreCase(action) && isRadio)) {
                     // Instantly dismiss native notification so the top bar is immediately cleared!
                     MediaNotificationHelper.dismiss(this);
 
-                    // Stop all audio tags, radio streams and media session in WebView
                     if (getBridge() != null && getBridge().getWebView() != null) {
                         String js = "(function() {"
                                 + "  try {"
-                                + "    if (typeof window.__stopRadio === 'function') {"
-                                + "      window.__stopRadio();"
-                                + "    }"
-                                + "    if (typeof window.__stopAllAudio === 'function') {"
-                                + "      window.__stopAllAudio();"
+                                + "    if (typeof window.__stopQuran === 'function') window.__stopQuran();"
+                                + "    if (typeof window.__stopRadio === 'function') window.__stopRadio();"
+                                + "    if (typeof window.__stopAllAudio === 'function') window.__stopAllAudio();"
+                                + "    if (typeof window.__stopAudio === 'function') window.__stopAudio();"
+                                + "    if (window.__noorQuranAudio) {"
+                                + "      try {"
+                                + "        window.__noorQuranAudio.pause();"
+                                + "        window.__noorQuranAudio.currentTime = 0;"
+                                + "        window.__noorQuranAudio.removeAttribute('src');"
+                                + "      } catch(e) {}"
                                 + "    }"
                                 + "    document.querySelectorAll('audio, video').forEach(function(el) {"
                                 + "      try {"
@@ -76,11 +80,17 @@ public class MainActivity extends BridgeActivity {
                 }
 
                 if ("pause".equalsIgnoreCase(action)) {
+                    MediaNotificationHelper.showOrUpdate(this, MediaNotificationHelper.getLastTitle(), MediaNotificationHelper.getLastArtist(), false);
+
                     if (getBridge() != null && getBridge().getWebView() != null) {
                         String js = "(function() {"
                                 + "  try {"
-                                + "    if (typeof window.__pauseAllAudio === 'function') {"
-                                + "      window.__pauseAllAudio();"
+                                + "    if (typeof window.__pauseQuran === 'function') window.__pauseQuran();"
+                                + "    if (typeof window.__pauseAudio === 'function') window.__pauseAudio();"
+                                + "    if (typeof window.__pauseRadio === 'function') window.__pauseRadio();"
+                                + "    if (typeof window.__pauseAllAudio === 'function') window.__pauseAllAudio();"
+                                + "    if (window.__noorQuranAudio) {"
+                                + "      try { window.__noorQuranAudio.pause(); } catch(e) {}"
                                 + "    }"
                                 + "    document.querySelectorAll('audio, video').forEach(function(el) {"
                                 + "      try { el.pause(); } catch(e) {}"
@@ -99,17 +109,62 @@ public class MainActivity extends BridgeActivity {
                 }
 
                 if ("play".equalsIgnoreCase(action) || "toggle".equalsIgnoreCase(action)) {
+                    MediaNotificationHelper.showOrUpdate(this, MediaNotificationHelper.getLastTitle(), MediaNotificationHelper.getLastArtist(), true);
+
                     if (getBridge() != null && getBridge().getWebView() != null) {
                         String js = "(function() {"
                                 + "  try {"
-                                + "    if (typeof window.__toggleRadio === 'function') {"
-                                + "      window.__toggleRadio();"
-                                + "    } else if (typeof window.__toggleAudio === 'function') {"
-                                + "      window.__toggleAudio();"
+                                + "    if ('" + action + "' === 'toggle') {"
+                                + "      if (typeof window.__toggleQuran === 'function') window.__toggleQuran();"
+                                + "      else if (typeof window.__toggleAudio === 'function') window.__toggleAudio();"
+                                + "      else if (typeof window.__toggleRadio === 'function') window.__toggleRadio();"
+                                + "      else if (window.__noorQuranAudio && window.__noorQuranAudio.src) {"
+                                + "        if (window.__noorQuranAudio.paused) window.__noorQuranAudio.play().catch(function(){});"
+                                + "        else window.__noorQuranAudio.pause();"
+                                + "      }"
+                                + "    } else {"
+                                + "      if (typeof window.__playQuran === 'function') window.__playQuran();"
+                                + "      else if (typeof window.__playAudio === 'function') window.__playAudio();"
+                                + "      else if (typeof window.__playRadio === 'function') window.__playRadio();"
+                                + "      else if (window.__noorQuranAudio && window.__noorQuranAudio.src) {"
+                                + "        window.__noorQuranAudio.play().catch(function(){});"
+                                + "      }"
                                 + "    }"
                                 + "  } catch(e) {}"
                                 + "  try {"
                                 + "    window.dispatchEvent(new CustomEvent('noor-media-action', { detail: { action: '" + action + "' } }));"
+                                + "  } catch(e) {}"
+                                + "})()";
+                        getBridge().getWebView().evaluateJavascript(js, null);
+                    }
+                    return;
+                }
+
+                if ("previous".equalsIgnoreCase(action) || "prev".equalsIgnoreCase(action)) {
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        String js = "(function() {"
+                                + "  try {"
+                                + "    if (typeof window.__prevQuran === 'function') window.__prevQuran();"
+                                + "    else if (typeof window.__prevAudio === 'function') window.__prevAudio();"
+                                + "  } catch(e) {}"
+                                + "  try {"
+                                + "    window.dispatchEvent(new CustomEvent('noor-media-action', { detail: { action: 'previous' } }));"
+                                + "  } catch(e) {}"
+                                + "})()";
+                        getBridge().getWebView().evaluateJavascript(js, null);
+                    }
+                    return;
+                }
+
+                if ("next".equalsIgnoreCase(action)) {
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        String js = "(function() {"
+                                + "  try {"
+                                + "    if (typeof window.__nextQuran === 'function') window.__nextQuran();"
+                                + "    else if (typeof window.__nextAudio === 'function') window.__nextAudio();"
+                                + "  } catch(e) {}"
+                                + "  try {"
+                                + "    window.dispatchEvent(new CustomEvent('noor-media-action', { detail: { action: 'next' } }));"
                                 + "  } catch(e) {}"
                                 + "})()";
                         getBridge().getWebView().evaluateJavascript(js, null);

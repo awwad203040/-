@@ -139,6 +139,9 @@
                 <action android:name="org.noor.alquran.ACTION_MEDIA_PAUSE" />
                 <action android:name="org.noor.alquran.ACTION_MEDIA_TOGGLE" />
                 <action android:name="org.noor.alquran.ACTION_MEDIA_STOP" />
+                <action android:name="org.noor.alquran.ACTION_MEDIA_CLOSE" />
+                <action android:name="org.noor.alquran.ACTION_MEDIA_PREVIOUS" />
+                <action android:name="org.noor.alquran.ACTION_MEDIA_NEXT" />
             </intent-filter>
         </receiver>
 

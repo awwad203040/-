@@ -56,6 +56,7 @@ export interface AdhanNativePluginInterface {
   openAutoStartSettings(): Promise<{ success: boolean }>;
   playTestUnlockSalawat(): Promise<{ success: boolean }>;
   startUnlockService(): Promise<{ success: boolean }>;
+  getAppVersion(): Promise<{ versionCode: number; versionName: string }>;
 }
 
 const AdhanNative = registerPlugin<AdhanNativePluginInterface>('AdhanNative');
@@ -294,5 +295,24 @@ export async function startNativeUnlockService() {
     return { success: false };
   }
 }
+
+/**
+ * Returns the currently running native application package version
+ */
+export async function getNativeAppVersion(): Promise<{ versionCode: number; versionName: string } | null> {
+  try {
+    const res = await AdhanNative.getAppVersion();
+    if (res && res.versionCode) {
+      return {
+        versionCode: Number(res.versionCode),
+        versionName: String(res.versionName || '3.0.0'),
+      };
+    }
+  } catch {
+    // Non-native or fallback
+  }
+  return null;
+}
+
 
 
