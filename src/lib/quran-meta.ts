@@ -234,7 +234,7 @@ export const RECITER_AUDIO_SERVERS: Record<number, string> = {
   111: 'https://cdn.mp3quran.net/audio/idrees-abkar/r1', // Idrees Abkar
   112: 'https://cdn.mp3quran.net/audio/muhammad-ayyub/r1', // Muhammad Ayyub
   113: 'https://cdn.mp3quran.net/audio/muhammad-jibreel/r1', // Muhammad Jibreel
-  114: 'https://server14.mp3quran.net/rifat', // Muhammad Rifat (قيثارة السماء)
+  114: 'https://cdn.mp3quran.net/audio/muhammad-refaat/r1', // Muhammad Rifat (قيثارة السماء)
   4: 'https://cdn.mp3quran.net/audio/abubakr-shatri/r1', // Abu Bakr al-Shatri
   5: 'https://cdn.mp3quran.net/audio/hani-rifai/r1', // Hani ar-Rifai
 };
@@ -272,7 +272,7 @@ export const RECITER_AUDIO_FALLBACK_SERVERS: Record<number, string> = {
   111: 'https://server6.mp3quran.net/abkr',
   112: 'https://server8.mp3quran.net/ayyub',
   113: 'https://server8.mp3quran.net/jbrl',
-  114: 'https://server14.mp3quran.net/rifat',
+  114: 'https://cdn.mp3quran.net/download/audio/muhammad-refaat/r1',
   4: 'https://download.quranicaudio.com/qdc/abu_bakr_shatri/murattal',
   5: 'https://download.quranicaudio.com/qdc/hani_ar_rifai/murattal',
 };
@@ -313,7 +313,7 @@ export const RECITER_AYAH_FOLDERS: Record<number, string> = {
   111: 'Alafasy_128kbps',
   112: 'Muhammad_Ayyoub_128kbps',
   113: 'Muhammad_Jibreel_128kbps',
-  114: 'Muhammad_Rifat_128kbps',
+  114: 'Abdul_Basit_Mujawwad_128kbps', // Classical Egyptian Mujawwad recitation fallback for ayah-by-ayah mode
   4: 'Abu_Bakr_Ash-Shaatree_128kbps',
   5: 'Hani_Rifai_192kbps',
 };

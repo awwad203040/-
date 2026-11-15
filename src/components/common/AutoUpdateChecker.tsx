@@ -5,8 +5,8 @@ import { Capacitor } from '@capacitor/core';
 import { downloadAndInstallNativeUpdate, getNativeAppVersion } from '@/lib/adhan-native-bridge';
 import { forcePwaUpdate } from '@/components/PwaRegister';
 
-export const CURRENT_APP_VERSION_CODE = 12;
-export const CURRENT_APP_VERSION_NAME = '3.0.0';
+export const CURRENT_APP_VERSION_CODE = 13;
+export const CURRENT_APP_VERSION_NAME = '3.1.0';
 
 interface RemoteVersionInfo {
   versionCode: number;
