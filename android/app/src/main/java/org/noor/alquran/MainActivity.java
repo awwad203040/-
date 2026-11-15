@@ -381,6 +381,11 @@ public class MainActivity extends BridgeActivity {
             neededPermissions.add(Manifest.permission.RECORD_AUDIO);
         }
 
+        // 4. Camera Permission for Adhan Flashlight Strobe
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            neededPermissions.add(Manifest.permission.CAMERA);
+        }
+
         if (!neededPermissions.isEmpty()) {
             ActivityCompat.requestPermissions(this, neededPermissions.toArray(new String[0]), PERMISSION_REQ_CORE);
             return;
@@ -395,7 +400,7 @@ public class MainActivity extends BridgeActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQ_CORE) {
             Log.i(TAG, "Core permissions result received.");
-            checkAndPromptNextPermission();
+            getWindow().getDecorView().postDelayed(this::checkAndPromptNextPermission, 500);
         }
     }
 
@@ -431,7 +436,6 @@ public class MainActivity extends BridgeActivity {
     public void requestBatteryExemptionDirectly() {
         runOnUiThread(() -> {
             try {
-                Toast.makeText(this, "جاري فتح نافذة استثناء البطارية...", Toast.LENGTH_SHORT).show();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
                     boolean isIgnoring = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());

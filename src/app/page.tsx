@@ -24,7 +24,6 @@ import PrayerTimesModal from '@/components/home/PrayerTimesModal';
 import ReadQuranModal from '@/components/home/ReadQuranModal';
 import QuranRadiosModal from '@/components/home/QuranRadiosModal';
 import AudioControlModal from '@/components/home/AudioControlModal';
-import BackgroundTroubleshootModal from '@/components/home/BackgroundTroubleshootModal';
 import { useQuranRadio } from '@/hooks/useQuranRadio';
 import BlindVoiceAssistantModal from '@/components/common/BlindVoiceAssistantModal';
 import type { VoiceCommandResult } from '@/lib/voice-command-engine';
@@ -32,6 +31,9 @@ import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { triggerHaptic, speakAccessibility, stopAccessibilitySpeech, announceToScreenReader, getAccessibilitySettings } from '@/lib/accessibility';
 import { forcePwaUpdate } from '@/components/PwaRegister';
 import { downloadAndInstallNativeUpdate } from '@/lib/adhan-native-bridge';
+import { requestNativePermissions } from '@/lib/athkar-native-bridge';
+import { requestNotificationPermission } from '@/lib/athkar-notifications';
+import { Capacitor } from '@capacitor/core';
 
 export default function HomePage() {
   const router = useRouter();
@@ -44,7 +46,6 @@ export default function HomePage() {
   const [pagesRead, setPagesRead] = useState(0);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
-  const [showTroubleshootModal, setShowTroubleshootModal] = useState(false);
   const [selectedReciterId, setSelectedReciterId] = useState<number>(7);
   const [selectedSurahForAudio, setSelectedSurahForAudio] = useState<number>(1);
   const [showReciterModal, setShowReciterModal] = useState(false);
@@ -103,10 +104,17 @@ export default function HomePage() {
     };
   }, [refreshProgress]);
 
-  // Auto update on launch: checks and updates app automatically
+  // Auto update on launch: checks and updates app automatically, and automatically requests all permissions
   useEffect(() => {
     // Silent PWA service worker update
     forcePwaUpdate().catch(() => {});
+
+    // Automatically request all permissions as soon as app is installed/opened
+    if (Capacitor.isNativePlatform()) {
+      requestNativePermissions().catch(() => {});
+    } else {
+      requestNotificationPermission().catch(() => {});
+    }
 
     const handlePwaUpdated = () => {
       setUpdateToast('تم تحديث التطبيق تلقائياً لأحدث إصدار ✨');
@@ -382,7 +390,6 @@ export default function HomePage() {
     showEditProgressModal,
     showBarcodeModal,
     showInstallModal,
-    showTroubleshootModal,
   });
 
   useEffect(() => {
@@ -401,7 +408,6 @@ export default function HomePage() {
       showEditProgressModal,
       showBarcodeModal,
       showInstallModal,
-      showTroubleshootModal,
     };
   });
 
@@ -421,7 +427,6 @@ export default function HomePage() {
     setShowEditProgressModal(false);
     setShowBarcodeModal(false);
     setShowInstallModal(false);
-    setShowTroubleshootModal(false);
   }, []);
 
   const isAnyHomeModalOpen = Boolean(
@@ -438,8 +443,7 @@ export default function HomePage() {
     showMultiSurahModal ||
     showEditProgressModal ||
     showBarcodeModal ||
-    showInstallModal ||
-    showTroubleshootModal
+    showInstallModal
   );
 
   const modalHistoryPushedRef = useRef(false);
@@ -483,8 +487,7 @@ export default function HomePage() {
         s.showMultiSurahModal ||
         s.showEditProgressModal ||
         s.showBarcodeModal ||
-        s.showInstallModal ||
-        s.showTroubleshootModal
+        s.showInstallModal
       );
 
       if (anyOpen) {
@@ -517,8 +520,7 @@ export default function HomePage() {
         s.showMultiSurahModal ||
         s.showEditProgressModal ||
         s.showBarcodeModal ||
-        s.showInstallModal ||
-        s.showTroubleshootModal
+        s.showInstallModal
       );
 
       if (anyOpen) {
@@ -797,38 +799,6 @@ export default function HomePage() {
               </div>
               <span className="text-xs font-black text-[#FFD700] shrink-0 mr-2">فتح المصحف ←</span>
             </button>
-          </div>
-
-          {/* 3.5 CARD: التطبيق لا يعمل معي (اضغط هنا) - نمط تطبيق الشفيع تماماً لضمان عمل الخلفية */}
-          <div
-            onClick={() => {
-              triggerHaptic('tap');
-              setShowTroubleshootModal(true);
-            }}
-            className="w-full py-2.5 px-3.5 sm:py-3 sm:px-4 rounded-2xl border-2 border-[#C8A85B] shadow-md flex items-center justify-between cursor-pointer transition-all hover:scale-[1.01] active:scale-95 flash-window flash-delay-3"
-            style={{
-              background: 'linear-gradient(135deg, #FFFDF8 0%, #FFF8E7 50%, #FDF0D0 100%)',
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label="التطبيق لا يعمل معي - حل مشكلة عمل التطبيق في الخلفية عند قفل وفتح الجوال"
-          >
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                ⚠️
-              </div>
-              <div className="text-right min-w-0">
-                <h3 className="text-xs sm:text-sm font-black text-[#123B2A] truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  التطبيق لا يعمل معي ( اضغط هنا )
-                </h3>
-                <p className="text-[10px] sm:text-[11px] text-[#7A5C1E] font-bold truncate" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  لضبط نطق الصلاة على النبي عند فتح الجوال وإلغاء قيود البطارية
-                </p>
-              </div>
-            </div>
-            <span className="text-[11px] sm:text-xs font-black text-[#123B2A] bg-[#C8A85B]/25 hover:bg-[#C8A85B]/40 px-2.5 py-1 rounded-xl border border-[#C8A85B]/50 shrink-0">
-              إصلاح ←
-            </span>
           </div>
 
           {/* 4. THE 2-COLUMN GRID (8 SECTIONS EXACTLY AS IN THE DIAGRAM) */}
@@ -1191,12 +1161,6 @@ export default function HomePage() {
       <DownloadBarcodeModal
         isOpen={showBarcodeModal}
         onClose={() => setShowBarcodeModal(false)}
-      />
-
-      {/* Background Troubleshoot Modal (مثل الشفيع: إصلاح مشاكل الخلفية والبطارية) */}
-      <BackgroundTroubleshootModal
-        isOpen={showTroubleshootModal}
-        onClose={() => setShowTroubleshootModal(false)}
       />
 
       {/* Global Audio Player Bar when audio is active */}
