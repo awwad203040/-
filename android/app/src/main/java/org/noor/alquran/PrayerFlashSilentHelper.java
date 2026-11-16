@@ -151,27 +151,44 @@ public class PrayerFlashSilentHelper {
             if (am == null) return;
 
             int originalMode = am.getRingerMode();
-            // Save original mode in prefs
+            int origRingVol = -1;
+            int origNotifVol = -1;
+            try {
+                origRingVol = am.getStreamVolume(AudioManager.STREAM_RING);
+                origNotifVol = am.getStreamVolume(AudioManager.STREAM_NOTIFICATION);
+            } catch (Exception ignored) {}
+
+            // Save original mode and volumes in prefs
             context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE)
                     .edit()
                     .putInt("original_ringer_mode", originalMode)
+                    .putInt("original_ring_vol", origRingVol)
+                    .putInt("original_notif_vol", origNotifVol)
                     .putLong("silent_start_time", System.currentTimeMillis())
                     .apply();
 
+            boolean policyGranted = false;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                policyGranted = nm != null && nm.isNotificationPolicyAccessGranted();
+            } else {
+                policyGranted = true;
+            }
+
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                    if (nm != null && nm.isNotificationPolicyAccessGranted()) {
-                        am.setRingerMode(AudioManager.RINGER_MODE_SILENT);
-                        Log.i(TAG, "Phone put on silent (no vibration) for prayer.");
-                    }
-                } else {
+                if (policyGranted) {
                     am.setRingerMode(AudioManager.RINGER_MODE_SILENT);
-                    Log.i(TAG, "Phone put on silent (no vibration) for prayer.");
+                    Log.i(TAG, "Phone put on silent (RINGER_MODE_SILENT) for prayer.");
+                } else {
+                    // Try lowering ring/notification streams if DND policy not granted
+                    try {
+                        am.setStreamVolume(AudioManager.STREAM_RING, 0, 0);
+                        am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, 0, 0);
+                        Log.i(TAG, "Stream volumes muted for prayer.");
+                    } catch (Exception ignored) {}
                 }
             } catch (SecurityException se) {
-                // Policy not granted, do not alter to vibrate
-                Log.w(TAG, "Notification policy access not granted, skipping ringer mode change.");
+                Log.w(TAG, "Notification policy access not granted: " + se.getMessage());
             }
 
             // Schedule restore in 20 minutes
@@ -192,6 +209,10 @@ public class PrayerFlashSilentHelper {
 
             int originalMode = context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE)
                     .getInt("original_ringer_mode", AudioManager.RINGER_MODE_NORMAL);
+            int origRingVol = context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE)
+                    .getInt("original_ring_vol", -1);
+            int origNotifVol = context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE)
+                    .getInt("original_notif_vol", -1);
 
             try {
                 am.setRingerMode(originalMode);
@@ -199,6 +220,15 @@ public class PrayerFlashSilentHelper {
             } catch (Exception e) {
                 Log.w(TAG, "Failed to restore ringer mode: " + e.getMessage());
             }
+
+            try {
+                if (origRingVol >= 0) {
+                    am.setStreamVolume(AudioManager.STREAM_RING, origRingVol, 0);
+                }
+                if (origNotifVol >= 0) {
+                    am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, origNotifVol, 0);
+                }
+            } catch (Exception ignored) {}
         } catch (Exception ignored) {}
     }
 

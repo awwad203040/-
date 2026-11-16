@@ -1,7 +1,13 @@
 'use client';
 
-import React from 'react';
-import { SURAH_METADATA, POPULAR_RECITERS, type ReciterInfo } from '@/lib/quran-meta';
+import {
+  SURAH_METADATA,
+  POPULAR_RECITERS,
+  type ReciterInfo,
+  isSurahAvailableForReciter,
+  getNextSurahForReciter,
+  getPreviousSurahForReciter,
+} from '@/lib/quran-meta';
 import { triggerHaptic, announceToScreenReader } from '@/lib/accessibility';
 
 interface AudioControlModalProps {
@@ -215,7 +221,14 @@ export default function AudioControlModal({
             <div className="relative">
               <select
                 value={selectedReciterId}
-                onChange={(e) => onReciterChange(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  const newId = parseInt(e.target.value, 10);
+                  if (newId === 114 && !isSurahAvailableForReciter(114, selectedSurahForAudio)) {
+                    const nextAvail = getNextSurahForReciter(114, selectedSurahForAudio);
+                    onPlaySurah(nextAvail);
+                  }
+                  onReciterChange(newId);
+                }}
                 className="w-full pl-3 pr-9 py-2.5 rounded-xl border border-[#C8A85B]/60 bg-[#123B2A] text-white text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#C8A85B] cursor-pointer shadow-inner appearance-none"
               >
                 {POPULAR_RECITERS.map((r) => (
@@ -231,6 +244,15 @@ export default function AudioControlModal({
                 ▾
               </span>
             </div>
+
+            {selectedReciterId === 114 && (
+              <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-[11px] text-amber-200 flex items-center gap-2">
+                <span className="text-sm">📻</span>
+                <span className="leading-relaxed">
+                  <strong>التسجيلات الإذاعية النادرة للشيخ محمد رفعت:</strong> متوفر 31 سورة فقط للإذاعة المصرية (بسبب وفاته 1950 قبل تسجيل المصحف كاملاً). السور الأخرى غير مسجلة.
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Surah Selector with Next/Prev Controls */}
@@ -249,11 +271,10 @@ export default function AudioControlModal({
               <button
                 type="button"
                 onClick={() => {
-                  const next = Math.min(114, selectedSurahForAudio + 1);
+                  const next = getNextSurahForReciter(selectedReciterId, selectedSurahForAudio);
                   onPlaySurah(next);
                 }}
-                disabled={selectedSurahForAudio >= 114}
-                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-white/10 shrink-0"
+                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold cursor-pointer transition border border-white/10 shrink-0"
                 title="السورة التالية"
               >
                 ⏭ السورة التالية
@@ -261,24 +282,41 @@ export default function AudioControlModal({
 
               <select
                 value={selectedSurahForAudio}
-                onChange={(e) => onPlaySurah(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  const sNum = parseInt(e.target.value, 10);
+                  if (selectedReciterId === 114 && !isSurahAvailableForReciter(114, sNum)) {
+                    alert(`سورة ${SURAH_METADATA[sNum]?.name || sNum} غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ محمد رفعت (متوفر 31 سورة فقط).`);
+                    return;
+                  }
+                  onPlaySurah(sNum);
+                }}
                 className="flex-1 bg-[#123B2A] text-[#FFD700] font-bold text-xs sm:text-sm px-3 py-2 rounded-xl border border-[#C8A85B]/60 focus:outline-none cursor-pointer truncate"
               >
-                {Object.values(SURAH_METADATA).map((s) => (
-                  <option key={s.number} value={s.number} className="bg-[#123B2A] text-white">
-                    {s.number}. سورة {s.name}
-                  </option>
-                ))}
+                {Object.values(SURAH_METADATA).map((s) => {
+                  const isAvail = selectedReciterId !== 114 || isSurahAvailableForReciter(114, s.number);
+                  return (
+                    <option
+                      key={s.number}
+                      value={s.number}
+                      className={`bg-[#123B2A] ${isAvail ? 'text-white' : 'text-white/40'}`}
+                    >
+                      {selectedReciterId === 114
+                        ? isAvail
+                          ? `📻 ${s.number}. سورة ${s.name} (متوفرة)`
+                          : `⚠️ ${s.number}. سورة ${s.name} (غير مسجلة بالإذاعة)`
+                        : `${s.number}. سورة ${s.name}`}
+                    </option>
+                  );
+                })}
               </select>
 
               <button
                 type="button"
                 onClick={() => {
-                  const prev = Math.max(1, selectedSurahForAudio - 1);
+                  const prev = getPreviousSurahForReciter(selectedReciterId, selectedSurahForAudio);
                   onPlaySurah(prev);
                 }}
-                disabled={selectedSurahForAudio <= 1}
-                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition border border-white/10 shrink-0"
+                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold cursor-pointer transition border border-white/10 shrink-0"
                 title="السورة السابقة"
               >
                 ⏮ السابقة

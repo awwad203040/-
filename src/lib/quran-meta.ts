@@ -205,10 +205,53 @@ export const POPULAR_RECITERS: ReciterInfo[] = [
   { id: 111, name: 'إدريس أبكر', englishName: 'Idrees Abkar' },
   { id: 112, name: 'محمد أيوب (إمام المسجد النبوي)', englishName: 'Muhammad Ayyub' },
   { id: 113, name: 'محمد جبريل', englishName: 'Muhammad Jibreel' },
-  { id: 114, name: 'محمد رفعت (قيثارة السماء)', englishName: 'Muhammad Rifat' },
+  { id: 114, name: 'محمد رفعت (التسجيلات الإذاعية النادرة - 31 سورة)', englishName: 'Muhammad Rifat (Radio Archive - 31 Surahs)' },
   { id: 4, name: 'أبو بكر الشاطري', englishName: 'Abu Bakr al-Shatri' },
   { id: 5, name: 'هاني الرفاعي', englishName: 'Hani ar-Rifai' },
 ];
+
+/**
+ * التسجيلات الإذاعية النادرة المعتمدة للشيخ محمد رفعت (رحمه الله)
+ * 31 سورة فقط تم تسجيلها للإذاعة المصرية (بسبب وفاته عام 1950 قبل تسجيل المصحف الكامل استوديو)
+ * السور: 1، 10، 11، 12، 17، 18، 19، 20، 48، 54، 55، 56، 69، 72، 73، 75، 76، 77، 78، 79، 81، 82، 83، 85، 86، 87، 88، 89، 96، 98، 100
+ */
+export const SHEIKH_RIFAT_AVAILABLE_SURAHS: readonly number[] = [
+  1, 10, 11, 12, 17, 18, 19, 20, 48, 54, 55, 56, 69, 72, 73, 75, 76, 77, 78, 79, 81, 82, 83, 85, 86, 87, 88, 89, 96, 98, 100,
+] as const;
+
+export function isSurahAvailableForReciter(reciterId: number, surahNumber: number): boolean {
+  if (reciterId === 114) {
+    return (SHEIKH_RIFAT_AVAILABLE_SURAHS as readonly number[]).includes(surahNumber);
+  }
+  return true;
+}
+
+export function getNextSurahForReciter(reciterId: number, currentSurah: number): number {
+  if (reciterId === 114) {
+    const list = SHEIKH_RIFAT_AVAILABLE_SURAHS;
+    const curIdx = list.indexOf(currentSurah);
+    if (curIdx === -1) {
+      const next = list.find((s) => s > currentSurah);
+      return next !== undefined ? next : list[0];
+    }
+    return list[(curIdx + 1) % list.length];
+  }
+  return currentSurah < 114 ? currentSurah + 1 : 1;
+}
+
+export function getPreviousSurahForReciter(reciterId: number, currentSurah: number): number {
+  if (reciterId === 114) {
+    const list = SHEIKH_RIFAT_AVAILABLE_SURAHS;
+    const curIdx = list.indexOf(currentSurah);
+    if (curIdx === -1) {
+      const reversed = [...list].reverse();
+      const prev = reversed.find((s) => s < currentSurah);
+      return prev !== undefined ? prev : list[list.length - 1];
+    }
+    return curIdx === 0 ? list[list.length - 1] : list[curIdx - 1];
+  }
+  return currentSurah > 1 ? currentSurah - 1 : 114;
+}
 
 export const RECITER_AUDIO_SERVERS: Record<number, string> = {
   100: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r3', // Minshawi Teacher / Muallim (بترديد الأطفال)
@@ -234,12 +277,17 @@ export const RECITER_AUDIO_SERVERS: Record<number, string> = {
   111: 'https://cdn.mp3quran.net/audio/idrees-abkar/r1', // Idrees Abkar
   112: 'https://cdn.mp3quran.net/audio/muhammad-ayyub/r1', // Muhammad Ayyub
   113: 'https://cdn.mp3quran.net/audio/muhammad-jibreel/r1', // Muhammad Jibreel
-  114: 'https://cdn.mp3quran.net/audio/muhammad-refaat/r1', // Muhammad Rifat (قيثارة السماء)
+  114: 'https://cdn.mp3quran.net/audio/muhammad-refaat/r1', // Muhammad Rifat (التسجيلات الإذاعية النادرة)
   4: 'https://cdn.mp3quran.net/audio/abubakr-shatri/r1', // Abu Bakr al-Shatri
   5: 'https://cdn.mp3quran.net/audio/hani-rifai/r1', // Hani ar-Rifai
 };
 
 export function getDirectReciterAudioUrl(reciterId: number, surahNumber: number): string {
+  // If Sheikh Muhammad Rifat is selected and the surah is not in his 31 recorded surahs,
+  // do NOT return a URL (which MP3Quran's CDN redirects with 302 to Minshawi)!
+  if (reciterId === 114 && !isSurahAvailableForReciter(114, surahNumber)) {
+    return '';
+  }
   const pad3 = surahNumber.toString().padStart(3, '0');
   const server = RECITER_AUDIO_SERVERS[reciterId] || RECITER_AUDIO_SERVERS[100] || RECITER_AUDIO_SERVERS[7];
   if (reciterId === 102) {
@@ -278,6 +326,9 @@ export const RECITER_AUDIO_FALLBACK_SERVERS: Record<number, string> = {
 };
 
 export function getFallbackReciterAudioUrl(reciterId: number, surahNumber: number): string {
+  if (reciterId === 114 && !isSurahAvailableForReciter(114, surahNumber)) {
+    return '';
+  }
   const pad3 = surahNumber.toString().padStart(3, '0');
   const server = RECITER_AUDIO_FALLBACK_SERVERS[reciterId] || RECITER_AUDIO_FALLBACK_SERVERS[7];
   if (reciterId === 102) {

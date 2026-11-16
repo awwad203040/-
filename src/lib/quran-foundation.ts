@@ -139,6 +139,7 @@ export async function getReciters() {
 
 export async function getChapterRecitation(reciterId: number, chapterNumber: number) {
   const audioUrl = getDirectReciterAudioUrl(reciterId, chapterNumber);
+  if (!audioUrl) return null;
   return {
     id: chapterNumber,
     chapter_id: chapterNumber,

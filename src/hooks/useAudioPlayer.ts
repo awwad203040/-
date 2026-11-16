@@ -8,6 +8,9 @@ import {
   getFallbackReciterAudioUrl,
   getDirectAyahAudioUrl,
   getFallbackAyahAudioUrl,
+  isSurahAvailableForReciter,
+  getNextSurahForReciter,
+  getPreviousSurahForReciter,
 } from '@/lib/quran-meta';
 import { getOfflineAudioBlob, isAudioDownloaded } from '@/lib/offline-audio-manager';
 import { triggerHaptic, stopAccessibilitySpeech, announceToScreenReader, speakAccessibility, getAccessibilitySettings } from '@/lib/accessibility';
@@ -454,7 +457,7 @@ export function useAudioPlayer() {
       // 3) Standard Sequential Auto-play Next Surah (التتابع التلقائي للسورة التالية)
       // =========================================================================
       if (!wasSingleRepeatActive && autoPlayNext && currentSurah > 0) {
-        const nextSurah = currentSurah < 114 ? currentSurah + 1 : 1;
+        const nextSurah = getNextSurahForReciter(currentReciter, currentSurah);
         const nextSurahName = getSurahName(nextSurah);
         setState((prev) => ({
           ...prev,
@@ -552,6 +555,23 @@ export function useAudioPlayer() {
         try {
           audioRef.current.pause();
         } catch {}
+      }
+
+      // If Sheikh Muhammad Rifat is selected, strictly reject unrecorded surahs to prevent CDN redirect to Minshawi
+      if (reciterId === 114 && !isSurahAvailableForReciter(114, surahNumber)) {
+        const errorMsg = `سورة ${surahName} غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ محمد رفعت (متوفر 31 سورة فقط).`;
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          isPlaying: false,
+          error: errorMsg,
+          currentSurah: surahNumber,
+          currentReciter: reciterId,
+          surahName,
+          reciterName,
+        }));
+        announceToScreenReader(errorMsg);
+        return;
       }
 
       setState((prev) => ({
@@ -745,12 +765,10 @@ export function useAudioPlayer() {
       return;
     }
 
-    if (currentSurah < 114) {
-      const nextSurah = currentSurah + 1;
-      const nextSurahName = getSurahName(nextSurah);
-      if (loadAndPlayRef.current) {
-        loadAndPlayRef.current(nextSurah, currentReciter, nextSurahName, reciterName);
-      }
+    const nextSurah = getNextSurahForReciter(currentReciter, currentSurah);
+    const nextSurahName = getSurahName(nextSurah);
+    if (loadAndPlayRef.current) {
+      loadAndPlayRef.current(nextSurah, currentReciter, nextSurahName, reciterName);
     }
   }, []);
 
@@ -769,12 +787,10 @@ export function useAudioPlayer() {
       return;
     }
 
-    if (currentSurah > 1) {
-      const prevSurah = currentSurah - 1;
-      const prevSurahName = getSurahName(prevSurah);
-      if (loadAndPlayRef.current) {
-        loadAndPlayRef.current(prevSurah, currentReciter, prevSurahName, reciterName);
-      }
+    const prevSurah = getPreviousSurahForReciter(currentReciter, currentSurah);
+    const prevSurahName = getSurahName(prevSurah);
+    if (loadAndPlayRef.current) {
+      loadAndPlayRef.current(prevSurah, currentReciter, prevSurahName, reciterName);
     }
   }, []);
 

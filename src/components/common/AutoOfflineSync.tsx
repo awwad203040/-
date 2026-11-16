@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { startAutomaticOfflineSync, stopAutomaticOfflineSync } from '@/lib/auto-offline-sync';
+import { cleanUpInvalidRifatOfflineAudio } from '@/lib/offline-audio-manager';
 
 /**
  * AutoOfflineSync Component:
@@ -11,6 +12,9 @@ import { startAutomaticOfflineSync, stopAutomaticOfflineSync } from '@/lib/auto-
  */
 export default function AutoOfflineSync() {
   useEffect(() => {
+    // Clean up any stale invalid Rifat cache (prevents Minshawi redirects from lingering)
+    cleanUpInvalidRifatOfflineAudio().catch(() => {});
+
     const timer = setTimeout(() => {
       startAutomaticOfflineSync().catch((err) => {
         console.warn('AutoOfflineSync startup notice:', err);

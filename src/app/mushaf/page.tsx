@@ -23,7 +23,17 @@ import {
   updateKhatmahProgress,
   recordWirdProgress,
 } from '@/lib/storage';
-import { SURAH_NAMES, POPULAR_RECITERS, getSurahMeta, getSurahForPage, parseArabicOrWesternNumber, getJuzForPage, getHizbForPage } from '@/lib/quran-meta';
+import {
+  SURAH_NAMES,
+  POPULAR_RECITERS,
+  getSurahMeta,
+  getSurahForPage,
+  parseArabicOrWesternNumber,
+  getJuzForPage,
+  getHizbForPage,
+  isSurahAvailableForReciter,
+  getNextSurahForReciter,
+} from '@/lib/quran-meta';
 import MushafToolbar from '@/components/mushaf/MushafToolbar';
 import PageNavigator from '@/components/mushaf/PageNavigator';
 import AyahActions from '@/components/mushaf/AyahActions';
@@ -726,7 +736,10 @@ function MushafReaderInner() {
   // Reciter selection handler
   const handleSelectReciter = useCallback((id: number, name: string) => {
     handleUpdateSettings({ selectedReciterId: id });
-    const targetSurah = audio.currentSurah > 0 ? audio.currentSurah : (getSurahForPage(currentPage)?.number || 1);
+    let targetSurah = audio.currentSurah > 0 ? audio.currentSurah : (getSurahForPage(currentPage)?.number || 1);
+    if (id === 114 && !isSurahAvailableForReciter(114, targetSurah)) {
+      targetSurah = getNextSurahForReciter(114, targetSurah);
+    }
     const surahName = SURAH_NAMES[targetSurah] || `سورة ${targetSurah}`;
     audio.loadAndPlay(targetSurah, id, surahName, name, audio.currentVerseKey || undefined);
   }, [audio, handleUpdateSettings, currentPage]);
@@ -1525,10 +1538,15 @@ function MushafReaderInner() {
           onToggleMultiSurahLoop={audio.toggleMultiSurahLoop}
           onSetSelectedSurahsToLoop={audio.setSelectedSurahsToLoop}
           onPlaySurah={(surahNum) => {
+            const recId = settings.selectedReciterId || 7;
+            if (recId === 114 && !isSurahAvailableForReciter(114, surahNum)) {
+              alert(`سورة ${SURAH_NAMES[surahNum] || surahNum} غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ محمد رفعت (متوفر 31 سورة فقط).`);
+              return;
+            }
             const sName = SURAH_NAMES[surahNum] || `سورة ${surahNum}`;
-            const reciter = POPULAR_RECITERS.find((r) => r.id === (settings.selectedReciterId || 7));
+            const reciter = POPULAR_RECITERS.find((r) => r.id === recId);
             const rName = reciter?.name || 'مشاري العفاسي';
-            audio.loadAndPlay(surahNum, settings.selectedReciterId || 7, sName, rName);
+            audio.loadAndPlay(surahNum, recId, sName, rName);
           }}
         />
       )}

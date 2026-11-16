@@ -480,6 +480,9 @@ public class NoorAudioService extends Service {
         abandonAudioFocus();
         releaseWakeLock();
 
+        // Auto silent mode for 20 minutes starting immediately when Adhan finishes
+        PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
+
         // Transition to ongoing silent prayer notification card
         if (currentAdhanPrayer != null && !currentAdhanPrayer.isEmpty()) {
             int mins = adhanElapsedSeconds / 60;
@@ -533,8 +536,9 @@ public class NoorAudioService extends Service {
         abandonAudioFocus();
         releaseWakeLock();
 
-        // If stopped during Adhan (e.g. user pressed stop button), transition to ongoing prayer bar
+        // If stopped during Adhan (e.g. user pressed stop button), activate silent mode and transition to ongoing prayer bar
         if (currentAdhanPrayer != null && !currentAdhanPrayer.isEmpty()) {
+            PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
             int mins = adhanElapsedSeconds / 60;
             int secs = adhanElapsedSeconds % 60;
             String timerStr = String.format(java.util.Locale.US, "+ %02d:%02d", mins, secs);

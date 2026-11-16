@@ -5,7 +5,16 @@ import { useRouter } from 'next/navigation';
 import type { ReadingProgress, Bookmark } from '@/types/quran';
 import { getReadingProgress, saveReadingProgress, getBookmarks, getPagesVisited, getSettings, saveSettings, isAutoVoiceAssistantOnLaunch } from '@/lib/storage';
 import { consumeNativeVoiceLaunch } from '@/lib/athkar-native-bridge';
-import { SURAH_METADATA, JUZ_METADATA, POPULAR_RECITERS, getSurahName, getSurahForPage, parseArabicOrWesternNumber } from '@/lib/quran-meta';
+import {
+  SURAH_METADATA,
+  JUZ_METADATA,
+  POPULAR_RECITERS,
+  getSurahName,
+  getSurahForPage,
+  parseArabicOrWesternNumber,
+  isSurahAvailableForReciter,
+  getNextSurahForReciter,
+} from '@/lib/quran-meta';
 import InstallAppModal from '@/components/home/InstallAppModal';
 import DownloadBarcodeModal from '@/components/home/DownloadBarcodeModal';
 import AudioPlayerComponent from '@/components/mushaf/AudioPlayer';
@@ -226,7 +235,11 @@ export default function HomePage() {
     const newReciter = POPULAR_RECITERS.find((r) => r.id === newId) || POPULAR_RECITERS[0];
     triggerHaptic('tap');
     announceToScreenReader(`تم اختيار القارئ الشيخ ${newReciter.name}`);
-    const targetSurah = audio.currentSurah || selectedSurahForAudio;
+    let targetSurah = audio.currentSurah || selectedSurahForAudio;
+    if (newId === 114 && !isSurahAvailableForReciter(114, targetSurah)) {
+      targetSurah = getNextSurahForReciter(114, targetSurah);
+      setSelectedSurahForAudio(targetSurah);
+    }
     const sName = getSurahName(targetSurah);
     audio.setAutoPlayNext(true);
     audio.loadAndPlay(
@@ -239,6 +252,12 @@ export default function HomePage() {
 
   // Play specific surah
   const handlePlaySurah = useCallback((surahNumber: number) => {
+    if (selectedReciterId === 114 && !isSurahAvailableForReciter(114, surahNumber)) {
+      const sName = getSurahName(surahNumber);
+      announceToScreenReader(`سورة ${sName} غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ محمد رفعت`);
+      alert(`سورة ${sName} غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ محمد رفعت (متوفر 31 سورة فقط).`);
+      return;
+    }
     setSelectedSurahForAudio(surahNumber);
     const sName = getSurahName(surahNumber);
     if (audio.isPlaying && audio.currentSurah === surahNumber && audio.currentReciter === selectedReciterId) {
@@ -262,8 +281,11 @@ export default function HomePage() {
   // Handle voice command results from BlindVoiceAssistantModal or Google Assistant
   const handleVoiceCommandResult = useCallback((res: VoiceCommandResult) => {
     if (res.action === 'play_surah' && res.surahNumber) {
-      const sNum = res.surahNumber;
+      let sNum = res.surahNumber;
       const recId = res.reciterId || selectedReciterId || 7;
+      if (recId === 114 && !isSurahAvailableForReciter(114, sNum)) {
+        sNum = getNextSurahForReciter(114, sNum);
+      }
       const sName = res.surahName || getSurahName(sNum);
       const rName = res.reciterName || POPULAR_RECITERS.find((r) => r.id === recId)?.name || currentReciter.name;
 
@@ -547,7 +569,11 @@ export default function HomePage() {
     setSelectedReciterId(id);
     saveSettings({ selectedReciterId: id });
     setShowReciterModal(false);
-    const targetSurah = audio.currentSurah || selectedSurahForAudio;
+    let targetSurah = audio.currentSurah || selectedSurahForAudio;
+    if (id === 114 && !isSurahAvailableForReciter(114, targetSurah)) {
+      targetSurah = getNextSurahForReciter(114, targetSurah);
+      setSelectedSurahForAudio(targetSurah);
+    }
     const sName = getSurahName(targetSurah);
     triggerHaptic('play');
     stopAccessibilitySpeech();

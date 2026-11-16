@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useId, useCallback, useRef } from 'react';
-import { POPULAR_RECITERS, SURAH_METADATA } from '@/lib/quran-meta';
+import { POPULAR_RECITERS, SURAH_METADATA, isSurahAvailableForReciter, SHEIKH_RIFAT_AVAILABLE_SURAHS } from '@/lib/quran-meta';
 import {
   isAudioDownloaded,
   downloadSurahAudio,
@@ -88,7 +88,12 @@ export default function OfflineAudioModal({
 
   const handleDownloadBatch = async (surahs: number[], label: string) => {
     if (batchDownloading || downloadingSurah !== null) return;
-    const toDownload = surahs.filter((num) => !downloadedSurahs.includes(num));
+    const validSurahs = surahs.filter((num) => isSurahAvailableForReciter(activeReciterId, num));
+    if (validSurahs.length === 0) {
+      alert('هذه السور غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ المختار.');
+      return;
+    }
+    const toDownload = validSurahs.filter((num) => !downloadedSurahs.includes(num));
     if (toDownload.length === 0) {
       alert('جميع هذه السور محملة بالفعل بدون إنترنت!');
       return;
@@ -191,6 +196,15 @@ export default function OfflineAudioModal({
               </option>
             ))}
           </select>
+
+          {activeReciterId === 114 && (
+            <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-[11px] text-amber-200 flex items-center gap-2">
+              <span className="text-sm">📻</span>
+              <span className="leading-relaxed">
+                <strong>تسجيلات الشيخ محمد رفعت الإذاعية:</strong> متوفر 31 سورة مسجلة للإذاعة المصرية. السور الأخرى غير مسجلة للإذاعة.
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Quick Batch Download Presets */}
@@ -200,36 +214,51 @@ export default function OfflineAudioModal({
             {/* Current Surah */}
             <button
               type="button"
-              disabled={batchDownloading || downloadedSurahs.includes(currentSurah)}
+              disabled={
+                batchDownloading ||
+                downloadedSurahs.includes(currentSurah) ||
+                (activeReciterId === 114 && !isSurahAvailableForReciter(114, currentSurah))
+              }
               onClick={() => handleDownloadSingle(currentSurah)}
               className={`py-1.5 px-2 rounded-xl font-bold transition text-[11px] flex items-center justify-center gap-1 border ${
                 downloadedSurahs.includes(currentSurah)
                   ? 'bg-emerald-600/40 text-emerald-200 border-emerald-500/40 cursor-default'
+                  : activeReciterId === 114 && !isSurahAvailableForReciter(114, currentSurah)
+                  ? 'bg-white/5 text-white/40 border-white/10 cursor-not-allowed'
                   : 'bg-[#C8A85B] text-[#123B2A] hover:bg-[#d4b66d] border-[#C8A85B] cursor-pointer'
               }`}
+              title={activeReciterId === 114 && !isSurahAvailableForReciter(114, currentSurah) ? 'هذه السورة غير مسجلة للشيخ رفعت' : undefined}
             >
               <span>{downloadedSurahs.includes(currentSurah) ? '✓' : '📥'}</span>
               <span>السورة الحالية ({SURAH_METADATA[currentSurah]?.name || currentSurah})</span>
             </button>
 
-            {/* Full Mushaf (114 Surahs) - مكان نافذة قصار السور */}
+            {/* Full Mushaf or Sheikh Rifat 31 Surahs */}
             <button
               type="button"
               disabled={batchDownloading}
               onClick={() => {
-                const arr = Array.from({ length: 114 }, (_, i) => i + 1);
-                handleDownloadBatch(arr, 'المصحف كاملاً (114 سورة)');
+                if (activeReciterId === 114) {
+                  handleDownloadBatch([...SHEIKH_RIFAT_AVAILABLE_SURAHS], 'تسجيلات الشيخ محمد رفعت (31 سورة)');
+                } else {
+                  const arr = Array.from({ length: 114 }, (_, i) => i + 1);
+                  handleDownloadBatch(arr, 'المصحف كاملاً (114 سورة)');
+                }
               }}
               className={`py-1.5 px-2 rounded-xl font-bold transition text-[11px] flex items-center justify-center gap-1 border ${
-                downloadedSurahs.length === 114
+                (activeReciterId === 114
+                  ? SHEIKH_RIFAT_AVAILABLE_SURAHS.every((s) => downloadedSurahs.includes(s))
+                  : downloadedSurahs.length === 114)
                   ? 'bg-emerald-600/40 text-emerald-200 border-emerald-500/40 cursor-default'
                   : 'bg-[#C8A85B]/20 hover:bg-[#C8A85B]/30 text-[#C8A85B] border-[#C8A85B]/50 cursor-pointer shadow-xs'
               }`}
-              title="تنزيل جميع سور القرآن الكريم الـ 114 للشيخ المختار للاستماع بدون نت"
+              title={activeReciterId === 114 ? 'تنزيل جميع تسجيلات الشيخ رفعت الـ 31 للاستماع بدون نت' : 'تنزيل جميع سور القرآن الكريم الـ 114 للشيخ المختار للاستماع بدون نت'}
             >
-              <span>🕌</span>
-              <span>المصحف كاملاً (114 سورة)</span>
-              {downloadedSurahs.length === 114 && <span className="text-[10px]">✓</span>}
+              <span>{activeReciterId === 114 ? '📻' : '🕌'}</span>
+              <span>{activeReciterId === 114 ? 'تسجيلات الشيخ رفعت (31 سورة)' : 'المصحف كاملاً (114 سورة)'}</span>
+              {(activeReciterId === 114
+                ? SHEIKH_RIFAT_AVAILABLE_SURAHS.every((s) => downloadedSurahs.includes(s))
+                : downloadedSurahs.length === 114) && <span className="text-[10px]">✓</span>}
             </button>
 
             {/* Popular Surahs (Yaseen, Kahf, Waqiah, Mulk, Rahman) */}
@@ -344,6 +373,13 @@ export default function OfflineAudioModal({
                         🗑
                       </button>
                     </div>
+                  ) : activeReciterId === 114 && !isSurahAvailableForReciter(114, meta.number) ? (
+                    <span
+                      className="px-2 py-1 rounded-lg bg-white/5 text-white/40 font-medium text-[10px] border border-white/10"
+                      title="هذه السورة غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ محمد رفعت"
+                    >
+                      غير مسجلة
+                    </span>
                   ) : (
                     <button
                       type="button"

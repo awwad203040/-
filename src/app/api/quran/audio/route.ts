@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChapterRecitation, getAyahRecitation } from '@/lib/quran-foundation';
-import { getDirectReciterAudioUrl, getFallbackReciterAudioUrl } from '@/lib/quran-meta';
+import { getDirectReciterAudioUrl, getFallbackReciterAudioUrl, isSurahAvailableForReciter, SURAH_NAMES } from '@/lib/quran-meta';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,6 +27,14 @@ export async function GET(request: NextRequest) {
     const chapterId = parseInt(searchParams.get('chapter') || '1', 10);
     if (isNaN(chapterId) || chapterId < 1 || chapterId > 114) {
       return NextResponse.json({ error: 'رقم سورة غير صالح' }, { status: 400 });
+    }
+
+    if (reciterId === 114 && !isSurahAvailableForReciter(114, chapterId)) {
+      const sName = SURAH_NAMES[chapterId] || chapterId;
+      return NextResponse.json(
+        { error: `سورة ${sName} غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ محمد رفعت (متوفر 31 سورة فقط)` },
+        { status: 404 }
+      );
     }
 
     const directUrl = getDirectReciterAudioUrl(reciterId, chapterId);

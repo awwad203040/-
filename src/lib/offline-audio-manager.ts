@@ -1,6 +1,6 @@
 'use client';
 
-import { getDirectReciterAudioUrl, getFallbackReciterAudioUrl } from '@/lib/quran-meta';
+import { getDirectReciterAudioUrl, getFallbackReciterAudioUrl, isSurahAvailableForReciter, SHEIKH_RIFAT_AVAILABLE_SURAHS } from '@/lib/quran-meta';
 
 const DB_NAME = 'NoorReciterAudioDB';
 const DB_VERSION = 1;
@@ -213,6 +213,12 @@ export async function downloadSurahAudio(
   onProgress?: (percent: number) => void
 ): Promise<boolean> {
   try {
+    // If Sheikh Muhammad Rifat is selected, strictly reject surahs not in his 31 recordings
+    if (reciterId === 114 && !isSurahAvailableForReciter(114, surahNumber)) {
+      console.warn(`Surah ${surahNumber} was not recorded by Sheikh Muhammad Rifat, skipping download.`);
+      return false;
+    }
+
     // 1. Check if already downloaded
     const existing = await getOfflineAudioBlob(reciterId, surahNumber);
     if (existing && existing.size > 0) {
@@ -224,6 +230,8 @@ export async function downloadSurahAudio(
 
     // 2. Fetch audio URL
     let targetUrl = getDirectReciterAudioUrl(reciterId, surahNumber);
+    if (!targetUrl) return false;
+
     try {
       const apiRes = await fetch(`/api/quran/audio?chapter=${surahNumber}&reciter=${reciterId}`);
       if (apiRes.ok) {
@@ -242,6 +250,7 @@ export async function downloadSurahAudio(
     if (!response.ok) {
       // If primary failed, try fallback CDN
       const fallbackUrl = getFallbackReciterAudioUrl(reciterId, surahNumber);
+      if (!fallbackUrl) return false;
       const fbRes = await fetch(fallbackUrl);
       if (!fbRes.ok) throw new Error('فشل تنزيل ملف التلاوة');
       const blob = await fbRes.blob();
@@ -262,6 +271,32 @@ export async function downloadSurahAudio(
   } catch (err) {
     console.error(`Error downloading audio for reciter ${reciterId}, surah ${surahNumber}:`, err);
     return false;
+  }
+}
+
+/**
+ * Clean up any invalid Sheikh Muhammad Rifat audio cache for surahs he never recorded
+ * (prevents accidental Minshawi redirects from lingering in IndexedDB storage)
+ */
+export async function cleanUpInvalidRifatOfflineAudio(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const keys = getDownloadedKeys();
+    let hasChanged = false;
+    for (const k of Array.from(keys)) {
+      if (k.startsWith('114_')) {
+        const surah = parseInt(k.replace('114_', ''), 10);
+        if (!SHEIKH_RIFAT_AVAILABLE_SURAHS.includes(surah)) {
+          await deleteOfflineAudio(114, surah);
+          hasChanged = true;
+        }
+      }
+    }
+    if (hasChanged && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('noor-offline-audio-updated'));
+    }
+  } catch (err) {
+    console.error('Error cleaning up invalid Rifat offline audio:', err);
   }
 }
 
