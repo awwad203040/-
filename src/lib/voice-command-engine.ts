@@ -13,11 +13,23 @@ import {
 } from './athkar-native-bridge';
 
 export interface VoiceCommandResult {
-  action: 'play_surah' | 'pause' | 'resume' | 'next' | 'previous' | 'where_am_i' | 'open_read_quran' | 'unknown';
+  action:
+    | 'play_surah'
+    | 'pause'
+    | 'resume'
+    | 'next'
+    | 'previous'
+    | 'where_am_i'
+    | 'open_read_quran'
+    | 'open_radios'
+    | 'play_radio'
+    | 'unknown';
   surahNumber?: number;
   surahName?: string;
   reciterId?: number;
   reciterName?: string;
+  stationId?: string;
+  stationName?: string;
   originalText: string;
   feedbackMessage: string;
 }
@@ -286,6 +298,511 @@ function detectReciterFromText(normalized: string): ReciterMatch | null {
   return bestMatch;
 }
 
+// 4.5 قاموس إذاعات القرآن الكريم ومحرك التعرف الصوتي عليها
+interface RadioStationVoiceAlias {
+  id: string;
+  name: string;
+  aliases: string[];
+}
+
+const RADIO_STATION_VOICE_ALIASES: RadioStationVoiceAlias[] = [
+  // 1. مصر - القاهرة
+  {
+    id: 'cairo-egypt',
+    name: 'إذاعة القرآن الكريم من القاهرة',
+    aliases: [
+      'اذاعه القران الكريم مصر',
+      'اذاعه القران الكريم من القاهره',
+      'اذاعه القران الكريم القاهره',
+      'اذاعه القران مصر',
+      'اذاعه القران القاهره',
+      'اذاعه مصر',
+      'اذاعه القاهره',
+      'قران القاهره',
+      'قران مصر',
+      'راديو مصر',
+      'راديو القاهره',
+      'اذاعه مصر للقران',
+      'محطه القاهره',
+      'محطه مصر',
+      'مصر',
+      'القاهره',
+    ],
+  },
+  // 2. السعودية - مكة والحرمين
+  {
+    id: 'saudi-mix',
+    name: 'إذاعة القرآن الكريم من السعودية',
+    aliases: [
+      'اذاعه القران الكريم السعوديه',
+      'اذاعه القران الكريم من السعوديه',
+      'اذاعه القران الكريم مكه',
+      'اذاعه القران الكريم الرياض',
+      'اذاعه القران السعوديه',
+      'اذاعه السعوديه',
+      'اذاعه مكه',
+      'اذاعه الحرمين',
+      'اذاعه الحرم المكي',
+      'اذاعه الرياض',
+      'قران السعوديه',
+      'قران مكه',
+      'راديو السعوديه',
+      'راديو مكه',
+      'السعوديه',
+      'مكه المكرمه',
+      'مكه',
+      'الحرمين',
+      'الرياض',
+    ],
+  },
+  // 3. الشارقة - الإمارات
+  {
+    id: 'sharjah-uae',
+    name: 'إذاعة القرآن الكريم من الشارقة',
+    aliases: [
+      'اذاعه القران الكريم من الشارقه',
+      'اذاعه القران الكريم الشارقه',
+      'اذاعه القران الكريم الامارات',
+      'اذاعه الشارقه',
+      'اذاعه الامارات',
+      'قران الشارقه',
+      'قران الامارات',
+      'راديو الشارقه',
+      'الشارقه',
+      'الامارات',
+    ],
+  },
+  // 4. الكويت
+  {
+    id: 'kuwait-quran',
+    name: 'إذاعة القرآن الكريم من الكويت',
+    aliases: [
+      'اذاعه القران الكريم من الكويت',
+      'اذاعه القران الكريم الكويت',
+      'اذاعه الكويت',
+      'قران الكويت',
+      'راديو الكويت',
+      'الكويت',
+    ],
+  },
+  // 5. فلسطين - القدس ونابلس
+  {
+    id: 'palestine-nablus',
+    name: 'إذاعة القرآن الكريم من فلسطين (نابلس)',
+    aliases: [
+      'اذاعه القران الكريم من فلسطين',
+      'اذاعه القران الكريم فلسطين',
+      'اذاعه القران الكريم القدس',
+      'اذاعه القران الكريم نابلس',
+      'اذاعه فلسطين',
+      'اذاعه القدس',
+      'اذاعه نابلس',
+      'قران فلسطين',
+      'قران القدس',
+      'فلسطين',
+      'القدس',
+      'نابلس',
+    ],
+  },
+  // 6. الأردن
+  {
+    id: 'jordan-quran',
+    name: 'إذاعة القرآن الكريم من الأردن 93.1 FM',
+    aliases: [
+      'اذاعه القران الكريم من الاردن',
+      'اذاعه القران الكريم الاردن',
+      'اذاعه الاردن',
+      'اذاعه عمان',
+      'قران الاردن',
+      'الاردن',
+      'عمان',
+    ],
+  },
+  // 7. البحرين
+  {
+    id: 'bahrain-quran',
+    name: 'إذاعة القرآن الكريم من البحرين 106.1 FM',
+    aliases: [
+      'اذاعه القران الكريم من البحرين',
+      'اذاعه القران الكريم البحرين',
+      'اذاعه البحرين',
+      'قران البحرين',
+      'البحرين',
+      'المنامه',
+    ],
+  },
+  // 8. الشيخ عبد الباسط عبد الصمد
+  {
+    id: 'reciter-abdulbasit',
+    name: 'إذاعة الشيخ عبد الباسط عبد الصمد',
+    aliases: [
+      'اذاعه عبد الباسط',
+      'اذاعه الشيخ عبد الباسط',
+      'اذاعه عبدالباسط',
+      'اذاعه عبد الباسط عبد الصمد',
+      'راديو عبد الباسط',
+      'قران عبد الباسط',
+    ],
+  },
+  // 9. الشيخ محمد صديق المنشاوي
+  {
+    id: 'reciter-minshawi',
+    name: 'إذاعة الشيخ محمد صديق المنشاوي',
+    aliases: [
+      'اذاعه المنشاوي',
+      'اذاعه الشيخ المنشاوي',
+      'اذاعه محمد صديق المنشاوي',
+      'راديو المنشاوي',
+      'قران المنشاوي',
+    ],
+  },
+  // 10. الشيخ محمود خليل الحصري
+  {
+    id: 'reciter-hussary',
+    name: 'إذاعة الشيخ محمود خليل الحصري',
+    aliases: [
+      'اذاعه الحصري',
+      'اذاعه الشيخ الحصري',
+      'اذاعه محمود خليل الحصري',
+      'راديو الحصري',
+      'قران الحصري',
+    ],
+  },
+  // 11. الشيخ ماهر المعيقلي
+  {
+    id: 'reciter-mueaqly',
+    name: 'إذاعة الشيخ ماهر المعيقلي',
+    aliases: [
+      'اذاعه المعيقلي',
+      'اذاعه ماهر المعيقلي',
+      'اذاعه الشيخ ماهر المعيقلي',
+      'راديو المعيقلي',
+    ],
+  },
+  // 12. الشيخ مشاري راشد العفاسي
+  {
+    id: 'reciter-afasy',
+    name: 'إذاعة الشيخ مشاري راشد العفاسي',
+    aliases: [
+      'اذاعه العفاسي',
+      'اذاعه مشاري العفاسي',
+      'اذاعه الشيخ مشاري العفاسي',
+      'اذاعه مشاري',
+      'راديو العفاسي',
+    ],
+  },
+  // 13. الشيخ عبد الرحمن السديس
+  {
+    id: 'reciter-sudais',
+    name: 'إذاعة الشيخ عبد الرحمن السديس',
+    aliases: [
+      'اذاعه السديس',
+      'اذاعه عبد الرحمن السديس',
+      'اذاعه الشيخ السديس',
+      'راديو السديس',
+    ],
+  },
+  // 14. الشيخ سعود الشريم
+  {
+    id: 'reciter-shuraim',
+    name: 'إذاعة الشيخ سعود الشريم',
+    aliases: [
+      'اذاعه الشريم',
+      'اذاعه سعود الشريم',
+      'اذاعه الشيخ الشريم',
+      'راديو الشريم',
+    ],
+  },
+  // 15. الشيخ ياسر الدوسري
+  {
+    id: 'reciter-dosari',
+    name: 'إذاعة الشيخ ياسر الدوسري',
+    aliases: [
+      'اذاعه الدوسري',
+      'اذاعه ياسر الدوسري',
+      'اذاعه الشيخ ياسر الدوسري',
+      'راديو الدوسري',
+    ],
+  },
+  // 16. الشيخ علي الحذيفي
+  {
+    id: 'reciter-huthaifi',
+    name: 'إذاعة الشيخ علي بن عبد الرحمن الحذيفي',
+    aliases: [
+      'اذاعه الحذيفي',
+      'اذاعه علي الحذيفي',
+      'اذاعه الشيخ الحذيفي',
+      'راديو الحذيفي',
+    ],
+  },
+  // 17. المصحف المعلم للمنشاوي
+  {
+    id: 'reciter-minshawi-molem',
+    name: 'إذاعة الشيخ محمد صديق المنشاوي (المصحف المعلم)',
+    aliases: [
+      'اذاعه المنشاوي المعلم',
+      'اذاعه المنشاوي مع الاطفال',
+      'اذاعه المصحف المعلم للمنشاوي',
+      'اذاعه مصحف المنشاوي المعلم',
+      'اذاعه المنشاوي بترديد الاطفال',
+    ],
+  },
+  // 18. المصحف المعلم للحصري
+  {
+    id: 'reciter-hussary-molem',
+    name: 'إذاعة الشيخ محمود خليل الحصري (المصحف المعلم)',
+    aliases: [
+      'اذاعه الحصري المعلم',
+      'اذاعه الحصري مع الاطفال',
+      'اذاعه المصحف المعلم للحصري',
+      'اذاعه مصحف الحصري المعلم',
+    ],
+  },
+  // 19. الشيخ أحمد العجمي
+  {
+    id: 'reciter-ajmi',
+    name: 'إذاعة الشيخ أحمد بن علي العجمي',
+    aliases: [
+      'اذاعه العجمي',
+      'اذاعه احمد العجمي',
+      'اذاعه الشيخ احمد العجمي',
+      'راديو العجمي',
+    ],
+  },
+  // 20. الشيخ فارس عباد
+  {
+    id: 'reciter-fares',
+    name: 'إذاعة الشيخ فارس عباد',
+    aliases: [
+      'اذاعه فارس عباد',
+      'اذاعه الشيخ فارس عباد',
+      'راديو فارس عباد',
+    ],
+  },
+  // 21. الشيخ سعد الغامدي
+  {
+    id: 'reciter-ghamdi',
+    name: 'إذاعة الشيخ سعد الغامدي',
+    aliases: [
+      'اذاعه الغامدي',
+      'اذاعه سعد الغامدي',
+      'اذاعه الشيخ سعد الغامدي',
+      'راديو الغامدي',
+    ],
+  },
+  // 22. الشيخ ناصر القطامي
+  {
+    id: 'reciter-qatami',
+    name: 'إذاعة الشيخ ناصر القطامي',
+    aliases: [
+      'اذاعه القطامي',
+      'اذاعه ناصر القطامي',
+      'اذاعه الشيخ ناصر القطامي',
+      'راديو القطامي',
+    ],
+  },
+  // 23. الشيخ علي جابر
+  {
+    id: 'reciter-jaber',
+    name: 'إذاعة الشيخ علي عبد الله جابر',
+    aliases: [
+      'اذاعه علي جابر',
+      'اذاعه الشيخ علي جابر',
+      'راديو علي جابر',
+    ],
+  },
+  // 24. الشيخ إدريس أبكر
+  {
+    id: 'reciter-abkar',
+    name: 'إذاعة الشيخ إدريس أبكر',
+    aliases: [
+      'اذاعه ادريس ابكر',
+      'اذاعه ابكر',
+      'اذاعه الشيخ ادريس ابكر',
+      'راديو ادريس ابكر',
+    ],
+  },
+  // 25. الشيخ محمد أيوب
+  {
+    id: 'reciter-ayyub',
+    name: 'إذاعة الشيخ محمد أيوب',
+    aliases: [
+      'اذاعه محمد ايوب',
+      'اذاعه ايوب',
+      'اذاعه الشيخ محمد ايوب',
+      'راديو محمد ايوب',
+    ],
+  },
+  // 26. الشيخ محمد جبريل
+  {
+    id: 'reciter-jibreel',
+    name: 'إذاعة الشيخ محمد جبريل',
+    aliases: [
+      'اذاعه محمد جبريل',
+      'اذاعه جبريل',
+      'اذاعه الشيخ محمد جبريل',
+      'راديو محمد جبريل',
+    ],
+  },
+  // 27. تفسير القرآن الكريم
+  {
+    id: 'tafsir-quran',
+    name: 'إذاعة تفسير القرآن الكريم',
+    aliases: [
+      'اذاعه التفسير',
+      'اذاعه تفسير القران',
+      'اذاعه تفسير القران الكريم',
+      'راديو التفسير',
+      'تفسير القران',
+    ],
+  },
+  // 28. أذكار الصباح والمساء
+  {
+    id: 'athkar-sabah-masa',
+    name: 'إذاعة أذكار الصباح والمساء واليوم والليلة',
+    aliases: [
+      'اذاعه الاذكار',
+      'اذاعه اذكار الصباح والمساء',
+      'اذاعه اذكار الصباح',
+      'اذاعه اذكار المساء',
+      'راديو الاذكار',
+    ],
+  },
+  // 29. الرقية الشرعية
+  {
+    id: 'roqiah-shariah',
+    name: 'إذاعة الرقية الشرعية',
+    aliases: [
+      'اذاعه الرقيه',
+      'اذاعه الرقيه الشرعيه',
+      'راديو الرقيه',
+      'الرقيه الشرعيه',
+    ],
+  },
+];
+
+interface RadioMatch {
+  stationId: string;
+  stationName: string;
+}
+
+function detectRadioCommand(normalized: string): {
+  isRadioIntent: boolean;
+  stationMatch: RadioMatch | null;
+  isGeneralOpen: boolean;
+} {
+  const radioKeywords = [
+    'اذاعه',
+    'اذاعات',
+    'الإذاعة',
+    'الإذاعات',
+    'راديو',
+    'الراديو',
+    'محطه',
+    'محطات',
+    'بث مباشر',
+    'بث حي',
+  ];
+
+  const hasRadioKeyword = radioKeywords.some((kw) => {
+    const normKw = normalizeArabicSpeech(kw);
+    return normalized.includes(normKw);
+  });
+
+  const isDirectCountryRadio =
+    normalized.includes('القران الكريم مصر') ||
+    normalized.includes('القران الكريم من القاهره') ||
+    normalized.includes('القران الكريم القاهره') ||
+    normalized.includes('القران الكريم السعوديه') ||
+    normalized.includes('القران الكريم من السعوديه') ||
+    normalized.includes('القران الكريم مكه') ||
+    normalized.includes('القران الكريم الشارقه') ||
+    normalized.includes('القران الكريم الامارات') ||
+    normalized.includes('القران الكريم الكويت') ||
+    normalized.includes('القران الكريم فلسطين') ||
+    normalized.includes('القران الكريم الاردن') ||
+    normalized.includes('القران الكريم البحرين');
+
+  if (!hasRadioKeyword && !isDirectCountryRadio) {
+    return { isRadioIntent: false, stationMatch: null, isGeneralOpen: false };
+  }
+
+  // 1. فحص أسماء الإذاعات المحددة أولاً
+  let bestStation: RadioMatch | null = null;
+  let maxScore = 0;
+
+  for (const station of RADIO_STATION_VOICE_ALIASES) {
+    for (const rawAlias of station.aliases) {
+      const normAlias = normalizeArabicSpeech(rawAlias);
+      if (!normAlias) continue;
+
+      let score = 0;
+      if (normalized === normAlias) {
+        score = 2500 + normAlias.length * 10;
+      } else if (normalized.includes(normAlias)) {
+        score = 1500 + normAlias.length * 10;
+      }
+
+      if (score > maxScore) {
+        maxScore = score;
+        bestStation = { stationId: station.id, stationName: station.name };
+      }
+    }
+  }
+
+  if (bestStation && maxScore >= 1500) {
+    return { isRadioIntent: true, stationMatch: bestStation, isGeneralOpen: false };
+  }
+
+  // 2. فحص أوامر فتح نافذة الإذاعات العامة
+  const generalOpenPhrases = [
+    'افتح اذاعات',
+    'افتح الاذاعات',
+    'اذاعات القران',
+    'اذاعات القران الكريم',
+    'اذاعات',
+    'الاذاعات',
+    'افتح الراديو',
+    'الراديو',
+    'راديو القران',
+    'راديو القران الكريم',
+    'قائمه الاذاعات',
+    'نافذه الاذاعات',
+    'نافذه اذاعات القران',
+    'محطات القران',
+    'محطات الاذاعه',
+    'بث مباشر',
+  ];
+
+  const clean = normalized
+    .replace(/^(افتح لي|افتح|اريد|ابغى|ابي|ودنا|ورني|عرض|شغل لي|شغل)\s*/g, '')
+    .trim();
+
+  const isGeneralOpen = generalOpenPhrases.some((phrase) => {
+    const normP = normalizeArabicSpeech(phrase);
+    return normalized === normP || clean === normP || normalized.includes(normP);
+  });
+
+  if (isGeneralOpen) {
+    return { isRadioIntent: true, stationMatch: null, isGeneralOpen: true };
+  }
+
+  // 3. إذا قال "إذاعة القرآن الكريم" أو "شغل إذاعة القرآن" دون تحديد دولة، يتم توجيهه لإذاعة القاهرة كافتراضي رسمي
+  if (
+    normalized.includes('اذاعه القران') ||
+    normalized.includes('اذاعه القران الكريم') ||
+    normalized.includes('راديو القران')
+  ) {
+    return {
+      isRadioIntent: true,
+      stationMatch: { stationId: 'cairo-egypt', stationName: 'إذاعة القرآن الكريم من القاهرة' },
+      isGeneralOpen: false,
+    };
+  }
+
+  return { isRadioIntent: true, stationMatch: null, isGeneralOpen: true };
+}
+
 // 5. محرك تحليل ومطابقة الأمر الصوتي
 export function parseVoiceCommand(rawInput: string): VoiceCommandResult {
   const normalized = normalizeArabicSpeech(rawInput);
@@ -364,7 +881,27 @@ export function parseVoiceCommand(rawInput: string): VoiceCommandResult {
     };
   }
 
-  // ز. فحص اسم القارئ إن ذكر
+  // ز. أوامر إذاعات القرآن الكريم المباشرة (مثل: "افتح إذاعة القرآن الكريم مصر", "إذاعات القرآن", "افتح الراديو")
+  const radioDetect = detectRadioCommand(normalized);
+  if (radioDetect.isRadioIntent) {
+    if (radioDetect.stationMatch) {
+      return {
+        action: 'play_radio',
+        stationId: radioDetect.stationMatch.stationId,
+        stationName: radioDetect.stationMatch.stationName,
+        originalText: rawInput,
+        feedbackMessage: `جاري تشغيل ${radioDetect.stationMatch.stationName} وفتح نافذة الإذاعات.`,
+      };
+    } else if (radioDetect.isGeneralOpen) {
+      return {
+        action: 'open_radios',
+        originalText: rawInput,
+        feedbackMessage: 'تم فتح نافذة إذاعات القرآن الكريم.',
+      };
+    }
+  }
+
+  // ح. فحص اسم القارئ إن ذكر
   const detectedReciter = detectReciterFromText(normalized);
 
   // ح. البحث عن السورة بالرقم المباشر (مثلاً "سورة رقم 18" أو "سورة 2")

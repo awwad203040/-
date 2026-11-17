@@ -35,7 +35,7 @@ export default function BlindVoiceAssistantModal({
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [feedback, setFeedback] = useState('');
-  const [statusText, setStatusText] = useState('أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
+  const [statusText, setStatusText] = useState('أنا أستمع إليك الآن... تفضل بنطق اسم السورة أو الإذاعة');
   const [permissionGranted, setPermissionGranted] = useState<boolean>(true);
   const [supported, setSupported] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState<boolean>(false);
@@ -71,15 +71,15 @@ export default function BlindVoiceAssistantModal({
 
     setTranscript('');
     setFeedback('');
-    setStatusText(forceDialog ? 'جاري فتح نافذة التحدث...' : 'أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
+    setStatusText(forceDialog ? 'جاري فتح نافذة التحدث...' : 'أنا أستمع إليك الآن... تفضل بنطق اسم السورة أو الإذاعة');
 
     const started = startVoiceListening({
       forceDialog,
       onStart: () => {
         setIsListening(true);
         setPermissionGranted(true);
-        setStatusText('أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
-        announceToScreenReader('المساعد الصوتي يستمع إليك الآن. تفضل بنطق اسم السورة', true);
+        setStatusText('أنا أستمع إليك الآن... تفضل بنطق اسم السورة أو الإذاعة');
+        announceToScreenReader('المساعد الصوتي يستمع إليك الآن. تفضل بنطق اسم السورة أو إذاعة القرآن الكريم', true);
       },
       onInterimResult: (text) => {
         setTranscript(text);
@@ -154,8 +154,8 @@ export default function BlindVoiceAssistantModal({
     if (isOpen) {
       setSupported(isSpeechRecognitionSupported());
       announceToScreenReader('تم فتح المساعد الصوتي للمكفوفين', true);
-      speakAccessibility('المساعد الصوتي، تفضل بنطق اسم السورة', { force: true });
-      setStatusText('أنا أستمع إليك الآن... تفضل بنطق اسم السورة');
+      speakAccessibility('المساعد الصوتي، تفضل بنطق اسم السورة أو إذاعة القرآن الكريم', { force: true });
+      setStatusText('أنا أستمع إليك الآن... تفضل بنطق اسم السورة أو الإذاعة');
 
       // Verify permission in background; only if explicitly false, show permission banner
       checkNativeAudioPermission().then((granted) => {
@@ -208,11 +208,11 @@ export default function BlindVoiceAssistantModal({
 
   const sampleCommands = [
     'سورة الكهف',
-    'سورة البقرة',
+    'إذاعة القرآن الكريم مصر',
+    'إذاعة السعودية',
     'سورة يس بصوت العفاسي',
-    'سورة الرحمن بصوت المعيقلي',
+    'إذاعات القرآن الكريم',
     'أين توقفت',
-    'إيقاف مؤقت',
   ];
 
   const handleSampleClick = (cmd: string) => {
@@ -265,7 +265,7 @@ export default function BlindVoiceAssistantModal({
             <span>المساعد الصوتي الذكي للمكفوفين</span>
           </div>
           <h2 id="voice-assistant-title" className="text-xl font-bold text-[#F7EED8]">
-            انطق اسم السورة للاستماع فوراً
+            انطق اسم السورة أو الإذاعة للاستماع فوراً
           </h2>
         </div>
 
@@ -309,7 +309,7 @@ export default function BlindVoiceAssistantModal({
             </p>
           ) : (
             <p className="text-xs text-white/60">
-              قل مثلاً: &ldquo;سورة الكهف&rdquo; أو &ldquo;سورة الرحمن بصوت المعيقلي&rdquo;
+              قل مثلاً: &ldquo;سورة الكهف&rdquo; أو &ldquo;إذاعة القرآن الكريم مصر&rdquo; أو &ldquo;إذاعات القرآن&rdquo;
             </p>
           )}
 
@@ -328,7 +328,7 @@ export default function BlindVoiceAssistantModal({
               <span>يلزم تفعيل إذن الميكروفون</span>
             </span>
             <p className="text-[11px] text-white/80 leading-relaxed">
-              لتتمكن من نطق اسم أي سورة والاستماع إليها فوراً، يرجى السماح بصلاحية الميكروفون.
+              لتتمكن من نطق اسم أي سورة أو إذاعة والاستماع إليها فوراً، يرجى السماح بصلاحية الميكروفون.
             </p>
             <div className="flex w-full gap-2 pt-1">
               <button
@@ -355,14 +355,14 @@ export default function BlindVoiceAssistantModal({
 
         {/* Quick Sample Voice Pills */}
         <div className="w-full">
-          <p className="text-[11px] text-[#F7EED8]/80 mb-2 font-semibold">أو اختر سورة بنقرة سريعة:</p>
-          <div className="grid grid-cols-2 gap-2">
-            {sampleCommands.slice(0, 4).map((cmd) => (
+          <p className="text-[11px] text-[#F7EED8]/80 mb-2 font-semibold">أو اختر سورة أو إذاعة بنقرة سريعة:</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {sampleCommands.map((cmd) => (
               <button
                 key={cmd}
                 type="button"
                 onClick={() => handleSampleClick(cmd)}
-                className="py-2 px-3 rounded-xl bg-white/10 hover:bg-[#C8A85B]/20 border border-white/10 hover:border-[#C8A85B]/50 text-xs text-white text-center transition cursor-pointer"
+                className="py-2 px-3 rounded-xl bg-white/10 hover:bg-[#C8A85B]/20 border border-white/10 hover:border-[#C8A85B]/50 text-xs text-white text-center transition cursor-pointer font-medium"
               >
                 {cmd}
               </button>
@@ -421,7 +421,7 @@ export default function BlindVoiceAssistantModal({
 
         {/* Guidance Footer */}
         <div className="w-full bg-[#0D281C]/90 p-2.5 rounded-xl border border-white/10 text-[11px] text-white/80 flex items-center justify-between">
-          <span>💡 يمكنك نطق: &ldquo;سورة الكهف بصوت العفاسي&rdquo;</span>
+          <span>💡 يمكنك نطق: &ldquo;افتح إذاعة القرآن الكريم مصر&rdquo; أو &ldquo;سورة الكهف بصوت العفاسي&rdquo;</span>
           <button
             type="button"
             onClick={() => {

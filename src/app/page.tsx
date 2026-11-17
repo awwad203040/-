@@ -304,9 +304,16 @@ export default function HomePage() {
     } else if (res.action === 'pause') {
       triggerHaptic('pause');
       audio.pause();
+      if (quranRadio.isPlaying) {
+        quranRadio.stopRadio();
+      }
     } else if (res.action === 'resume') {
       triggerHaptic('play');
-      audio.play();
+      if (quranRadio.currentStation && !quranRadio.isPlaying) {
+        quranRadio.togglePlayPause();
+      } else {
+        audio.play();
+      }
     } else if (res.action === 'next') {
       triggerHaptic('next');
       audio.playNextSurah();
@@ -324,8 +331,30 @@ export default function HomePage() {
     } else if (res.action === 'open_read_quran') {
       triggerHaptic('tap');
       setShowReadQuranModal(true);
+    } else if (res.action === 'open_radios') {
+      triggerHaptic('tap');
+      setShowRadiosModal(true);
+      speakAccessibility('تم فتح نافذة إذاعات القرآن الكريم', { force: true });
+      announceToScreenReader('تم فتح نافذة إذاعات القرآن الكريم');
+    } else if (res.action === 'play_radio') {
+      triggerHaptic('play');
+      const stId = res.stationId || 'cairo-egypt';
+      const targetStation = quranRadio.stations.find((st) => st.id === stId) || quranRadio.stations[0];
+      if (targetStation) {
+        // إذا كان هناك تلاوة عادية تعمل، نوقفها لتجنب تداخل الأصوات
+        if (audio.isPlaying) {
+          audio.pause();
+        }
+        quranRadio.playStation(targetStation);
+        setShowRadiosModal(true);
+        const speechMsg = `جاري تشغيل ${targetStation.name} وفتح نافذة الإذاعات`;
+        speakAccessibility(speechMsg, { force: true });
+        announceToScreenReader(speechMsg);
+      } else {
+        setShowRadiosModal(true);
+      }
     }
-  }, [selectedReciterId, currentReciter.name, audio]);
+  }, [selectedReciterId, currentReciter.name, audio, quranRadio]);
 
   // Keep a stable ref for handleVoiceCommandResult to avoid re-triggering effects
   const handleVoiceCommandResultRef = useRef(handleVoiceCommandResult);
