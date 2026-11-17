@@ -151,8 +151,10 @@ export interface PrayerTimesResult {
     name: string;
     key: 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
     time12: string;
+    remainingHours?: number;
     remainingMinutes: number;
     remainingSeconds: number;
+    remainingTotalSeconds?: number;
     remainingFormatted: string;
     isPastToday?: boolean;
   };
@@ -490,9 +492,7 @@ export function getFullPrayerTimes(
   const formattedRem =
     remainingSec <= 0
       ? 'حان الآن'
-      : remHours > 0
-      ? `${remHours} س و ${remMinutes} د`
-      : `${remMinutes} د و ${remSec} ث`;
+      : `${remHours} س : ${remMinutes} د : ${remSec} ث`;
 
   return {
     ...times,
@@ -506,8 +506,10 @@ export function getFullPrayerTimes(
       key: nextP.key,
       name: nextP.name,
       time12: formatTime12(nextP.time24),
+      remainingHours: remHours,
       remainingMinutes: remMinutes,
       remainingSeconds: remSec,
+      remainingTotalSeconds: remainingSec,
       remainingFormatted: formattedRem,
     },
     hijriDate: getHijriDate(currentDate),

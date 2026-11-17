@@ -136,13 +136,51 @@ export default function PrayerTimesModal({
             </span>
           </div>
 
-          {/* Countdown & Adhan Time Row */}
-          <div className="flex items-center justify-between gap-3 pt-0.5">
-            <div className="text-3xl sm:text-4xl font-extrabold text-[#F7EED8] tracking-wider font-mono drop-shadow-sm" dir="ltr">
-              {prayerData.nextPrayer.remainingFormatted}
-            </div>
+          {/* Countdown & Adhan Time Row (Hours, Minutes, Seconds side-by-side) */}
+          <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap sm:flex-nowrap">
+            {(prayerData.nextPrayer.remainingTotalSeconds ?? 1) <= 0 && prayerData.nextPrayer.remainingFormatted === 'حان الآن' ? (
+              <div className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-3 py-1.5 rounded-xl font-bold text-sm sm:text-base animate-pulse">
+                🕌 حان الآن موعد أذان {prayerData.nextPrayer.name}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap shrink-0" dir="rtl">
+                {/* Hours Box */}
+                <div className="flex items-center gap-1 bg-black/45 px-2 sm:px-2.5 py-1 rounded-xl border border-[#C8A85B]/40 shadow-inner">
+                  <span className="text-lg sm:text-2xl font-black font-mono text-[#F7EED8]" dir="ltr">
+                    {String(prayerData.nextPrayer.remainingHours ?? Math.floor((prayerData.nextPrayer.remainingTotalSeconds ?? 0) / 3600)).padStart(2, '0')}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-[#C8A85B] font-bold">
+                    ساعة
+                  </span>
+                </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-bold bg-black/40 px-3 py-1.5 rounded-xl border border-emerald-500/30 shrink-0">
+                <span className="text-sm sm:text-base font-bold text-[#C8A85B] select-none">:</span>
+
+                {/* Minutes Box */}
+                <div className="flex items-center gap-1 bg-black/45 px-2 sm:px-2.5 py-1 rounded-xl border border-[#C8A85B]/40 shadow-inner">
+                  <span className="text-lg sm:text-2xl font-black font-mono text-[#F7EED8]" dir="ltr">
+                    {String(prayerData.nextPrayer.remainingMinutes).padStart(2, '0')}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-[#C8A85B] font-bold">
+                    دقيقة
+                  </span>
+                </div>
+
+                <span className="text-sm sm:text-base font-bold text-[#C8A85B] select-none">:</span>
+
+                {/* Seconds Box */}
+                <div className="flex items-center gap-1 bg-black/45 px-2 sm:px-2.5 py-1 rounded-xl border border-[#C8A85B]/40 shadow-inner">
+                  <span className="text-lg sm:text-2xl font-black font-mono text-emerald-400" dir="ltr">
+                    {String(prayerData.nextPrayer.remainingSeconds).padStart(2, '0')}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-emerald-400 font-bold">
+                    ثانية
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-bold bg-black/40 px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-500/30 shrink-0 whitespace-nowrap">
               <span>⏰ موعد الأذان:</span>
               <span className="font-extrabold text-white text-xs sm:text-sm font-mono" dir="ltr">{prayerData.nextPrayer.time12}</span>
             </div>

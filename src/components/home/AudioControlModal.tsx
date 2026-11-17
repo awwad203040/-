@@ -267,48 +267,52 @@ export default function AudioControlModal({
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 w-full">
               <button
                 type="button"
                 onClick={() => {
                   const next = getNextSurahForReciter(selectedReciterId, selectedSurahForAudio);
                   onPlaySurah(next);
                 }}
-                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold cursor-pointer transition border border-white/10 shrink-0"
+                className="px-2 sm:px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-[#C8A85B] text-xs font-bold cursor-pointer transition border border-[#C8A85B]/30 shrink-0 flex items-center gap-1 active:scale-95 shadow-xs whitespace-nowrap"
                 title="السورة التالية"
               >
-                ⏭ السورة التالية
+                <span className="text-sm">⏭</span>
+                <span className="hidden min-[380px]:inline">السورة </span>
+                <span>التالية</span>
               </button>
 
-              <select
-                value={selectedSurahForAudio}
-                onChange={(e) => {
-                  const sNum = parseInt(e.target.value, 10);
-                  if (selectedReciterId === 114 && !isSurahAvailableForReciter(114, sNum)) {
-                    alert(`سورة ${SURAH_METADATA[sNum]?.name || sNum} غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ محمد رفعت (متوفر 31 سورة فقط).`);
-                    return;
-                  }
-                  onPlaySurah(sNum);
-                }}
-                className="flex-1 bg-[#123B2A] text-[#FFD700] font-bold text-xs sm:text-sm px-3 py-2 rounded-xl border border-[#C8A85B]/60 focus:outline-none cursor-pointer truncate"
-              >
-                {Object.values(SURAH_METADATA).map((s) => {
-                  const isAvail = selectedReciterId !== 114 || isSurahAvailableForReciter(114, s.number);
-                  return (
-                    <option
-                      key={s.number}
-                      value={s.number}
-                      className={`bg-[#123B2A] ${isAvail ? 'text-white' : 'text-white/40'}`}
-                    >
-                      {selectedReciterId === 114
-                        ? isAvail
-                          ? `📻 ${s.number}. سورة ${s.name} (متوفرة)`
-                          : `⚠️ ${s.number}. سورة ${s.name} (غير مسجلة بالإذاعة)`
-                        : `${s.number}. سورة ${s.name}`}
-                    </option>
-                  );
-                })}
-              </select>
+              <div className="flex-1 min-w-0">
+                <select
+                  value={selectedSurahForAudio}
+                  onChange={(e) => {
+                    const sNum = parseInt(e.target.value, 10);
+                    if (selectedReciterId === 114 && !isSurahAvailableForReciter(114, sNum)) {
+                      alert(`سورة ${SURAH_METADATA[sNum]?.name || sNum} غير متوفرة ضمن التسجيلات الإذاعية النادرة للشيخ محمد رفعت (متوفر 31 سورة فقط).`);
+                      return;
+                    }
+                    onPlaySurah(sNum);
+                  }}
+                  className="w-full bg-[#123B2A] text-[#FFD700] font-bold text-xs sm:text-sm px-2 sm:px-3 py-2 rounded-xl border-2 border-[#C8A85B]/60 focus:outline-none focus:border-[#C8A85B] cursor-pointer truncate text-center"
+                >
+                  {Object.values(SURAH_METADATA).map((s) => {
+                    const isAvail = selectedReciterId !== 114 || isSurahAvailableForReciter(114, s.number);
+                    return (
+                      <option
+                        key={s.number}
+                        value={s.number}
+                        className={`bg-[#123B2A] ${isAvail ? 'text-white' : 'text-white/40'}`}
+                      >
+                        {selectedReciterId === 114
+                          ? isAvail
+                            ? `📻 ${s.number}. سورة ${s.name} (متوفرة)`
+                            : `⚠️ ${s.number}. سورة ${s.name} (غير مسجلة بالإذاعة)`
+                          : `${s.number}. سورة ${s.name}`}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
 
               <button
                 type="button"
@@ -316,10 +320,12 @@ export default function AudioControlModal({
                   const prev = getPreviousSurahForReciter(selectedReciterId, selectedSurahForAudio);
                   onPlaySurah(prev);
                 }}
-                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-[#C8A85B] text-xs font-bold cursor-pointer transition border border-white/10 shrink-0"
+                className="px-2 sm:px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-[#C8A85B] text-xs font-bold cursor-pointer transition border border-[#C8A85B]/30 shrink-0 flex items-center gap-1 active:scale-95 shadow-xs whitespace-nowrap"
                 title="السورة السابقة"
               >
-                ⏮ السابقة
+                <span className="text-sm">⏮</span>
+                <span className="hidden min-[380px]:inline">السورة </span>
+                <span>السابقة</span>
               </button>
             </div>
           </div>
