@@ -138,9 +138,9 @@ public class NoorAudioService extends Service {
         // Cancel previous timeout
         cancelTimeout();
 
-        // Timeout watchdog (270 seconds) in case of unexpected lock (adhan audio is 246s)
+        // Timeout watchdog (240 seconds) in case of unexpected lock (adhan audio is 223s)
         timeoutRunnable = this::stopPlaybackAndService;
-        handler.postDelayed(timeoutRunnable, 270000L);
+        handler.postDelayed(timeoutRunnable, 240000L);
 
         // Play Mohamed Jazi Azan audio
         int soundResId = getResources().getIdentifier("adhan", "raw", getPackageName());

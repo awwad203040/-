@@ -113,7 +113,7 @@ export async function playTestAdhanSound(onEnded?: () => void) {
           webAdhanAudio.pause();
           webAdhanAudio.currentTime = 0;
         }
-        webAdhanAudio = new Audio('/audio/adhan.ogg?v=mohamed-jazi-v3');
+        webAdhanAudio = new Audio('/audio/adhan.ogg?v=mohamed-jazi-trimmed-v4');
         webAdhanAudio.volume = 1.0;
         if (onEnded) {
           webAdhanAudio.onended = onEnded;

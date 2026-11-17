@@ -184,7 +184,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             }
         };
 
-        new Handler(Looper.getMainLooper()).postDelayed(cleanup, 270000L); // 270s watchdog timeout (adhan audio is 246s)
+        new Handler(Looper.getMainLooper()).postDelayed(cleanup, 240000L); // 240s watchdog timeout (adhan audio is 223s)
 
         try {
             PrayerFlashSilentHelper.startAdhanFlashlight(context);

@@ -76,8 +76,8 @@ public class PrayerFlashSilentHelper {
                 Log.i(TAG, "Adhan camera flashlight strobe started on camera " + cameraId);
                 long startTime = System.currentTimeMillis();
 
-                // Loop while isFlashing is true (safety timeout 255s matching Adhan duration ~245s)
-                while (isFlashing && (System.currentTimeMillis() - startTime < 255000L)) {
+                // Loop while isFlashing is true (safety timeout 235s matching Adhan duration ~223s)
+                while (isFlashing && (System.currentTimeMillis() - startTime < 235000L)) {
                     try {
                         cameraManager.setTorchMode(cameraId, true);
                         Thread.sleep(450L);
