@@ -40,9 +40,6 @@ public class ScreenUnlockService extends Service {
     public static final int NOTIFICATION_ID_SERVICE = 8881; // Shares the ongoing Salatuk prayer notification slot
 
     private static volatile boolean isServiceRunning = false;
-    private static volatile boolean wasScreenOff = true;
-    private static long lastTriggerTime = 0L;
-    private static final long COOLDOWN_MS = 5000L; // 5 seconds cooldown
 
     private BroadcastReceiver screenStateReceiver = null;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -176,30 +173,8 @@ public class ScreenUnlockService extends Service {
                     if (intent == null) return;
                     String action = intent.getAction();
                     Log.i(TAG, "Screen event received in ScreenUnlockService: " + action);
-
-                    // 1. Phone was locked / closed / screen off
-                    if (Intent.ACTION_SCREEN_OFF.equals(action)) {
-                        wasScreenOff = true;
-                        Log.d(TAG, "Screen turned OFF. Ready for unlock trigger.");
-                        return;
-                    }
-
-                    // 2. Phone was opened / turned on / unlocked
-                    if (Intent.ACTION_USER_PRESENT.equals(action) || Intent.ACTION_SCREEN_ON.equals(action)) {
-                        long now = System.currentTimeMillis();
-                        if (now - lastTriggerTime < COOLDOWN_MS) {
-                            Log.d(TAG, "Unlock Salawat skipped due to cooldown (" + (now - lastTriggerTime) + "ms)");
-                            return;
-                        }
-
-                        // Trigger if screen was actually closed/off or on USER_PRESENT
-                        if (wasScreenOff || Intent.ACTION_USER_PRESENT.equals(action)) {
-                            wasScreenOff = false;
-                            lastTriggerTime = now;
-                            Log.i(TAG, "Executing 'صلي على النبي محمد' via ScreenUnlockService!");
-                            ScreenUnlockReceiver.playSalawatDirect(getApplicationContext());
-                        }
-                    }
+                    // Centralized, synchronized handler prevents duplicate triggers
+                    ScreenUnlockReceiver.handleScreenEvent(context, action, null);
                 }
             };
 
