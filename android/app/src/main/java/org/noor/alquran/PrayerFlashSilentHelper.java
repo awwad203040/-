@@ -140,6 +140,19 @@ public class PrayerFlashSilentHelper {
     }
 
     /**
+     * Checks if Do Not Disturb / Notification Policy Access is granted.
+     */
+    public static boolean isNotificationPolicyAccessGranted(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || context == null) return true;
+        try {
+            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            return nm != null && nm.isNotificationPolicyAccessGranted();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
      * Puts phone into silent mode for 20 minutes during Salah,
      * Strictly SILENT - NEVER VIBRATE.
      * Automatically restores original ringer mode after 20 minutes.
@@ -150,30 +163,35 @@ public class PrayerFlashSilentHelper {
             AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             if (am == null) return;
 
-            int originalMode = am.getRingerMode();
-            int origRingVol = -1;
-            int origNotifVol = -1;
+            android.content.SharedPreferences prefs = context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE);
+            boolean alreadyActive = prefs.getBoolean("silent_is_active", false);
+
+            int currentMode = am.getRingerMode();
+            int currentRingVol = -1;
+            int currentNotifVol = -1;
             try {
-                origRingVol = am.getStreamVolume(AudioManager.STREAM_RING);
-                origNotifVol = am.getStreamVolume(AudioManager.STREAM_NOTIFICATION);
+                currentRingVol = am.getStreamVolume(AudioManager.STREAM_RING);
+                currentNotifVol = am.getStreamVolume(AudioManager.STREAM_NOTIFICATION);
             } catch (Exception ignored) {}
 
-            // Save original mode and volumes in prefs
-            context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE)
-                    .edit()
-                    .putInt("original_ringer_mode", originalMode)
-                    .putInt("original_ring_vol", origRingVol)
-                    .putInt("original_notif_vol", origNotifVol)
-                    .putLong("silent_start_time", System.currentTimeMillis())
-                    .apply();
-
-            boolean policyGranted = false;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                policyGranted = nm != null && nm.isNotificationPolicyAccessGranted();
+            // Only capture original settings if we are not already in a prayer silent session
+            // and the phone is not currently silent
+            if (!alreadyActive && currentMode != AudioManager.RINGER_MODE_SILENT) {
+                prefs.edit()
+                        .putInt("original_ringer_mode", currentMode)
+                        .putInt("original_ring_vol", currentRingVol)
+                        .putInt("original_notif_vol", currentNotifVol)
+                        .putBoolean("silent_is_active", true)
+                        .putLong("silent_start_time", System.currentTimeMillis())
+                        .apply();
             } else {
-                policyGranted = true;
+                prefs.edit()
+                        .putBoolean("silent_is_active", true)
+                        .putLong("silent_start_time", System.currentTimeMillis())
+                        .apply();
             }
+
+            boolean policyGranted = isNotificationPolicyAccessGranted(context);
 
             try {
                 if (policyGranted) {
@@ -207,12 +225,13 @@ public class PrayerFlashSilentHelper {
             AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             if (am == null) return;
 
-            int originalMode = context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE)
-                    .getInt("original_ringer_mode", AudioManager.RINGER_MODE_NORMAL);
-            int origRingVol = context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE)
-                    .getInt("original_ring_vol", -1);
-            int origNotifVol = context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE)
-                    .getInt("original_notif_vol", -1);
+            android.content.SharedPreferences prefs = context.getSharedPreferences("NoorSilentPrefs", Context.MODE_PRIVATE);
+            int originalMode = prefs.getInt("original_ringer_mode", AudioManager.RINGER_MODE_NORMAL);
+            int origRingVol = prefs.getInt("original_ring_vol", -1);
+            int origNotifVol = prefs.getInt("original_notif_vol", -1);
+
+            // Mark session as ended
+            prefs.edit().putBoolean("silent_is_active", false).apply();
 
             try {
                 am.setRingerMode(originalMode);

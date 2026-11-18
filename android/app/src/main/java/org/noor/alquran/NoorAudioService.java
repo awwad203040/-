@@ -123,8 +123,6 @@ public class NoorAudioService extends Service {
         // Flash camera LED strobe alert when Adhan starts (only for real Adhan, NOT test)
         if (!isTestAdhan) {
             PrayerFlashSilentHelper.startAdhanFlashlight(this);
-            // Put phone on silent mode for 20 minutes of Salah with auto-restore
-            PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
         }
 
         // Build Salatuk notification

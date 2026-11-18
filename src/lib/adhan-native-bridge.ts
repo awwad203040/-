@@ -57,6 +57,8 @@ export interface AdhanNativePluginInterface {
   playTestUnlockSalawat(): Promise<{ success: boolean }>;
   startUnlockService(): Promise<{ success: boolean }>;
   getAppVersion(): Promise<{ versionCode: number; versionName: string }>;
+  checkNotificationPolicyAccess(): Promise<{ granted: boolean; error?: string }>;
+  openNotificationPolicySettings(): Promise<{ success: boolean }>;
 }
 
 const AdhanNative = registerPlugin<AdhanNativePluginInterface>('AdhanNative');
@@ -313,6 +315,31 @@ export async function getNativeAppVersion(): Promise<{ versionCode: number; vers
   }
   return null;
 }
+
+/**
+ * Checks if Do Not Disturb / Notification Policy Access is granted for auto silent mode
+ */
+export async function checkNativeNotificationPolicyAccess(): Promise<boolean> {
+  try {
+    const res = await AdhanNative.checkNotificationPolicyAccess();
+    return Boolean(res && res.granted);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Opens system Do Not Disturb access settings page so user can grant silent mode permission
+ */
+export async function openNativeNotificationPolicySettings(): Promise<boolean> {
+  try {
+    const res = await AdhanNative.openNotificationPolicySettings();
+    return Boolean(res && res.success);
+  } catch {
+    return false;
+  }
+}
+
 
 
 

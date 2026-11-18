@@ -453,5 +453,51 @@ public class AdhanNativePlugin extends Plugin {
             call.resolve(ret);
         }
     }
+
+    @PluginMethod
+    public void checkNotificationPolicyAccess(PluginCall call) {
+        try {
+            boolean granted = PrayerFlashSilentHelper.isNotificationPolicyAccessGranted(getContext());
+            JSObject ret = new JSObject();
+            ret.put("granted", granted);
+            call.resolve(ret);
+        } catch (Exception e) {
+            JSObject ret = new JSObject();
+            ret.put("granted", false);
+            ret.put("error", e.getMessage());
+            call.resolve(ret);
+        }
+    }
+
+    @PluginMethod
+    public void openNotificationPolicySettings(PluginCall call) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                Intent intent = new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+            } else {
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+            }
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            try {
+                Intent fallback = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                fallback.setData(Uri.parse("package:" + getContext().getPackageName()));
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallback);
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                call.resolve(ret);
+            } catch (Exception ex) {
+                call.reject("Could not open settings: " + ex.getMessage());
+            }
+        }
+    }
 }
 

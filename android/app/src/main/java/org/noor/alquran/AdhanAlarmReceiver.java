@@ -190,7 +190,6 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         try {
             if (!isTest) {
                 PrayerFlashSilentHelper.startAdhanFlashlight(context);
-                PrayerFlashSilentHelper.setSilentModeForPrayer(context, 20);
             }
             showAdhanHeadsUpNotification(context, prayerName, cityName, prayerTime12, hijriDate);
 
@@ -234,6 +233,9 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
 
             player.setVolume(1.0f, 1.0f);
             player.setOnCompletionListener(mp -> {
+                if (!isTest) {
+                    PrayerFlashSilentHelper.setSilentModeForPrayer(context, 20);
+                }
                 stopActivePlayer();
                 cleanup.run();
             });

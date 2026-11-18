@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   POPULAR_CITIES,
   CALCULATION_METHODS,
@@ -8,6 +8,10 @@ import {
 } from '@/lib/prayer-times';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { triggerHaptic } from '@/lib/accessibility';
+import {
+  checkNativeNotificationPolicyAccess,
+  openNativeNotificationPolicySettings,
+} from '@/lib/adhan-native-bridge';
 
 interface PrayerTimesModalProps {
   isOpen: boolean;
@@ -20,6 +24,30 @@ export default function PrayerTimesModal({
   onClose,
   prayerHook,
 }: PrayerTimesModalProps) {
+  const [isDndGranted, setIsDndGranted] = useState<boolean | null>(null);
+
+  const checkDnd = useCallback(async () => {
+    const granted = await checkNativeNotificationPolicyAccess();
+    setIsDndGranted(granted);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      checkDnd();
+      const onFocus = () => {
+        checkDnd();
+      };
+      window.addEventListener('focus', onFocus);
+      return () => window.removeEventListener('focus', onFocus);
+    }
+  }, [isOpen, checkDnd]);
+
+  const handleEnableDnd = async () => {
+    triggerHaptic('tap');
+    await openNativeNotificationPolicySettings();
+    setTimeout(checkDnd, 1500);
+  };
+
   if (!isOpen) return null;
 
   const {
@@ -292,6 +320,57 @@ export default function PrayerTimesModal({
               </button>
             )}
           </div>
+        </div>
+
+        {/* Silent Mode Status & Activation Card */}
+        <div className="bg-[#0D281C] p-3 rounded-2xl border border-[#C8A85B]/50 flex flex-col gap-2 shadow-sm shrink-0">
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-xl shrink-0">🔕</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs sm:text-sm font-bold text-[#F7EED8] truncate">
+                  الوضع الصامت بعد الأذان (20 دقيقة)
+                </span>
+                <span className="text-[10px] text-white/70 truncate">
+                  يتحول الجوال تلقائياً للصامت فور انتهاء الأذان لوقت الصلاة ثم يعود الرنين
+                </span>
+              </div>
+            </div>
+
+            {/* Status Badge */}
+            {isDndGranted === null ? (
+              <span className="text-[10px] bg-white/10 text-white/60 px-2 py-0.5 rounded-lg shrink-0">
+                فحص...
+              </span>
+            ) : isDndGranted ? (
+              <span className="text-[10px] bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-lg font-bold shrink-0 flex items-center gap-1 shadow-xs">
+                <span>✓</span>
+                <span>مفعّل وجاهز</span>
+              </span>
+            ) : (
+              <span className="text-[10px] bg-amber-500/25 text-amber-300 border border-amber-500/50 px-2.5 py-1 rounded-lg font-bold shrink-0 flex items-center gap-1 shadow-xs animate-pulse">
+                <span>⚠️</span>
+                <span>يتطلب إذن</span>
+              </span>
+            )}
+          </div>
+
+          {/* Action button if not granted */}
+          {isDndGranted === false && (
+            <div className="pt-2 border-t border-white/10 flex flex-col gap-1.5">
+              <p className="text-[11px] text-amber-200/90 leading-tight">
+                يحتاج التطبيق لصلاحية (الوصول لعدم الإزعاج) ليتمكن نظام أندرويد من كتم صوت الهاتف تلقائياً أثناء الصلاة.
+              </p>
+              <button
+                type="button"
+                onClick={handleEnableDnd}
+                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#C8A85B] to-[#dfc278] text-[#123B2A] text-xs font-bold flex items-center justify-center gap-1.5 hover:brightness-105 active:scale-95 transition cursor-pointer shadow-sm"
+              >
+                <span>⚙️</span>
+                <span>تفعيل صلاحية الصامت (عدم الإزعاج) بنقرة واحدة</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* City & Method Selectors in 2 Columns */}
