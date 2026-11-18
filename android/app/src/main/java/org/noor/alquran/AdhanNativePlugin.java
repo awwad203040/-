@@ -128,6 +128,9 @@ public class AdhanNativePlugin extends Plugin {
             String cityName = call.getString("cityName", "موقعك");
             String hijriDate = call.getString("hijriDate", null);
             String timerText = call.getString("timerText", "+ 00:00");
+            String nextPrayerName = call.getString("nextPrayerName", null);
+            String nextPrayerTime12 = call.getString("nextPrayerTime12", null);
+            String subText = call.getString("subText", null);
             boolean isAdhanAlert = Boolean.TRUE.equals(call.getBoolean("isAdhanAlert", false));
 
             PrayerNotificationHelper.showOngoingPrayerNotification(
@@ -137,6 +140,9 @@ public class AdhanNativePlugin extends Plugin {
                     cityName,
                     hijriDate,
                     timerText,
+                    nextPrayerName,
+                    nextPrayerTime12,
+                    subText,
                     isAdhanAlert
             );
             PrayerNotificationReceiver.scheduleNextMinuteUpdate(context);

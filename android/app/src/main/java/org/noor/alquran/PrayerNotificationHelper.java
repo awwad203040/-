@@ -239,6 +239,7 @@ public class PrayerNotificationHelper {
             String timerText,
             String nextPrayerName,
             String nextPrayerTime12,
+            String subText,
             boolean isAdhanAlert
     ) {
         ensureChannels(context);
@@ -278,9 +279,13 @@ public class PrayerNotificationHelper {
         }
         customViews.setTextViewText(R.id.salatuk_timer, "د " + safeTimerOnly);
 
-        String safeNextName = (nextPrayerName != null && !nextPrayerName.isEmpty()) ? nextPrayerName : "العصر";
-        String safeNextTime = (nextPrayerTime12 != null && !nextPrayerTime12.isEmpty()) ? nextPrayerTime12 : "00:00";
-        customViews.setTextViewText(R.id.salatuk_next_prayer, "الصلاة القادمة: " + safeNextName + " . " + safeNextTime);
+        if (subText != null && !subText.trim().isEmpty()) {
+            customViews.setTextViewText(R.id.salatuk_next_prayer, subText.trim());
+        } else {
+            String safeNextName = (nextPrayerName != null && !nextPrayerName.isEmpty()) ? nextPrayerName : "العصر";
+            String safeNextTime = (nextPrayerTime12 != null && !nextPrayerTime12.isEmpty()) ? nextPrayerTime12 : "00:00";
+            customViews.setTextViewText(R.id.salatuk_next_prayer, "الصلاة القادمة: " + safeNextName + " . " + safeNextTime);
+        }
 
         Bitmap mosqueIcon = getSalatukMosqueIcon(context);
         if (mosqueIcon != null) {
@@ -339,18 +344,34 @@ public class PrayerNotificationHelper {
             String cityName,
             String hijriDate,
             String timerText,
+            String nextPrayerName,
+            String nextPrayerTime12,
+            boolean isAdhanAlert
+    ) {
+        return buildSalatukNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextPrayerName, nextPrayerTime12, null, isAdhanAlert);
+    }
+
+    public static Notification buildSalatukNotification(
+            Context context,
+            String prayerName,
+            String prayerTime12,
+            String cityName,
+            String hijriDate,
+            String timerText,
             boolean isAdhanAlert
     ) {
         String nextName = null;
         String nextTime = null;
+        String subText = null;
         try {
             ActivePrayerInfo info = calculateCurrentActivePrayer(context);
             if (info != null) {
                 nextName = info.nextPrayerName;
                 nextTime = info.nextPrayerTime12;
+                subText = info.subText;
             }
         } catch (Exception ignored) {}
-        return buildSalatukNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextName, nextTime, isAdhanAlert);
+        return buildSalatukNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextName, nextTime, subText, isAdhanAlert);
     }
 
     public static class ActivePrayerInfo {
@@ -361,6 +382,7 @@ public class PrayerNotificationHelper {
         public String timerText;
         public String nextPrayerName;
         public String nextPrayerTime12;
+        public String subText;
     }
 
     public static ActivePrayerInfo calculateCurrentActivePrayer(Context context) {
@@ -414,36 +436,61 @@ public class PrayerNotificationHelper {
             elapsedSec = Math.max(0, nowTotalSec - prayerSecs[activeIdx]);
         }
 
-        String timerText;
-        if (elapsedSec < 3600) {
-            int m = elapsedSec / 60;
-            int s = elapsedSec % 60;
-            timerText = String.format(Locale.US, "+ %02d:%02d", m, s);
-        } else {
-            int h = elapsedSec / 3600;
-            int m = (elapsedSec % 3600) / 60;
-            timerText = String.format(Locale.US, "+ %02d:%02d", h, m);
-        }
-
-        String time12 = prefs.getString("time12_" + keys[activeIdx], null);
-        if (time12 == null || time12.isEmpty()) {
-            time12 = formatTime12(times24[activeIdx]);
-        }
-
         int nextIdx = (activeIdx + 1) % 5;
+        int remainingSec = (prayerSecs[nextIdx] >= nowTotalSec)
+                ? (prayerSecs[nextIdx] - nowTotalSec)
+                : (prayerSecs[nextIdx] + 24 * 3600 - nowTotalSec);
+
+        String activeTime12 = prefs.getString("time12_" + keys[activeIdx], null);
+        if (activeTime12 == null || activeTime12.isEmpty()) {
+            activeTime12 = formatTime12(times24[activeIdx]);
+        }
+
         String nextTime12 = prefs.getString("time12_" + keys[nextIdx], null);
         if (nextTime12 == null || nextTime12.isEmpty()) {
             nextTime12 = formatTime12(times24[nextIdx]);
         }
 
+        String displayPrayerName;
+        String displayPrayerTime12;
+        String timerText;
+        String subText;
+
+        // If within 1 hour after Adhan (elapsedSec < 3600):
+        // Show elapsed time since Adhan with '+' in red
+        // If after 1 hour (elapsedSec >= 3600):
+        // Switch to remaining time until next prayer with '-' in red
+        if (elapsedSec < 3600) {
+            displayPrayerName = names[activeIdx];
+            displayPrayerTime12 = activeTime12;
+            int m = elapsedSec / 60;
+            int s = elapsedSec % 60;
+            timerText = String.format(Locale.US, "+ %02d:%02d", m, s);
+            subText = "الصلاة القادمة: " + names[nextIdx] + " . " + nextTime12;
+        } else {
+            displayPrayerName = names[nextIdx];
+            displayPrayerTime12 = nextTime12;
+            if (remainingSec >= 3600) {
+                int h = remainingSec / 3600;
+                int m = (remainingSec % 3600) / 60;
+                timerText = String.format(Locale.US, "- %02d:%02d", h, m);
+            } else {
+                int m = remainingSec / 60;
+                int s = remainingSec % 60;
+                timerText = String.format(Locale.US, "- %02d:%02d", m, s);
+            }
+            subText = "الصلاة السابقة: " + names[activeIdx] + " . " + activeTime12;
+        }
+
         ActivePrayerInfo info = new ActivePrayerInfo();
-        info.prayerName = names[activeIdx];
-        info.prayerTime12 = time12;
+        info.prayerName = displayPrayerName;
+        info.prayerTime12 = displayPrayerTime12;
         info.cityName = cityName;
         info.hijriDate = hijriDate;
         info.timerText = timerText;
         info.nextPrayerName = names[nextIdx];
         info.nextPrayerTime12 = nextTime12;
+        info.subText = subText;
         return info;
     }
 
@@ -459,6 +506,7 @@ public class PrayerNotificationHelper {
                     info.timerText,
                     info.nextPrayerName,
                     info.nextPrayerTime12,
+                    info.subText,
                     false
             );
         } catch (Exception ignored) {}
@@ -473,14 +521,29 @@ public class PrayerNotificationHelper {
             String timerText,
             String nextPrayerName,
             String nextPrayerTime12,
+            String subText,
             boolean isAdhanAlert
     ) {
         try {
             NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm == null) return;
-            Notification notif = buildSalatukNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextPrayerName, nextPrayerTime12, isAdhanAlert);
+            Notification notif = buildSalatukNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextPrayerName, nextPrayerTime12, subText, isAdhanAlert);
             nm.notify(NOTIFICATION_ID_PRAYER, notif);
         } catch (Exception ignored) {}
+    }
+
+    public static void showOngoingPrayerNotification(
+            Context context,
+            String prayerName,
+            String prayerTime12,
+            String cityName,
+            String hijriDate,
+            String timerText,
+            String nextPrayerName,
+            String nextPrayerTime12,
+            boolean isAdhanAlert
+    ) {
+        showOngoingPrayerNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextPrayerName, nextPrayerTime12, null, isAdhanAlert);
     }
 
     public static void showOngoingPrayerNotification(
@@ -494,14 +557,16 @@ public class PrayerNotificationHelper {
     ) {
         String nextName = null;
         String nextTime = null;
+        String subText = null;
         try {
             ActivePrayerInfo info = calculateCurrentActivePrayer(context);
             if (info != null) {
                 nextName = info.nextPrayerName;
                 nextTime = info.nextPrayerTime12;
+                subText = info.subText;
             }
         } catch (Exception ignored) {}
-        showOngoingPrayerNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextName, nextTime, isAdhanAlert);
+        showOngoingPrayerNotification(context, prayerName, prayerTime12, cityName, hijriDate, timerText, nextName, nextTime, subText, isAdhanAlert);
     }
 
     public static void cancelOngoingPrayerNotification(Context context) {

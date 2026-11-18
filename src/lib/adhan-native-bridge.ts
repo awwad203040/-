@@ -34,6 +34,9 @@ export interface AdhanNativePluginInterface {
     cityName: string;
     hijriDate?: string;
     timerText: string;
+    nextPrayerName?: string;
+    nextPrayerTime12?: string;
+    subText?: string;
     isAdhanAlert?: boolean;
   }): Promise<{ success: boolean }>;
   cancelPrayerNotification(): Promise<{ success: boolean }>;
@@ -181,6 +184,9 @@ export async function updateNativePrayerNotification(options: {
   cityName: string;
   hijriDate?: string;
   timerText: string;
+  nextPrayerName?: string;
+  nextPrayerTime12?: string;
+  subText?: string;
   isAdhanAlert?: boolean;
 }) {
   try {

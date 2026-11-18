@@ -34,32 +34,63 @@ function getSalatukActivePrayer(
     return { ...p, totalSec: (h * 60 + m) * 60 };
   });
 
-  let active = prayerSecs[prayerSecs.length - 1]; // Default to Isha if before Fajr
-  let elapsedSec = currentTotalSec + (24 * 3600 - active.totalSec);
+  let activeIdx = prayerSecs.length - 1; // Default to Isha if before Fajr
+  let elapsedSec = currentTotalSec + (24 * 3600 - prayerSecs[activeIdx].totalSec);
 
   for (let i = prayerSecs.length - 1; i >= 0; i--) {
     if (currentTotalSec >= prayerSecs[i].totalSec) {
-      active = prayerSecs[i];
-      elapsedSec = currentTotalSec - active.totalSec;
+      activeIdx = i;
+      elapsedSec = currentTotalSec - prayerSecs[i].totalSec;
       break;
     }
   }
 
-  let timerText = '+ 00:00';
+  const active = prayerSecs[activeIdx];
+  const nextIdx = (activeIdx + 1) % prayerSecs.length;
+  const next = prayerSecs[nextIdx];
+
+  const remainingSec = (next.totalSec >= currentTotalSec)
+    ? (next.totalSec - currentTotalSec)
+    : (next.totalSec + 24 * 3600 - currentTotalSec);
+
+  let displayPrayerName: string;
+  let displayPrayerTime12: string;
+  let timerText: string;
+  let subText: string;
+
+  // For the first 1 hour after Adhan (elapsedSec < 3600):
+  // Show elapsed time since Adhan with '+' in red
+  // After 1 hour (elapsedSec >= 3600):
+  // Switch to remaining time until next prayer with '-' in red
   if (elapsedSec < 3600) {
+    displayPrayerName = active.name;
+    displayPrayerTime12 = active.time12Clean;
     const m = Math.floor(elapsedSec / 60);
     const s = elapsedSec % 60;
     timerText = `+ ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    subText = `الصلاة القادمة: ${next.name} . ${next.time12Clean}`;
   } else {
-    const h = Math.floor(elapsedSec / 3600);
-    const m = Math.floor((elapsedSec % 3600) / 60);
-    timerText = `+ ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    displayPrayerName = next.name;
+    displayPrayerTime12 = next.time12Clean;
+    if (remainingSec >= 3600) {
+      const h = Math.floor(remainingSec / 3600);
+      const m = Math.floor((remainingSec % 3600) / 60);
+      timerText = `- ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    } else {
+      const m = Math.floor(remainingSec / 60);
+      const s = remainingSec % 60;
+      timerText = `- ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    subText = `الصلاة السابقة: ${active.name} . ${active.time12Clean}`;
   }
 
   return {
-    prayerName: active.name,
-    prayerTime12: active.time12Clean,
+    prayerName: displayPrayerName,
+    prayerTime12: displayPrayerTime12,
     timerText,
+    nextPrayerName: next.name,
+    nextPrayerTime12: next.time12Clean,
+    subText,
   };
 }
 
@@ -209,6 +240,9 @@ export function usePrayerTimes() {
             cityName: updatedData.cityName,
             hijriDate: updatedData.hijriDate,
             timerText: salatukInfo.timerText,
+            nextPrayerName: salatukInfo.nextPrayerName,
+            nextPrayerTime12: salatukInfo.nextPrayerTime12,
+            subText: salatukInfo.subText,
             isAdhanAlert: false,
           }).catch(() => {});
         }
