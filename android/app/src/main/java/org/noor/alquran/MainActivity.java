@@ -381,11 +381,6 @@ public class MainActivity extends BridgeActivity {
             neededPermissions.add(Manifest.permission.RECORD_AUDIO);
         }
 
-        // 4. Camera Permission for Adhan Flashlight Strobe
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            neededPermissions.add(Manifest.permission.CAMERA);
-        }
-
         if (!neededPermissions.isEmpty()) {
             ActivityCompat.requestPermissions(this, neededPermissions.toArray(new String[0]), PERMISSION_REQ_CORE);
             return;

@@ -25,85 +25,13 @@ public class PrayerFlashSilentHelper {
     private static Thread flashThread = null;
 
     /**
-     * Continuous camera flashlight strobe for the full duration of Adhan.
-     * Flashlight only - ZERO vibration.
-     * Stops automatically when Adhan finishes or when stopCameraTorch is called.
+     * Camera flashlight strobe has been stopped per user request.
+     * Only the notification / logo indicator at the top of the screen operates during Adhan.
      */
     public static synchronized void startAdhanFlashlight(Context context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || context == null) return;
-        if (isFlashing) return;
-
-        isFlashing = true;
-        final Context appContext = context.getApplicationContext();
-
-        flashThread = new Thread(() -> {
-            CameraManager cameraManager = null;
-            String cameraId = null;
-            try {
-                cameraManager = (CameraManager) appContext.getSystemService(Context.CAMERA_SERVICE);
-                if (cameraManager == null) {
-                    isFlashing = false;
-                    return;
-                }
-
-                for (String id : cameraManager.getCameraIdList()) {
-                    CameraCharacteristics c = cameraManager.getCameraCharacteristics(id);
-                    Boolean flashAvailable = c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
-                    Integer facing = c.get(CameraCharacteristics.LENS_FACING);
-                    if (Boolean.TRUE.equals(flashAvailable) && facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) {
-                        cameraId = id;
-                        break;
-                    }
-                }
-
-                if (cameraId == null) {
-                    // Try any camera with flash if back-facing was not found
-                    for (String id : cameraManager.getCameraIdList()) {
-                        CameraCharacteristics c = cameraManager.getCameraCharacteristics(id);
-                        Boolean flashAvailable = c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
-                        if (Boolean.TRUE.equals(flashAvailable)) {
-                            cameraId = id;
-                            break;
-                        }
-                    }
-                }
-
-                if (cameraId == null) {
-                    isFlashing = false;
-                    return;
-                }
-
-                Log.i(TAG, "Adhan camera flashlight strobe started on camera " + cameraId);
-                long startTime = System.currentTimeMillis();
-
-                // Loop while isFlashing is true (safety timeout 235s matching Adhan duration ~223s)
-                while (isFlashing && (System.currentTimeMillis() - startTime < 235000L)) {
-                    try {
-                        cameraManager.setTorchMode(cameraId, true);
-                        Thread.sleep(450L);
-                        cameraManager.setTorchMode(cameraId, false);
-                        Thread.sleep(550L);
-                    } catch (InterruptedException ie) {
-                        break;
-                    } catch (Exception e) {
-                        Log.w(TAG, "Error toggling torch: " + e.getMessage());
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                Log.w(TAG, "Adhan flashlight execution failed: " + e.getMessage());
-            } finally {
-                isFlashing = false;
-                if (cameraManager != null && cameraId != null) {
-                    try {
-                        cameraManager.setTorchMode(cameraId, false);
-                    } catch (Exception ignored) {}
-                }
-                Log.i(TAG, "Adhan camera flashlight strobe ended.");
-            }
-        });
-        flashThread.setName("NoorAdhanFlashThread");
-        flashThread.start();
+        // Disabled per user instruction: camera flash is turned off completely.
+        // Only the notification logo flash indicator at the top of the screen remains active.
+        stopCameraTorch(context);
     }
 
     /**

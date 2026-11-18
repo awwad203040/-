@@ -188,9 +188,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
 
         boolean isTest = "test".equals(prayerKey) || (prayerName != null && prayerName.contains("تجربة"));
         try {
-            if (!isTest) {
-                PrayerFlashSilentHelper.startAdhanFlashlight(context);
-            }
+            // Camera LED flash disabled per user request: only top-of-screen notification flash operates
+            // PrayerFlashSilentHelper.startAdhanFlashlight(context);
             showAdhanHeadsUpNotification(context, prayerName, cityName, prayerTime12, hijriDate);
 
             int soundResId = context.getResources().getIdentifier("adhan", "raw", context.getPackageName());

@@ -315,7 +315,8 @@ public class PrayerNotificationHelper {
         if (isAdhanAlert) {
             builder.setPriority(NotificationCompat.PRIORITY_MAX)
                     .setCategory(NotificationCompat.CATEGORY_REMINDER)
-                    .setFullScreenIntent(openPi, true);
+                    .setFullScreenIntent(openPi, true)
+                    .setLights(Color.WHITE, 500, 500);
 
             // Add Stop Adhan button
             Intent stopIntent = new Intent(context, NoorAudioService.class);
@@ -334,6 +335,9 @@ public class PrayerNotificationHelper {
 
         Notification notification = builder.build();
         notification.flags |= Notification.FLAG_ONGOING_EVENT | Notification.FLAG_NO_CLEAR;
+        if (isAdhanAlert) {
+            notification.flags |= Notification.FLAG_SHOW_LIGHTS;
+        }
         return notification;
     }
 

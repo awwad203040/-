@@ -120,10 +120,8 @@ public class NoorAudioService extends Service {
         // Acquire WakeLock for up to 5 minutes (Azan length is ~3.7 min / 223s)
         acquireWakeLock(300000L);
 
-        // Flash camera LED strobe alert when Adhan starts (only for real Adhan, NOT test)
-        if (!isTestAdhan) {
-            PrayerFlashSilentHelper.startAdhanFlashlight(this);
-        }
+        // Camera LED flash disabled per user request: only top-of-screen notification flash operates
+        // PrayerFlashSilentHelper.startAdhanFlashlight(this);
 
         // Build Salatuk notification
         Notification notification = PrayerNotificationHelper.buildSalatukNotification(
