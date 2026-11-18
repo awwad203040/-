@@ -186,9 +186,12 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
 
         new Handler(Looper.getMainLooper()).postDelayed(cleanup, 240000L); // 240s watchdog timeout (adhan audio is 223s)
 
+        boolean isTest = "test".equals(prayerKey) || (prayerName != null && prayerName.contains("تجربة"));
         try {
-            PrayerFlashSilentHelper.startAdhanFlashlight(context);
-            PrayerFlashSilentHelper.setSilentModeForPrayer(context, 20);
+            if (!isTest) {
+                PrayerFlashSilentHelper.startAdhanFlashlight(context);
+                PrayerFlashSilentHelper.setSilentModeForPrayer(context, 20);
+            }
             showAdhanHeadsUpNotification(context, prayerName, cityName, prayerTime12, hijriDate);
 
             int soundResId = context.getResources().getIdentifier("adhan", "raw", context.getPackageName());

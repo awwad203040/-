@@ -58,6 +58,7 @@ public class NoorAudioService extends Service {
     private String currentAdhanCity = null;
     private String currentAdhanTime12 = null;
     private String currentAdhanHijri = null;
+    private boolean isTestAdhan = false;
 
     @Override
     public void onCreate() {
@@ -113,15 +114,18 @@ public class NoorAudioService extends Service {
         currentAdhanCity = cityName;
         currentAdhanTime12 = prayerTime12;
         currentAdhanHijri = hijriDate;
+        String prayerKey = intent.getStringExtra("prayer_key");
+        isTestAdhan = "test".equals(prayerKey) || (prayerName != null && prayerName.contains("تجربة"));
 
-        // Acquire WakeLock for up to 5 minutes (Azan length is ~4.1 min / 246s)
+        // Acquire WakeLock for up to 5 minutes (Azan length is ~3.7 min / 223s)
         acquireWakeLock(300000L);
 
-        // Flash camera LED strobe alert when Adhan starts (flashlight only, no vibration)
-        PrayerFlashSilentHelper.startAdhanFlashlight(this);
-
-        // Put phone on silent mode for 20 minutes of Salah with auto-restore
-        PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
+        // Flash camera LED strobe alert when Adhan starts (only for real Adhan, NOT test)
+        if (!isTestAdhan) {
+            PrayerFlashSilentHelper.startAdhanFlashlight(this);
+            // Put phone on silent mode for 20 minutes of Salah with auto-restore
+            PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
+        }
 
         // Build Salatuk notification
         Notification notification = PrayerNotificationHelper.buildSalatukNotification(
@@ -480,8 +484,10 @@ public class NoorAudioService extends Service {
         abandonAudioFocus();
         releaseWakeLock();
 
-        // Auto silent mode for 20 minutes starting immediately when Adhan finishes
-        PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
+        // Auto silent mode for 20 minutes starting immediately when Adhan finishes (only for real Adhan)
+        if (!isTestAdhan) {
+            PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
+        }
 
         // Transition to ongoing silent prayer notification card
         if (currentAdhanPrayer != null && !currentAdhanPrayer.isEmpty()) {
@@ -536,8 +542,8 @@ public class NoorAudioService extends Service {
         abandonAudioFocus();
         releaseWakeLock();
 
-        // If stopped during Adhan (e.g. user pressed stop button), activate silent mode and transition to ongoing prayer bar
-        if (currentAdhanPrayer != null && !currentAdhanPrayer.isEmpty()) {
+        // If stopped during real Adhan (e.g. user pressed stop button), activate silent mode and transition to ongoing prayer bar
+        if (!isTestAdhan && currentAdhanPrayer != null && !currentAdhanPrayer.isEmpty()) {
             PrayerFlashSilentHelper.setSilentModeForPrayer(this, 20);
             int mins = adhanElapsedSeconds / 60;
             int secs = adhanElapsedSeconds % 60;

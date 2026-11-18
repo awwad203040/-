@@ -453,10 +453,12 @@ export function usePrayerTimes() {
   useEffect(() => {
     if (typeof window !== 'undefined' && !initialGpsDone.current) {
       initialGpsDone.current = true;
-      // Automatically detect and update user location silently in the background
-      requestGpsLocation(false);
+      // Automatically detect and update user location silently in the background ONLY if user enabled GPS
+      if (settings.useGps) {
+        requestGpsLocation(false);
+      }
     }
-  }, [requestGpsLocation]);
+  }, [requestGpsLocation, settings.useGps]);
 
   return {
     prayerData,
